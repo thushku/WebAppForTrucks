@@ -4,8 +4,8 @@
 
 | Phase | Goal | Main contents |
 |---|---|---|
-| **1 — India MVP** | A small Indian fleet can run every trip on the platform | Web app (trips, approvals, settlement, trucks, people, live map, reports, accounting core India phase 1, super-admin, security); mobile API; crew app + owner app (Android, English); marketing website with trial sign-up |
-| **2 — India complete** | Replace paper, Excel and Tally for transporters | Payroll (Labour Codes), tyres, e-way bill API, FASTag and fuel-card statement import, reading receipts/odometers from photos automatically (OCR), Hindi + regional languages, share LR/invoice on WhatsApp, iOS apps (B4I) |
+| **1 — India MVP** | A small Indian fleet can run every trip on the platform | Web app (trips, approvals, settlement, trucks, people, live map, reports, accounting core India phase 1, super-admin, security); mobile API; crew app + owner app (Android, English); marketing website with trial sign-up. Launch extras from the research: fuel "soft audit" and photo-reuse checks, expired documents block dispatch, export on every plan (Excel/PDF/Tally), WhatsApp-shareable PDFs (settlement, ledger, trip profit, LR) through the phone's share button, "phone stopped reporting" alert, LR + digital POD with detention calculator, e-way bill register, configurable labels and custom fields (so buses, tankers, tippers can use it later) |
+| **2 — India complete** | Replace paper, Excel and Tally for transporters | Payroll (Labour Codes), tyres, e-way bill API, FASTag and fuel-card statement import, reading receipts/odometers from photos automatically (OCR), Hindi + regional languages, automatic WhatsApp reminders (WhatsApp Business API), iOS apps (B4I) |
 | **3 — UAE launch** | Same product for UAE fleets | UAE installation (UAE hosting), VAT engine, PINT-AE e-invoicing through an accredited provider, WPS salary file, UAE payroll rules, Salik/Darb import, fines and black points, truck-ban zones, Arabic for office users |
 | **4 — Growth** | Bigger fleets and more industries | Hired/attached trucks and brokers, GPS device integrations (AIS-140, UAE-approved trackers), customer tracking link for shippers, maintenance predictions, more countries |
 
@@ -37,7 +37,18 @@ Each milestone ends with automated tests passing and a push to the branch.
 3. Owner app: dashboard, approvals inbox, live map, trips, trucks, crew, alerts.
 4. Field test with one real truck before release.
 
-## 4. Decisions needed from you
+## 4. Recommended checks before and during the build (from the research)
+
+1. Hands-on test of the closest rivals: Trucksarthi (owner + driver app),
+   TransportBook, Fleetx Driver, WheelsEye; a demo of Truckoom (UAE).
+2. 10–15 short interviews with owners of 1–50 trucks in India to confirm bata
+   rules, settlement habits, LR payment types and typical expense amounts.
+3. CA review of the India "(verify)" items; UAE tax agent review before the
+   UAE phase.
+4. One-truck field pilot of the crew app (battery, photos, offline) before
+   general release.
+
+## 5. Decisions needed from you
 
 | # | Decision | Needed before |
 |---|---|---|

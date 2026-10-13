@@ -390,8 +390,13 @@ Server confirms each entry by its ID ── status: SENT ✓
 ## 5. Permissions the crew app asks for (in this order, with a simple reason screen before each)
 
 1. Location "while using the app" — "To record where each entry was made."
-2. Location "all the time" — "To track the truck during your trip, even when
-   the phone is locked." (Asked only when the first trip starts.)
+   Together with the location foreground service started by **Start duty**,
+   this is enough to track all day with the screen locked.
+2. Location "all the time" — **not asked in version 1.** It is only needed to
+   restart tracking by itself after a phone reboot, and it brings a strict
+   Google Play review. Instead, after a reboot the app shows a notification:
+   "Tap to resume trip tracking". The office also gets an alert when a crew
+   phone stops sending GPS for a set time (for example 25 minutes).
 3. Camera — "To take photos of meters and receipts."
 4. Notifications — "To tell you about new trips and approvals."
 5. **Phone health check** screen (not a system prompt) — "So your phone does
@@ -405,9 +410,12 @@ Technical notes for the phone-app session (from research, 2026):
   permanent notification. On Android 14+ it must be started while an app screen
   is open, so tracking starts when the crew member taps **Start duty** or
   **Start trip**. This matches our flow.
-- Restarting tracking after a phone reboot needs the "all the time" location
-  permission, which needs a Google Play declaration with a short video and a
-  clear in-app explanation before the permission prompt.
+- Restarting tracking after a phone reboot without a tap would need the "all
+  the time" location permission, which needs a Google Play declaration with a
+  short video and a clear in-app explanation. Version 1 avoids it (see item 2
+  above).
+- When two crew members share one phone, each enters their own PIN, so every
+  entry belongs to a person, not a device.
 - Do not use the `dataSync` service type for uploads (Android 15 limits it to
   6 hours a day). Uploads run inside the location service or as short jobs.
 - Play target: new apps and updates must target **API 36** from 31 Aug 2026.

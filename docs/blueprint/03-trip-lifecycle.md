@@ -97,10 +97,11 @@ It is saved in the audit log.
 | Section | Fields |
 |---|---|
 | Basics | Trip date, trip type (loaded / empty / round trip), linked trip (return of), branch (optional) |
-| Truck | Truck (only trucks that are free and have valid documents; warning if insurance/permit/fitness expired) |
-| Crew | Driver (required), co-driver (optional), helper(s) (optional). Shows each person's licence expiry, current status, last trip end. |
+| Truck | Truck and trailer (if any). Only free trucks are listed. An **expired** document (insurance, fitness, permit, PUC, tracker; UAE registration/permits) **blocks dispatch** unless a manager overrides it with a written reason (logged). Documents expiring within the reminder window show a warning. |
+| Crew | Driver (required), co-driver (optional), helper(s) (optional). Shows each person's licence expiry, current status, last trip end. An expired licence blocks dispatch the same way. |
 | Route | From, to, stops in order (loading/unloading/other); planned km (from map or typed); planned route on map (optional) |
-| Consignments | Party (shipper), consignee, material, quantity and unit (MT / kg / bags / boxes), freight basis (fixed / per tonne / per km), rate, freight amount, advance from party, LR number (auto or manual), e-way bill no. (India), invoice/delivery note no. |
+| Consignments | Billing party, consignor (shipper), consignee, broker and commission (optional), material, packages, quantity and unit (MT / kg / bags / boxes), declared weight, freight basis (fixed / per tonne / per km / per package), rate, freight amount, advance from party, **LR payment type (Paid / To-Pay / To-Be-Billed)**, **GST payable by** (consignor / consignee / transporter), LR number (auto or typed from a printed LR book), e-way bill no. and expiry (India), consignor invoice no. and value, hazardous / over-dimension flags, seal or container no. **UAE:** transport type (domestic / export / import / UAE leg of international) and "we are main carrier / subcontractor" (decides 0% or 5% VAT). |
+| Detention | Free waiting hours and rate per day; detention is calculated automatically from the reached/unloaded times recorded on the POD |
 | Cash | Advance given to each crew member (cash / UPI / bank), fuel card / FASTag assigned |
 | Plan | Planned start time, expected delivery time, budget (fuel, tolls, bata) for comparison later |
 | Notes | Instructions to the crew (text or voice) |
@@ -152,6 +153,27 @@ from, to): planned km, toll budget, fuel budget, freight rate.
 
 **Photos** are always taken with the in-app camera (no gallery), shrunk to a
 small size on the phone before upload, and stamped with time and GPS.
+
+**Fuel extras:** AdBlue litres (optional). **UAE:** supplier TRN and VAT amount,
+so input VAT can be recovered.
+
+### 5.2a Automatic checks (flags for the manager, never a block on saving)
+
+Saving on the phone is never blocked, because a driver with no signal must
+always be able to record. Instead the server flags entries in the approvals
+inbox:
+
+| Check | Flag when |
+|---|---|
+| Odometer order | Lower than the previous reading for this truck |
+| Fuel mileage | km/l since the last full tank is outside the truck's normal range |
+| Fuel place | Entry is more than ~300 m from the truck's GPS track, or the truck did not stop there |
+| Tank size | Litres more than the tank capacity |
+| Same photo twice | Photo fingerprint matches an earlier photo |
+| Fake GPS | Phone reported a mock location, or impossible speed (> 150 km/h) between points |
+| Clock changed | Phone time differs from the rebuilt "trusted time" by more than 5 minutes |
+| Late entry | Entered long after the event time it claims |
+| Cash limit (India) | Cash to one payee in a day above ₹35,000 (goods-carriage limit) |
 
 ### 5.3 Editing and deleting entries
 
@@ -208,6 +230,9 @@ odometer (or takes a photo). Ravi's driving time stops; Suresh's starts.
 - A driver change can only be confirmed while the truck is **stopped** (GPS
   speed near zero). If the truck is moving, the app says "Stop the truck
   first". The same rule is used by leading US logging apps for co-driver swaps.
+- The incoming driver confirms with **their own PIN**, even on a shared phone.
+  If both drivers have phones, the server checks the two phones were within
+  about 200 m of each other at that time.
 - The server combines the driver-change log with the GPS track (moving /
   stopped) to calculate:
   - driving time per driver, per trip, per day, per week

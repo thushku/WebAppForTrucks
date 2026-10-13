@@ -59,7 +59,7 @@ documents are in `07-accounting.md`. Laravel migrations will follow this file.
 
 | Table | Key columns |
 |---|---|
-| `trucks` | reg_no (unique per company), type, make, model, year, chassis no, engine no, wheels/axles, capacity (MT), body type, fuel tank (L), normal mileage min/max (km/l), ownership (own/attached), owner party (if attached), status (idle/on_trip/workshop/breakdown/sold), odometer, FASTag/Salik tag no, GPS device id, account_id (for cost centre) |
+| `trucks` | reg_no (unique per company), registration state/emirate, type, make, model, year, chassis no, engine no, emission norm, fuel type, wheels/axle configuration, lift axle, body type (open/container SXL-MXL/trailer/tipper/tanker/reefer/…), deck length, rate-card label (e.g. "32 ft MXL"), GVW, unladen weight, payload (MT), fuel tank (L), normal mileage loaded/empty (km/l), financier and EMI day, ownership (own/attached), owner party (if attached), linked trailer, status (idle/on_trip/workshop/breakdown/out_of_service/sold), odometer, FASTag/Salik tag no, tracker device id (AIS-140 / SecurePath / Asateel), account_id (for cost centre) |
 | `truck_documents` | truck, document type (RC/Mulkiya, insurance, fitness, permit, PUC, road tax…), number, issued_on, expires_on, amount, file, reminder days |
 | `tyres` | serial no, brand, size, type (new/retread), purchase date, cost, vendor, status (in store / fitted / retreading / scrapped) |
 | `tyre_fitments` | tyre, truck, position (e.g. "R2-OUT"), fitted_at, fitted_odo, removed_at, removed_odo, reason |
@@ -83,10 +83,10 @@ documents are in `07-accounting.md`. Laravel migrations will follow this file.
 
 | Table | Key columns |
 |---|---|
-| `trips` | number (unique per company), date, type (loaded/empty/round), status, truck, branch, from_place, to_place, planned_km, start_odo, end_odo, actual_km, started_at, ended_at, settled_at, closed_at, linked_trip_id, budget JSON, instructions, ended_early flag |
+| `trips` | number (unique per company), date, type (own load/market load/contract/return/empty/round), status, truck, trailer, branch, from_place, to_place, planned_km, start_odo, end_odo, actual_km, started_at, ended_at, settled_at, closed_at, linked_trip_id, budget JSON, instructions, ended_early flag |
 | `trip_crew` | trip, person, role (driver/co_driver/helper), accepted_at, rejected_at, reject_reason |
 | `trip_stops` | trip, sequence, place, type (loading/unloading/fuel/border/other), planned_at, arrived_at, left_at |
-| `consignments` | trip, party (shipper), consignee, material, qty, unit, rate basis, rate, freight, advance, LR number, e-way bill no / delivery note no, invoice_id, loaded_qty, delivered_qty, shortage, POD received_at |
+| `consignments` | trip, billing party, consignor, consignee, broker + commission, material, packages, qty, unit, declared/actual/charged weight, rate basis, rate, freight, hamali/other charges, advance, TDS deducted by party, LR number, LR payment type (paid/to-pay/to-be-billed), GST payable by, e-way bill no + expiry / delivery note no, consignor invoice no + value, hazardous / ODC flags, seal/container no, UAE transport type + main-carrier flag, invoice_id, loaded_qty, delivered_qty, shortage, detention free hours + rate + days, POD received_at |
 | `trip_events` | **uuid**, trip, type, entered_by, device_id, event_at (phone time), received_at (server time), phone uptime, gps lat/lng/accuracy, mock_location flag, place_id, odometer, amount, payment_mode, category, details JSON (type-specific fields), status, late_entry flag, cancel_reason |
 | `event_photos` | **uuid**, event, kind (odometer/meter/receipt/slip/POD/other), path, bytes, width, height, sha256, perceptual hash, taken_at, gps |
 | `event_approvals` | event, step (second_driver/manager), user, decision (approve/reject/query), note, at |
@@ -107,6 +107,8 @@ documents are in `07-accounting.md`. Laravel migrations will follow this file.
 |---|---|
 | `gps_points` | company, person, trip (nullable), device time, lat, lng, accuracy, speed, heading, battery %, mock flag, received_at |
 
+- A small **`last_positions`** table (one row per person and per truck) is updated
+  on every batch, so the live map never searches the big table.
 - **Partitioned by month** (MySQL RANGE partitions), so old months can be
   archived or dropped quickly and recent months stay fast.
 - Index `(company_id, trip_id, device_time)` and `(company_id, person_id, device_time)`.

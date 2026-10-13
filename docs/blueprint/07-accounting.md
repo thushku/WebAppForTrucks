@@ -210,8 +210,8 @@ regional site. This meets both countries' hosting rules simply.
 
 | Phase | Scope |
 |---|---|
-| **1 (with first India launch)** | Accounting core, automatic entries from trips and settlements, LR, GST tax invoice / bill of supply, credit notes, receipts and payments, outstanding, bank reconciliation, statements, audit trail, Tally/Excel export, GSTR-1/3B data, TDS tracking, cash-limit warnings |
-| **2** | Payroll (India Labour Codes), e-way bill API, fixed assets and depreciation, presumptive income, MSME report |
+| **1 (with first India launch)** | Accounting core, automatic entries from trips and settlements, LR, GST tax invoice / bill of supply, credit notes, receipts and payments, outstanding, bank reconciliation, statements, audit trail, Tally/Excel export, GSTR-1/3B data, TDS tracking, cash-limit warnings, **e-way bill register** (numbers typed in, validity countdown, vehicle-change prompt) |
+| **2** | Payroll (India Labour Codes), e-way bill API link (auto Part B update), fixed assets and depreciation, presumptive income, MSME report |
 | **3 (before UAE launch)** | UAE pack: VAT engine, tax invoice, PINT-AE e-invoice via ASP, WPS SIF, UAE payroll, Salik/Darb import, fines register, corporate tax data |
 | Later | India e-invoice (IRN) for non-GTA supplies, other countries |
 

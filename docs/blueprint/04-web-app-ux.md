@@ -122,6 +122,7 @@ Settings
  ├── Number formats (trip, LR, invoice, receipt…)
  ├── Masters (places + short codes, materials, expense categories,
  │            truck types, leave types, document types)
+ ├── Labels & custom fields (rename "Trip" to "Run"/"Hire", add extra fields)
  ├── Subscription & billing
  ├── Audit log
  └── Data export
@@ -146,6 +147,7 @@ Settings
 │                                            │ Ravi 5 h non-stop driving │
 │                                            │ Fuel mismatch MH12XY9876  │
 │                                            │ Truck stopped 3 h (Pune)  │
+│                                            │ No GPS from Anil 25 min   │
 ├────────────────────────────────────────────┼───────────────────────────┤
 │ 📈 Income vs cost — last 6 months           │ 🧾 Spending today          │
 │   [ bar chart ]                            │ Fuel 39,100 · Toll 6,250  │
