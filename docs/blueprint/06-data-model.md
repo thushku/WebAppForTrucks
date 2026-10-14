@@ -253,3 +253,24 @@ branch, packages, volume, status, nullable trip; `consignment_deliveries`
 `consignment_cost_allocations`, `stop_tasks`, `broker_commissions`; phase 2:
 `manifests`, `manifest_lines`, `godown_stock`, `delivery_runs`,
 `delivery_run_lines`, `branch_transfers`.
+
+---
+
+## 13. Additions from the Trucksarthi code study (14 Oct 2026)
+
+From `13-parity-additions.md` §C:
+
+| Table | Change |
+|---|---|
+| `places` | add `address` (multi-line; required for customer sites) |
+| `trucks` | add `rc_owner_name` (required), `vehicle_class`, `registered_rto`, `registration_date` (year derived; vehicle age shown) |
+| `trips` | add `office_note` (office only); `consignments` add `other_charges` (billed to client, income) |
+| `party_contacts` | add `alt_mobile` |
+| `users` / `accounts` | add `photo`, `date_of_birth` (optional) |
+| `bank_accounts` | add `account_holder_name` |
+| `notifications` | add `priority` (high / medium / low) |
+| `payroll_runs` | new: period_start, period_end, type (monthly / fortnightly / weekly / trip_based / custom), status (draft / approved / paid), totals, created_by |
+| `payslips` | new: run, person, gross, deductions, net, status (pending / paid), paid voucher, paid_at |
+| `salary_structures` | add pay basis: monthly / per_trip / per_km |
+| `document_required_types` | new: company, applies to (truck type / crew role), document type — drives "Missing" tiles |
+| `documents` | files optional (a record can hold dates before the file is uploaded) |

@@ -1,5 +1,7 @@
 # Mobile Apps — Structure, Flows and Screen Layouts
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 Native **B4A** (Android) first, **B4I** (iOS) later with shared business logic.
 Rules from `docs/guidelines/PhoneAppPrompt.md` apply everywhere: card-based
 premium look, an icon next to every title and button, simple English, splash

@@ -1,5 +1,7 @@
 # Web App — Structure, Flows and Screen Layouts
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 The web app is for office users: **owner, manager, accountant, workshop,
 viewer**, plus the **super-admin** area. Built with Laravel, server-rendered
 pages, card-based layout, and an icon on every menu item and button. It works

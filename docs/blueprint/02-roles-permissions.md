@@ -1,5 +1,7 @@
 # Users, Roles and Permissions
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 ## 1. Layers
 
 ```

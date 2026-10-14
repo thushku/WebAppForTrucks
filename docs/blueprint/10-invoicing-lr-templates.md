@@ -1,5 +1,7 @@
 # Invoices & LR, Document Templates and the Template Editor
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 Decisions **D13** (Trucksarthi parity: Invoices & LR module), **D14** (invoicing
 like Clinic Ledger, with invoice templates and a template editor) and **D15**
 (tax rules for any country — see `11-tax-engine.md`).

@@ -1,5 +1,7 @@
 # Full Load (FTL), Part Load (PTL / LTL) and Market-Truck Hiring
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 Decision **D16** (founder, 14 Oct 2026): like Trucksarthi, the product must
 handle **both Part Load and Full Load** operations — **several consignments
 inside one truck journey** as well as **single bulk trips** — and **market-truck

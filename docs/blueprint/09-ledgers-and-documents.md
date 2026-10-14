@@ -1,5 +1,7 @@
 # Ledger Modules and Document Manager
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 Decision **D13**: the product must have every feature of Trucksarthi, as
 separate modules. This file specifies six of the seven modules:
 

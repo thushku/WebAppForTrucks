@@ -1,5 +1,7 @@
 # Trip Lifecycle, Road Events, Approvals and Settlement
 
+> **See also `13-parity-additions.md`** — additions from the Trucksarthi code study (D17) that extend this file; where they differ, that file wins.
+
 This is the heart of the product. Everything else (ledgers, truck history,
 profit reports, accounts) is built from the records described here.
 
