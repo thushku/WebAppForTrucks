@@ -4,7 +4,7 @@ This file records every product decision we have agreed on, in plain English.
 Both the web app session and the phone app session must follow it.
 When a decision changes, update this file and add the date.
 
-Last updated: 13 Oct 2026
+Last updated: 14 Oct 2026
 
 ---
 
@@ -39,6 +39,9 @@ First markets: **India**, then **UAE**.
 | D10 | Accounting | The web app must include a **full accounting system** that meets the legal rules of each country. Start with **India and UAE**. Other countries are added later as "country packs". | User, 13 Oct 2026 |
 | D11 | Driver change log | When one person takes the driving seat from another, the app records a **driver change** entry (time, GPS, odometer). This gives exact driving hours for each driver and supports rest-time alerts. | User, 13 Oct 2026 |
 | D12 | Offline | With no network, **every entry is kept on the phone with its actual time** (and GPS) and is pushed to the server automatically when signal returns. Nothing needs to be re-typed. | User, 13 Oct 2026 |
+| D13 | Match Trucksarthi, module by module | Besides our own features, the product must have **every feature of the Trucksarthi app**, organised as separate modules: **Driver Ledger, Client Ledger, Truck Ledger, Supplier Ledger, Vendor Ledger, Document Manager, Invoices & LR (consignment note)**. Each module gets its own full specification. | User, 14 Oct 2026 |
+| D14 | Invoicing like Clinic Ledger | A fully functional invoicing module **like the one in the founder's Clinic Ledger product** (`thushku/clinicledger`), with **invoice templates and a template editor**. Its design and code are studied and reused where possible. | User, 14 Oct 2026 |
+| D15 | Tax rules worldwide | Invoicing must handle GST / VAT / sales tax **for any country**, through a configurable tax engine with ready-made country presets (India and UAE first). | User, 14 Oct 2026 |
 
 ### Defaults we are using (user did not object)
 
