@@ -188,14 +188,14 @@ list (DomPDF, Alpine, Chart.js, PhpSpreadsheet, Intervention Image) is therefore
 |---|---|---|
 | Laravel 13 + PHP 8.3 (`laravel/framework`, `laravel/tinker`) | The framework (same as Clinic Ledger) | Already approved in Clinic Ledger |
 | Dev tools: Pest 4, Vite 8, Tailwind CSS 4, laravel-vite-plugin (Node.js **only at build time**) | Tests and front-end build (same as Clinic Ledger) | Already approved in Clinic Ledger |
-| **Laravel Sanctum** (official) | Token login for the native phone apps (Clinic Ledger's phone app is a web shell, so it never needed this) | **Needs approval.** Alternative: hand-written token table (more risk) |
+| **Laravel Sanctum** (official) | Token login for the native phone apps (Clinic Ledger's phone app is a web shell, so it never needed this) | **Approved (D18)** |
 | **Chromium** installed on the server (system program, not a PHP package) | PDFs with correct Indian scripts and Arabic | Same as Clinic Ledger; needs to be on the production server |
-| **Leaflet** (JavaScript file, served by our app) + OpenStreetMap tiles | Live map and route replay without per-load fees | **Needs approval.** Alternative: Google Maps JS (cost per load) |
-| Firebase Cloud Messaging (Google service) | Push notifications to phones (new trip, approvals) | **Needs approval** (Clinic Ledger has it prepared). Alternative: phones check at every sync |
-| Map / geocoding API keys (Mappls, Google), later HERE | Place search, truck routing | **Needs approval + keys** |
+| **Leaflet** (JavaScript file, served by our app) + OpenStreetMap tiles | Live map and route replay without per-load fees | **Approved (D18)** |
+| Firebase Cloud Messaging (Google service) | Push notifications to phones (new trip, approvals) | **Approved (D18)** — needs your Firebase project when we reach push |
+| Map / geocoding API keys (Mappls, Google), later HERE | Place search, truck routing | **Approved (D18)** — keys needed from you later |
 | Email sending (SMTP) | Verification, OTP, password reset, reminders | Required |
 | Written in-house (no package) | QR codes, amount in words, money formats, CSV, **XLSX writer** (using PHP's zip extension), Tally XML, captcha, image resize and photo fingerprint (PHP GD), SVG charts | Follows Clinic Ledger; no approval needed |
-| Later, paid per use (phase 2+) | Vahan/Sarathi/PAN/GST/bank verification aggregator; WhatsApp Business API; e-way bill API (GST Suvidha Provider); UAE e-invoice accredited provider | Each needs your approval when we reach it |
+| Later, paid per use (phase 2+) | Vahan/Sarathi/PAN/GST/bank verification aggregator; WhatsApp Business API; e-way bill API (GST Suvidha Provider); UAE e-invoice accredited provider | Verification aggregator **approved (D19)**; WhatsApp Business API, e-way bill API and UAE e-invoice provider need approval when we reach them |
 
 On the phone side (for the laptop session), the research shows the B4A app
 needs **B4A 13.7 or newer** to meet Google Play's 2026 target (API 36).

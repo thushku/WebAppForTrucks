@@ -43,6 +43,10 @@ First markets: **India**, then **UAE**.
 | D14 | Invoicing like Clinic Ledger | A fully functional invoicing module **like the one in the founder's Clinic Ledger product** (`thushku/clinicledger`), with **invoice templates and a template editor**. Its design and code are studied and reused where possible. | User, 14 Oct 2026 |
 | D15 | Tax rules worldwide | Invoicing must handle GST / VAT / sales tax **for any country**, through a configurable tax engine with ready-made country presets (India and UAE first). | User, 14 Oct 2026 |
 | D16 | Full load and part load | Handle **Part Load (PTL/LTL)** and **Full Load (FTL)**: several consignments inside one truck journey, single bulk trips, and **market-truck hiring with broker commissions and supplier settlements** (as Trucksarthi). Spec: `blueprint/12-ftl-ptl-operations.md`. Multi-consignment trips, hired trucks and broker commission in phase 1; branch/godown network operations (manifests, transshipment, delivery runs) in phase 2. | User, 14 Oct 2026 |
+| D17 | Read Trucksarthi's public code | Approved: read `kaptickventures/trucksarthi-frontend` **only to check screens and fields**; no code is copied. | User, 14 Oct 2026 (answer to Q3) |
+| D18 | Packages and services approved | Laravel Sanctum (phone-app login), Leaflet (map), Firebase Cloud Messaging (push), map/geocoding API keys (Mappls, Google). | User, 14 Oct 2026 |
+| D19 | Paid verification service | Approved: RC / DL / PAN / GST / bank checks through an aggregator, built behind a **switchable provider interface**. Provider chosen on price and coverage when phase 2 starts (candidates: Cashfree — Trucksarthi uses it for PAN/GST/bank — Surepass, Gridlines, IDfy). Cost per check is recorded per company. | User, 14 Oct 2026 (answer to Q4) |
+| D20 | Pricing set by the super-admin | No pricing is fixed in code. The super-admin (SaaS provider) sets plans, prices (per truck / flat / lifetime), billing periods, trial days (default 14, extendable per company), student tier, coupons and plan limits. **Our reading of the same answer:** product name/branding and the list of enabled languages are also super-admin settings — to be confirmed. | User, 14 Oct 2026 (answer to Q2/Q1) |
 
 ### Defaults we are using (user did not object)
 
@@ -136,7 +140,7 @@ package), QR codes / amount in words / CSV written in-house. See
 
 | # | Question | Needed before |
 |---|---|---|
-| Q1 | Which languages besides English? (For example Hindi, Malayalam, Tamil, Urdu, Arabic.) The apps will be built language-ready from day one. | Phone app build |
-| Q2 | Pricing details (per truck per month? trial days, plans, student tier, coupon rules) — the website guideline says to confirm before coding pricing. For comparison, Trucksarthi: one plan with all modules, ₹5,999/year (website) or ₹9,999/year (app stores), 30-day free trial, driver app free. | Marketing website and billing build |
-| Q3 | May we read Trucksarthi's **public** GitHub code (`kaptickventures/trucksarthi-frontend`) to check exact screens and fields? Read only, no copying. Alternative: screenshots of their app from you. | Final field lists |
-| Q4 | Paid verification services (Vahan RC / Sarathi DL / PAN / GST / bank checks through an aggregator such as Surepass, Gridlines, Cashfree or IDfy — about ₹4 per check listed) — approve a provider? | Phase 2 Document Manager |
+| Q1 | Which languages besides English? (D20 reading: the super-admin enables languages; English + Hindi first.) (For example Hindi, Malayalam, Tamil, Urdu, Arabic.) The apps will be built language-ready from day one. | Phone app build |
+| ~~Q2~~ | **Answered (D20): set by the super-admin.** Pricing details (per truck per month? trial days, plans, student tier, coupon rules) — the website guideline says to confirm before coding pricing. For comparison, Trucksarthi: one plan with all modules, ₹5,999/year (website) or ₹9,999/year (app stores), 30-day free trial, driver app free. | Marketing website and billing build |
+| ~~Q3~~ | **Answered (D17).** May we read Trucksarthi's **public** GitHub code (`kaptickventures/trucksarthi-frontend`) to check exact screens and fields? Read only, no copying. Alternative: screenshots of their app from you. | Final field lists |
+| ~~Q4~~ | **Answered (D19).** Paid verification services (Vahan RC / Sarathi DL / PAN / GST / bank checks through an aggregator such as Surepass, Gridlines, Cashfree or IDfy — about ₹4 per check listed) — approve a provider? | Phase 2 Document Manager |

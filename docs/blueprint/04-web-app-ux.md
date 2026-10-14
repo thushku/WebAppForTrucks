@@ -303,7 +303,8 @@ deduction, payment, settlement). Print or share as PDF.
 ```
 Companies (tenants) — list, status, plan, trucks used, trial end, last active
  ├── Company page — plan, extend trial, suspend, support access log
-Plans & pricing — monthly / annual / lifetime, per-truck limits, student tier
+Plans & pricing — all set here, nothing fixed in code (D20): plans, price per truck / flat /
+   lifetime, monthly / annual billing, plan limits (trucks, users, storage), modules per plan, student tier
 Trials — default trial days (14), extend for one company
 Coupons — create codes (percentage / fixed, valid dates, max uses, plans)
 SaaS invoices & payments
@@ -312,6 +313,9 @@ Storage — usage per company, prune old files (safe placeholders, no broken ima
 Database — full export (.sql.gz), import / restore
 Security — lockout settings, locked accounts, unlock
 Announcements — message shown to all companies
+Branding — product name, logo, colours, support contacts, legal pages (D20 reading)
+Languages — enable/disable languages for the apps and documents; English + Hindi first (D20 reading)
+Country presets — tax presets and country packs available to companies; verification provider settings (D19)
 System health — queue, cron, disk, errors, app versions in use
 Audit log
 ```
