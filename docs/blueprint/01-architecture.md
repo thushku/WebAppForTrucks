@@ -41,11 +41,15 @@ The India installation launches first.
 | Super-admin | configurable secret prefix, for example `/ctl-7f3k` | session + captcha + **email OTP** + lockout |
 | Mobile API | `/api/v1` | Sanctum token per device + app PIN on the phone |
 
-Code is organised by **business module** so each area stays small and readable:
-`Trips`, `RoadEvents`, `Approvals`, `Settlement`, `Fleet` (trucks, documents,
-tyres, service, complaints), `People` (crew, leave, payroll), `Parties`,
-`Accounting` (core + country packs `India`, `UAE`), `Tracking` (GPS), `Sync`,
-`Billing` (SaaS plans, trials, coupons), `Admin`, `Website`.
+Code is organised by **business module** (in `app/Modules/…`, as in Clinic
+Ledger) so each area stays small and readable: `Trips`, `RoadEvents`,
+`Approvals`, `Settlement`, `Fleet` (trucks, tyres, service, complaints),
+`Documents` (Document Manager), `People` (crew, leave, payroll), `Parties`
+(clients, suppliers, vendors), `Ledgers` (the five ledger views),
+`Invoicing` (LR, invoices, receipts, hire challans, templates, editor,
+rendering — ported from Clinic Ledger), `Tax` (global tax engine + country
+presets), `Accounting` (vouchers, statements, country packs), `Tracking` (GPS),
+`Sync`, `Billing` (SaaS plans, trials, coupons), `Admin`, `Website`.
 
 **Multi-company:** one database; every company table has `company_id`, and a
 global scope adds it to every query automatically. A request can never read
@@ -53,14 +57,23 @@ another company's rows.
 
 ## 3. Web app front end
 
-- Server-rendered **Blade** pages (fast first load, simple hosting).
-- **Alpine.js (CSP build)** for small interactions; works with a strict Content
-  Security Policy (no inline scripts, no `eval`).
-- **Tailwind CSS** compiled by **Vite** at build time; the built files are
+Same style as the founder's Clinic Ledger (decision P6), so code can be reused:
+
+- **Laravel 13, PHP 8.3**, server-rendered **Blade** pages (fast first load,
+  simple hosting).
+- **Plain JavaScript ES modules** for interactions (no Alpine/Livewire/Vue);
+  works with a strict Content Security Policy using a per-response nonce.
+- **Tailwind CSS 4** compiled by **Vite 8** at build time; the built files are
   committed, so the server does not need Node.js.
 - **Leaflet** with OpenStreetMap tiles for the live map and route replay (no
   cost per map load).
-- A small chart library for dashboard charts.
+- Dashboard charts drawn as simple SVG in our own code.
+- **Documents and PDFs** (invoices, LRs, statements): one self-contained HTML
+  page per document, printed to PDF by **headless Chromium** on the server
+  (Clinic Ledger's renderer) — correct Hindi, Malayalam, Tamil and Arabic text.
+  See `10-invoicing-lr-templates.md` §10.
+- Tests with **Pest** (frozen clock, tenant isolation, security probes,
+  performance budgets), as in Clinic Ledger.
 
 ## 4. Mobile API (crew app and owner app)
 
@@ -166,19 +179,23 @@ own database and checked at trip planning and live.
 Your guideline says new dependencies need your confirmation first. These are
 the ones the web app needs. Most are standard, widely used and free.
 
-| Package | Why | Alternative if not approved |
+Updated 14 Oct 2026 to follow Clinic Ledger's approach (decision P6): it uses
+almost no extra packages and writes small utilities in-house. Most of the earlier
+list (DomPDF, Alpine, Chart.js, PhpSpreadsheet, Intervention Image) is therefore
+**no longer needed**.
+
+| Package / service | Why | Status / alternative |
 |---|---|---|
-| Laravel (latest stable) + PHP 8.3+ | The framework you chose | — |
-| Laravel Sanctum (official) | Token login for phones | Hand-written token table (more risk) |
-| Vite + Tailwind CSS + Alpine.js (CSP build) — Node.js needed **only at build time** | Modern UI, small files, CSP-safe | Plain hand-written CSS/JS (slower to build, bigger files) |
-| Leaflet (JS) + OpenStreetMap tiles | Maps without per-load fees | Google Maps JS (cost per load) |
-| Chart.js (or similar small chart library) | Dashboard charts | Simple CSS bar charts only |
-| DomPDF (or similar) | Invoices, LR, payslips, ledgers as PDF | Browser print-to-PDF only |
-| PhpSpreadsheet / Laravel Excel | Excel import/export, bank statement import | CSV only |
-| Intervention Image (uses PHP GD) | Server-side thumbnails, photo checks, look-alike fingerprint | Store photos as-is; no reuse check |
-| Firebase Cloud Messaging (Google) | Push notifications to phones (new trip, approvals) | Phones check for news at every sync (slower alerts) |
-| Map / geocoding API keys (Mappls, Google), later HERE | Place search, truck routing | Typed place names only |
-| Email sending service (SMTP) | Verification, OTP, password reset, alerts | — required |
+| Laravel 13 + PHP 8.3 (`laravel/framework`, `laravel/tinker`) | The framework (same as Clinic Ledger) | Already approved in Clinic Ledger |
+| Dev tools: Pest 4, Vite 8, Tailwind CSS 4, laravel-vite-plugin (Node.js **only at build time**) | Tests and front-end build (same as Clinic Ledger) | Already approved in Clinic Ledger |
+| **Laravel Sanctum** (official) | Token login for the native phone apps (Clinic Ledger's phone app is a web shell, so it never needed this) | **Needs approval.** Alternative: hand-written token table (more risk) |
+| **Chromium** installed on the server (system program, not a PHP package) | PDFs with correct Indian scripts and Arabic | Same as Clinic Ledger; needs to be on the production server |
+| **Leaflet** (JavaScript file, served by our app) + OpenStreetMap tiles | Live map and route replay without per-load fees | **Needs approval.** Alternative: Google Maps JS (cost per load) |
+| Firebase Cloud Messaging (Google service) | Push notifications to phones (new trip, approvals) | **Needs approval** (Clinic Ledger has it prepared). Alternative: phones check at every sync |
+| Map / geocoding API keys (Mappls, Google), later HERE | Place search, truck routing | **Needs approval + keys** |
+| Email sending (SMTP) | Verification, OTP, password reset, reminders | Required |
+| Written in-house (no package) | QR codes, amount in words, money formats, CSV, **XLSX writer** (using PHP's zip extension), Tally XML, captcha, image resize and photo fingerprint (PHP GD), SVG charts | Follows Clinic Ledger; no approval needed |
+| Later, paid per use (phase 2+) | Vahan/Sarathi/PAN/GST/bank verification aggregator; WhatsApp Business API; e-way bill API (GST Suvidha Provider); UAE e-invoice accredited provider | Each needs your approval when we reach it |
 
 On the phone side (for the laptop session), the research shows the B4A app
 needs **B4A 13.7 or newer** to meet Google Play's 2026 target (API 36).

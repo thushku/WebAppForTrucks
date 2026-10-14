@@ -4,7 +4,7 @@ A cloud platform for truck owners and transport companies (India first, then
 UAE): trip planning, crew phone apps with offline GPS and photo-proof expense
 capture, driver/helper ledgers, truck history, trip profit and full accounting.
 
-**Status:** planning (Step 2 research and Step 3 blueprint done, waiting for
+**Status:** planning (Step 2 research, Step 3 blueprint and module specifications done, waiting for
 approval). No application code yet.
 
 ## Repository layout

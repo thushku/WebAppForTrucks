@@ -20,10 +20,13 @@ of the same Laravel project. It is described at the end of this file.
 │ 🚚 Trips      │                 PAGE CONTENT (cards)                     │
 │ ✅ Approvals 9│                                                          │
 │ 🗺 Live map   │                                                          │
+│ 🧾 Invoices&LR│  ← LR, invoices, receipts, hire challans, templates      │
+│ 📒 Ledgers  ▸ │  ← Driver · Client · Truck · Supplier · Vendor           │
+│ 📁 Documents  │  ← Document Manager                                      │
 │ 🚛 Trucks     │                                                          │
 │ 👥 People     │                                                          │
-│ 🤝 Parties    │                                                          │
-│ 📒 Accounts   │                                                          │
+│ 🤝 Parties    │  ← clients, suppliers, vendors (one firm, many roles)    │
+│ 🏦 Accounts   │                                                          │
 │ 💼 Payroll    │                                                          │
 │ 📊 Reports    │                                                          │
 │ ⚙ Settings   │                                                          │
@@ -57,9 +60,34 @@ Trips
  │    ├── Profit        (direct and full profit, vs budget, vs past trips)
  │    └── History       (audit log of every change)
  ├── To settle
+ ├── Consignments (all LRs by status; FTL / PTL / mixed; load factor)
+ ├── Part-load network (phase 2: bookings, manifests, godown stock,
+ │                      delivery runs, inter-branch accounts)
  └── Route rates (saved rates, km and budgets per route)
 Approvals            (crew entries waiting for check, disputed, queries)
 Live map             (trucks and crew on duty, last seen, alerts)
+Invoices & LR        (full spec: 10-invoicing-lr-templates.md)
+ ├── LRs / bilties (create from trip, copies, POD status, LR books)
+ ├── Invoices (single LR, consolidated with LR annexure, supplementary,
+ │             credit/debit notes, bill submission tracking)
+ ├── Receipts (money receipts with TDS and deductions)
+ ├── Hire challans (hired / market trucks)
+ ├── Payment vouchers · Quotations · Loading slips · Fuel slips
+ ├── Work queues: POD pending · Ready to bill · Not submitted · Overdue
+ └── Templates (template list, editor, copy sets, message templates)
+Ledgers              (full spec: 09-ledgers-and-documents.md)
+ ├── Driver ledger (crew: trip cash · earnings · loan buckets, settlements,
+ │                  salary summary, cash register PDF, recoveries, loans)
+ ├── Client ledger (statement, bill-wise outstanding, ageing, TDS receivable,
+ │                  deductions, reminders, balance confirmation)
+ ├── Truck ledger  (truck P&L, per-km figures, fuel bill report, utilisation,
+ │                  loan/EMI view, report card)
+ ├── Supplier ledger (hire register, advances, POD-gated balance, TDS,
+ │                    advance-without-POD ageing)
+ └── Vendor ledger (bills, fuel slips + pump statement matching, workshop
+                    estimates, MSME due dates, payments)
+Documents            (Document Manager: all documents, compliance dashboard,
+                      expiry calendar, renewals, shares, reminder rules)
 Trucks
  ├── All trucks
  ├── Truck page
@@ -119,7 +147,9 @@ Settings
  ├── Users & roles
  ├── Rules (dual approval on/off, auto-approve, bata rules, freight visible
  │          to crew, required photos, app lock time, driving limits)
- ├── Number formats (trip, LR, invoice, receipt…)
+ ├── Number formats (trip, LR, invoice, receipt, hire challan…; per branch / tax registration; LR books)
+ ├── Invoices & templates (simple settings page; link to the full template editor)
+ ├── Tax (country preset, registrations, tax codes and rules, declarations)
  ├── Masters (places + short codes, materials, expense categories,
  │            truck types, leave types, document types)
  ├── Labels & custom fields (rename "Trip" to "Run"/"Hire", add extra fields)

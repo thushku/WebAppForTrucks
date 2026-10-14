@@ -421,3 +421,39 @@ Technical notes for the phone-app session (from research, 2026):
 - Play target: new apps and updates must target **API 36** from 31 Aug 2026.
   B4A 13.7 supports this. Test keyboard and layout behaviour early, because the
   B4X forum reports layout changes at target 35/36.
+
+---
+
+## 6. Additions for the new modules (14 Oct 2026)
+
+From `09-ledgers-and-documents.md` and `10-invoicing-lr-templates.md`.
+
+### 6.1 Crew app
+
+| Feature | Detail |
+|---|---|
+| **My Khata** | Three buckets (trip cash · earnings · loan) and **net balance due**; statement; monthly salary summary; one-tap **acknowledge** of advances; **flag an entry** ("not received" / "wrong amount") which opens a query with the office |
+| Fuel "who paid" | Owner / me / fuel card / pump credit; fuel slip number when the office issued one |
+| **e-POD** | Receiver name, receiver's mobile **OTP**, signature on screen, stamp photo, packages received, shortage/damage, unloading start/end |
+| To-Pay collection | Record freight collected from the consignee on a To-Pay LR; a collection receipt is shared from the phone |
+| Truck documents offline | RC, insurance, permit, fitness, PUC of the current truck, readable with no signal at roadside checks |
+| Upload documents | Own licence etc. and truck papers (photo), for the office to review |
+| **Several companies** | If the person works for more than one owner, the home screen shows the current company with a switcher; opening a notification switches to that company |
+| Hired-truck driver (guest) | A market truck's driver can be invited for **one trip only** to record milestones and POD; no ledger access |
+| Thermal printing (phase 2) | Print a money receipt or LR on a Bluetooth 58/80 mm printer; the server sends a ready image |
+
+### 6.2 Owner app
+
+The owner app stays a **native B4A app** (the phone-app guideline forbids a
+website inside an app shell, even though Clinic Ledger's Android app is a
+shell).
+
+| Feature | Detail |
+|---|---|
+| **Create LR and invoice from a trip** | Pick the trip → fill or confirm LR → choose template → PDF made on the server → **share on WhatsApp** |
+| Record receipt / payment | Receipts from clients (with TDS and deductions), payments to suppliers, vendors and crew |
+| Ledgers | Driver, client, truck, supplier and vendor ledgers with balances and statements; share statement PDF |
+| Hire challan | Create for a hired truck, record advance at loading, release balance after POD |
+| Document Manager | Expiry list, upload by camera, renew, share a **document pack** link |
+| **QR login for the web** | Scan the QR on the web login page to sign the browser in |
+| Work queues | POD pending, ready to bill, overdue bills, advances without POD |

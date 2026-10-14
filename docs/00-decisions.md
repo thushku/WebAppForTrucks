@@ -42,6 +42,7 @@ First markets: **India**, then **UAE**.
 | D13 | Match Trucksarthi, module by module | Besides our own features, the product must have **every feature of the Trucksarthi app**, organised as separate modules: **Driver Ledger, Client Ledger, Truck Ledger, Supplier Ledger, Vendor Ledger, Document Manager, Invoices & LR (consignment note)**. Each module gets its own full specification. | User, 14 Oct 2026 |
 | D14 | Invoicing like Clinic Ledger | A fully functional invoicing module **like the one in the founder's Clinic Ledger product** (`thushku/clinicledger`), with **invoice templates and a template editor**. Its design and code are studied and reused where possible. | User, 14 Oct 2026 |
 | D15 | Tax rules worldwide | Invoicing must handle GST / VAT / sales tax **for any country**, through a configurable tax engine with ready-made country presets (India and UAE first). | User, 14 Oct 2026 |
+| D16 | Full load and part load | Handle **Part Load (PTL/LTL)** and **Full Load (FTL)**: several consignments inside one truck journey, single bulk trips, and **market-truck hiring with broker commissions and supplier settlements** (as Trucksarthi). Spec: `blueprint/12-ftl-ptl-operations.md`. Multi-consignment trips, hired trucks and broker commission in phase 1; branch/godown network operations (manifests, transshipment, delivery runs) in phase 2. | User, 14 Oct 2026 |
 
 ### Defaults we are using (user did not object)
 
@@ -49,7 +50,7 @@ First markets: **India**, then **UAE**.
 |---|---|---|
 | A1 | Apps per role | One **crew app** (driver, co-driver, helper; screens change by role) and one **owner/manager app**. One person may have more than one role. |
 | A2 | GPS source | Phone GPS in version 1. Connecting existing truck GPS devices comes later. |
-| A3 | Fleet type | Own fleet first. Hired / attached / market trucks come in a later phase. |
+| A3 | Fleet type | Own fleet first. **Changed 14 Oct 2026 because of D13:** a basic **Supplier Ledger with hired/market trucks** (lorry hire challan, advances, balance paid after POD, TDS) is now in phase 1, to match Trucksarthi. Attached-truck commission accounting and broker networks stay in a later phase. |
 | A4 | Single-driver trips with dual approval on | The manager gives the second approval instead of a co-driver. (Proposal, confirm when reviewing the blueprint.) |
 
 ---
@@ -98,6 +99,37 @@ In the app, the category is called **"Payment without receipt"**, separate from
 company's books. The owner should confirm the final wording with their CA or
 lawyer.
 
+### P4. Supplier vs Vendor (confirmed by research)
+
+- **Supplier** = owner or broker of a **hired / market truck** (we owe lorry hire).
+- **Vendor** = seller of goods or services (fuel pump, workshop, tyres, spare
+  parts, insurance, RTO agent…).
+Trucksarthi uses the same meaning. Screens show a one-line hint.
+
+### P5. Copies
+
+- **LR:** default 4 copies — Consignor, Consignee, Driver/Lorry, Office (law
+  needs at least 3). Configurable.
+- **Freight invoice:** GTA freight is a *service*, so GST Rule 48 needs **2
+  copies** — "Original for Recipient" and "Duplicate for Supplier". (The
+  3-copy set with "Duplicate for Transporter" is for goods invoices only.)
+  Extra copies allowed.
+
+### P6. Same technical style as Clinic Ledger
+
+To keep the founder's products consistent and reuse code (D14): Laravel 13,
+PHP 8.3, MySQL/MariaDB, Blade, Tailwind CSS 4, Vite 8, plain JavaScript modules
+(no Alpine/Livewire/Vue), Pest tests, **PDF by headless Chromium** (no PDF
+package), QR codes / amount in words / CSV written in-house. See
+`blueprint/01-architecture.md` §10.
+
+### P7. Crew working for several companies; QR login
+
+- One crew member's mobile login can belong to **several companies**
+  (Trucksarthi has this). The crew app shows and switches the current company.
+- Office users can sign in to the web app by **scanning a QR code** with the
+  owner app (like WhatsApp Web), as well as with a password.
+
 ---
 
 ## 4. Still open
@@ -105,4 +137,6 @@ lawyer.
 | # | Question | Needed before |
 |---|---|---|
 | Q1 | Which languages besides English? (For example Hindi, Malayalam, Tamil, Urdu, Arabic.) The apps will be built language-ready from day one. | Phone app build |
-| Q2 | Pricing details (per truck per month? trial days, plans, student tier, coupon rules) — the website guideline says to confirm before coding pricing. | Marketing website and billing build |
+| Q2 | Pricing details (per truck per month? trial days, plans, student tier, coupon rules) — the website guideline says to confirm before coding pricing. For comparison, Trucksarthi: one plan with all modules, ₹5,999/year (website) or ₹9,999/year (app stores), 30-day free trial, driver app free. | Marketing website and billing build |
+| Q3 | May we read Trucksarthi's **public** GitHub code (`kaptickventures/trucksarthi-frontend`) to check exact screens and fields? Read only, no copying. Alternative: screenshots of their app from you. | Final field lists |
+| Q4 | Paid verification services (Vahan RC / Sarathi DL / PAN / GST / bank checks through an aggregator such as Surepass, Gridlines, Cashfree or IDfy — about ₹4 per check listed) — approve a provider? | Phase 2 Document Manager |

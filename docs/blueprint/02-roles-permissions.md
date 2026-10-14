@@ -12,6 +12,8 @@ Platform (you, the SaaS owner)
 ```
 
 - Each company's data is completely separate from other companies' data.
+- One person can work for **more than one company** with the same mobile login
+  (decision P7); each company sees only its own data.
 - One person can have more than one role. For example, a small owner is both
   **Owner** and **Driver** of their only truck. They log in once and switch
   role with one tap.
@@ -30,6 +32,7 @@ Platform (you, the SaaS owner)
 | **Viewer** (optional) | Web + owner app | Read-only, for example a partner or family member. |
 | **Driver** | Crew app | Runs assigned trips, records events, sees own money and leave. |
 | **Helper** | Crew app (simpler screens) | Sees assigned trips, own money and leave; can record basic events if the owner allows. |
+| **Hired-truck driver (guest)** | Crew app, one trip only | A market truck's driver invited for a single trip to record milestones and POD. No ledger or company data. |
 
 **Super-admin support access:** by default the super-admin cannot open a
 company's trips or accounts. When a customer asks for help, the owner grants
@@ -84,6 +87,7 @@ This protects customer trust and helps with privacy law.
 |---|---|
 | Super-admin | Hidden URL + password + email OTP + captcha + lockout |
 | Office users | Email or mobile + password + captcha + lockout; email OTP optional (owner can force it) |
+| Office users (QR) | **Scan the QR code** on the web login page with the owner app (like WhatsApp Web); QR refreshes every 2 minutes; each sign-in is logged and can be revoked |
 | Crew app | First login: mobile number + one-time activation code shown to the office in the web app (no SMS cost; SMS/WhatsApp OTP can be added later — Indian SMS needs DLT registration). After that: a 4-6 digit app PIN or fingerprint/face. |
 | Owner app | Same as crew app, plus a forced PIN/biometric re-check before money actions |
 

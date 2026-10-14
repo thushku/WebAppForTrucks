@@ -33,6 +33,9 @@ Trip
 - Or the owner can make the return a **separate trip** and link the two as
   "return of".
 - An **empty leg** (no load) is still a trip, so its fuel and tolls are not lost.
+- Every trip has a **load type**: **Full load (FTL)**, **Part load (PTL)** or
+  **Mixed**, and uses **our truck** or a **hired truck**. Part loads give each
+  consignment its own pickup and drop stop. See `12-ftl-ptl-operations.md`.
 
 ---
 

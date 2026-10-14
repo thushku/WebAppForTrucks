@@ -146,3 +146,110 @@ the company books always agree.
 | `notifications` | user, type, data, read_at, push_sent_at |
 | `sync_cursors` | device, table, last_server_change_id |
 | `jobs`, `failed_jobs` | Laravel database queue (no Redis needed on simple hosting) |
+
+---
+
+## 11. Additions for the ledger, document, invoicing and tax modules (14 Oct 2026)
+
+From `09-ledgers-and-documents.md`, `10-invoicing-lr-templates.md` and
+`11-tax-engine.md`. Where a new table replaces an earlier one, it says so.
+
+### 11.1 Identity across companies
+
+| Table | Key columns |
+|---|---|
+| `accounts` | Global login identity: mobile (unique), name, PIN hash, language — one per real person |
+| `users` (changed) | Now links `account_id` + `company_id` (one row per company the person works for); roles stay per company |
+| `web_login_qr` | One-time QR token, created_at (expires after 2 minutes), approved_by_device, approved_at — for QR login to the web app |
+
+### 11.2 Parties and ledgers
+
+| Table | Key columns |
+|---|---|
+| `party_roles` | party, role (client / supplier / vendor / broker / consignor / consignee), active — **replaces the single `type` on `parties`** |
+| `party_tax_ids` | party, tax ID (GSTIN/TRN), state/emirate, address, default flag (plant-wise billing) |
+| `party_credit_terms` | party, credit limit, credit days, due-date basis (invoice / submission), breach action |
+| `rate_contracts`, `rate_contract_lines` | party, version, validity, approval; route, material, truck type, basis, rate, minimum weight, detention slabs JSON, escalation JSON, penalties JSON — **extends/replaces `route_rates`** |
+| `bill_refs` | voucher line, ref type (new / against / advance / on_account), ref no., due date, amount — basis of bill-wise outstanding |
+| `bill_submissions` | invoice, submitted_on, mode, to, acknowledgement no., portal ref, courier docket |
+| `client_deductions` | invoice/receipt, type (shortage / damage / late / POD late / rate), amount, evidence, credit_note_id, recover_from (driver / supplier), recovery_id |
+| `party_balances` | Read model updated in the same transaction as every posting (fast lists) — from Clinic Ledger |
+| `ledger_acknowledgements` | voucher, person/party, method (tap / OTP / signed photo), at |
+| `ledger_queries` | voucher, raised_by (crew member), reason (not received / wrong amount), thread, status |
+| `person_loans`, `person_loan_installments` | person, principal, interest, consent file; due month, amount, paid voucher |
+| `recoveries` | person or supplier, type, basis, amount, approved_by, notified_at, cap-check result |
+| `security_deposits` | person, amount, received voucher, refunded voucher |
+| Voucher lines (changed) | Add `bucket` (cash / earnings / loan) for crew-member accounts |
+
+### 11.3 Suppliers, hired trucks and vendors
+
+| Table | Key columns |
+|---|---|
+| `supplier_vehicles` | supplier, reg no., type, RC owner name, verification JSON, checked_at |
+| `hire_challans` | number, date, trip, supplier, vehicle, driver, hire basis and amount, terms JSON, broker, commission, TDS decision, status |
+| `hire_challan_lines` | challan, type (advance / fuel / detention / extra / deduction / commission / TDS / balance), amount, voucher_id |
+| `trips` (changed) | Add `truck_source` (own / hired) and `supplier_vehicle_id` for hired trucks |
+| `fuel_slips` | slip no., truck, driver, pump vendor, litres/amount, issued_at, trip_event_id, statement_line_id, status |
+| `vendor_statements`, `vendor_statement_lines` | vendor, period, file; line date, slip no., vehicle, litres, rate, amount, match status |
+| `workshop_estimates` | vendor, truck, items, amount, approved_by, service_job_id |
+
+### 11.4 Document Manager
+
+| Table | Key columns |
+|---|---|
+| `documents` | Owner type + id (truck / person / company / party), type, number, authority, issue date, valid from, expiry, cost, vendor, original kept at, current version — **replaces `truck_documents` and `person_documents`** |
+| `document_versions` | document, version no., files, renewal voucher, renewed_by, archived_at |
+| `document_reminder_rules` | document type, days-before list, repeat rule, channels, recipients |
+| `document_shares` | documents (pack), token, purpose, watermark text, expires_at, opened_at |
+| `verification_checks` | entity, provider, check type (RC / DL / PAN / GST / bank / DigiLocker / challan), request, response JSON, cost, at |
+| `insurance_claims` | truck, policy document, claim no., surveyor, estimate, approved, received, linked incident and service job |
+
+### 11.5 Invoicing, LR and templates (ported from Clinic Ledger + transport)
+
+| Table | Key columns |
+|---|---|
+| `consignments` (changed) | Becomes the **LR**: LR no., book leaf, copy set, payment type (paid / to-pay / to-be-billed / FOC), risk, insurance, declared value, charges JSON, POD fields, status |
+| `consignment_ewaybills` | consignment, e-way bill no., invoice no., value, valid_until (several per LR) |
+| `lr_books`, `lr_book_leaves` | branch, book no., range, issued to, issued on; leaf no., status (unused / used / cancelled / lost), consignment |
+| `invoices` | doc_type (text + validation: invoice / tax_invoice / bill_of_supply / simplified / supplementary / credit_note / debit_note / quotation…), number, dates, party, tax registration, place of supply, currency + rate, status, totals, related_invoice_id, reason, **snapshot (encrypted)**, **design_snapshot**, public token, submitted info |
+| `invoice_lines` | invoice, consignment (LR) link, service class, item code, description, unit, qty, rate, discount, tax code, line net, trip/truck/branch |
+| `payments`, `payment_allocations` | receipt no., party, mode, UTR, amount, TDS deducted, deductions; allocation per invoice (oldest-first or manual), advance credit |
+| `document_sequences` | doc type, scope (company / branch / tax registration), financial year, prefix/format, next no., max length, allowed characters, gap-free |
+| `print_templates`, `print_template_versions` | family, name, scope (company / branch / tax registration / client), default flag, theme, **design JSON** (strictly validated), paper, copy set, languages, version, created_by |
+| `copy_sets` | family, copy order, label, tint, hide-freight flag |
+| `custom_fields`, `custom_field_values` | document type, label, kind (text / number / date / list), show-on-print; values per document |
+| `label_overrides` | template, language, label key, text |
+| `declaration_texts` | country, tax mode (RCM / FCM5 / FCM18 / exempt / reverse charge…), text, valid_from, valid_to |
+| `message_templates` | channel (WhatsApp / SMS / email), purpose, language, body with placeholders, provider template id |
+| `document_deliveries` | document, channel, to, sent_at, opened_at, printed_at, downloaded_at |
+
+### 11.6 Tax engine
+
+See `11-tax-engine.md` §4 for the full list: `countries`, `tax_jurisdictions`,
+`tax_regimes`, `tax_types`, `tax_codes`, `tax_rates`, `tax_group_members`,
+`service_classes`, `commodity_codes`, `service_class_codes`, `tax_rules`,
+`fiscal_positions`, `fiscal_position_maps`, `withholding_codes`,
+`withholding_rates`, `return_box_mappings`, `exchange_rates`,
+`tax_registrations`, `party_tax_profiles`, `tax_certificates` (replaces the
+earlier `tds_declarations` idea), trip tax facts, `document_tax_lines`,
+`document_withholding_lines`, `document_tax_traces`, `e_invoice_submissions`,
+`e_invoice_providers`.
+
+Money columns in tax tables use `DECIMAL(19,4)` (3-decimal currencies, per-unit
+taxes); the general rule in §1 (`DECIMAL(14,2)`) is raised to `DECIMAL(19,4)` for
+all invoice and tax amounts.
+
+Document types and statuses are **text columns with validation**, never MySQL
+ENUMs (Clinic Ledger lesson: an ENUM blocked debit notes until a migration).
+
+---
+
+## 12. Additions for FTL / PTL operations (14 Oct 2026)
+
+From `12-ftl-ptl-operations.md` §7: `trips.load_type` (ftl / ptl / mixed),
+`trips.cost_allocation_method`; consignment pickup/drop stops, booking/delivery
+branch, packages, volume, status, nullable trip; `consignment_deliveries`
+(split delivery + POD), `consignment_events` (tracking timeline),
+`consignment_cost_allocations`, `stop_tasks`, `broker_commissions`; phase 2:
+`manifests`, `manifest_lines`, `godown_stock`, `delivery_runs`,
+`delivery_run_lines`, `branch_transfers`.
