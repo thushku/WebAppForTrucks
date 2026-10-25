@@ -91,6 +91,14 @@ the next `since`.
 A paper's file: `GET /crew/papers/{id}/files/{file_id}` (image or PDF, for showing at a
 checkpost).
 
+**My Khata** (the Money tab): `GET /crew/money?from=&to=` (default: the last 90 days) →
+`currency`, `holding` (the company's trip cash I carry), `owed_to_me` (bata, salary
+not yet paid), `net` (positive: I give this back; negative: the company pays me),
+`opening`, `closing`, `lines[]` (`date`, `what`, `reference`, `bucket` — trip_cash /
+earnings, `given` — money handed to me, `credited` — what counts for me: spent for the
+company, earned, returned, `balance`, `cancelled`). From the books, so it moves when the
+office approves entries, settles a trip or pays. Office logins get `403 not_crew`.
+
 ## 4. Entries (push)
 
 Every entry is made on the phone with a **UUID** and kept in the phone's queue until the
@@ -266,3 +274,44 @@ entries are locked (422).
    whole queue, show the message once, and stop sending until `GET /me` says
    `read_only: false` (check at app start and every hour). Reads still work.
 4. After a push, run a sync with `since` to pick up statuses and office notes.
+
+## 9. Owner app: signing the web in by QR
+
+The web sign-in page shows a QR code (decision P7). The owner app scans it and sends the
+whole scanned text as `code` (a URL ending in `/qr/<40 characters>`, or just the 40
+characters).
+
+- `POST /web-login/inspect` `{ "code": "…" }` → `{ "browser": "Chrome on Windows", "ip": "…", "created_at": "…" }`
+  — show "Sign in on Chrome on Windows?" with Yes / No.
+- `POST /web-login/approve` `{ "code": "…" }` → `{ "ok": true, "message": "The browser is signing in to Sharma Roadlines." }`
+- Both answer `422` with `code`: `expired` (ask to refresh the page), `used`, `unknown`.
+- The browser signs in to the company in `X-Company`. Works while the company is read-only.
+
+## 10. Owner app: dashboard, map, trips, trucks, papers, bills, ledgers
+
+For office people (owner, manager, accountant, workshop, viewer). Every call needs the
+permission shown; without it the answer is `403` — hide that tile or tab (the codes are in
+`GET /me` → `permissions`). Amounts are numbers in the company's currency, dates
+`YYYY-MM-DD`, times ISO 8601. Lists of trips and bills come 30 at a time: `?page=2` while
+`more` is true.
+
+| Call | Permission | Answer |
+|---|---|---|
+| `GET /owner/dashboard` | `dashboard.view` | `company` (`name`, `currency`, `read_only`), `counts` (`trucks`: total, on_trip, idle, workshop; `trips`: running, planned, to_settle; `approvals`: waiting_check, waiting_2nd, disputed, queried), `profit` (this month: `income`, `expense`, `profit`, `last` — the same days of last month — and `change` in %; **null** without money permissions), `spending_today[]` (`label`, `amount`), `queues` (`pod_pending`, `ready_to_bill`, `not_submitted`, `overdue`, `overdue_amount` — null without invoice/LR permissions), `alerts[]` (`level`: critical / serious / warning, `text`), `announcement` |
+| `GET /owner/map` | `map.view` | `positions[]`: `trip_uuid`, `trip` (number), `vehicle`, `driver`, `mobile`, `from`, `to`, `lat`, `lng` (null: no point yet), `speed`, `at`, `minutes` (since the last point), `quiet` (no point yet, or longer than the company allows) |
+| `GET /owner/trips?status=&q=&page=` | `trip.view` | `trips[]` (`uuid`, `number`, `date`, `status`, `status_label`, `load_type`, `vehicle`, `hired`, `from`, `to`, `driver`, `started_at`, `ended_at`), `page`, `more`. `status`: planned, running, ended, settled, closed, cancelled; leave it out for all but drafts. `q`: trip number or vehicle |
+| `GET /owner/trips/{uuid}` | `trip.view` | the list fields plus `instructions`, `planned_km`, `start_odometer`, `end_odometer`, `stops[]` (`seq`, `place`, `kind`, `arrived_at`, `departed_at`), `loads[]` (`lr_number`, `status`, `billing_party`, `consignor`, `consignee`, `packages`, `weight_mt`, `freight` — null without `trip.freight_view`), `crew[]` (`name`, `mobile`, `role`, `answer`: waiting / accepted / rejected), `entries` (`count`, `to_check`, `spent`), `profit` (income, expense, profit from the books, or null), `route_url` |
+| `GET /owner/trips/{uuid}/route` | `map.view` | `points[]` as `[lat, lng, "time", speed]` (at most 1,500, thinned, the last one kept), `total` (points before thinning), `events[]` (`label`, `lat`, `lng`, `amount` as formatted text, `at`, `status`) — draw the track and the entries on it |
+| `GET /owner/trucks` | `truck.view` | `trucks[]`: `id`, `reg_no`, `type`, `status`, `status_label`, `papers_expired`, `next_expiry` (`type`, `on`, `days_left`) |
+| `GET /owner/papers?days=30` | `document.view` | papers expired or expiring within `days` (1–365), soonest first: `id`, `type`, `type_label`, `number`, `owner_type` (truck / person / party / company), `owner` (reg no or name), `expires_on`, `days_left` (negative: expired), `state`, `files[]` (`id`, `name`, `mime`, `url`). ID papers (Aadhaar, PAN…) only with `people.id_documents` |
+| `GET /owner/papers/{id}/files/{file}` | `document.view` | the image or PDF. Opening an ID paper is logged |
+| `GET /owner/invoices?tab=open&q=&page=` | `invoice.view` | `invoices[]`: `id`, `number`, `type`, `type_label`, `status`, `party`, `party_mobile`, `issue_date`, `due_date`, `overdue_days`, `currency`, `total`, `balance_due`, `share_url` (the client's secure page), `pdf_url`. `tab`: open, overdue, paid, all |
+| `GET /owner/invoices/{id}` | `invoice.view` | the row plus `subtotal`, `tax`, `tax_reverse_charge`, `paid`, `lines[]` (`description`, `quantity`, `rate`, `tax`, `amount`) |
+| `POST /owner/invoices/{id}/shared` `{ "channel": "whatsapp" \| "link", "recipient": "98470…" }` | `invoice.send` | `status` (the bill becomes `sent`), `text` (ready to share), `whatsapp_url` (`https://wa.me/<number>?text=…`, null without a number). Open `whatsapp_url`, or share `text` with Android's share sheet, then call this so the office sees it was sent |
+| `GET /owner/ledgers?kind=` | `ledger.view` | `ledgers[]` with a balance today: `id`, `name`, `kind` (party, person, bank, cash, general, tax), `group`, `nature`, `balance` (positive: a debit — they owe us; negative: we owe them) |
+| `GET /owner/ledgers/{id}?from=&to=` | `ledger.view` | `opening`, `debit`, `credit`, `closing`, `lines[]` (`date`, `number`, `reference`, `narration`, `debit`, `credit`, `balance`, `bucket`, `cancelled`) for the period (default: the last 90 days); for a crew member also `buckets` (trip cash, earnings, loan) |
+
+Not in version 1 (use the web app for now): making an LR, a bill or a receipt from the
+phone, hire challans, uploading a paper by camera, creating a trip. They come in API v2
+with the same rules as the web (finalised bills are never edited; every money write is
+one transaction).

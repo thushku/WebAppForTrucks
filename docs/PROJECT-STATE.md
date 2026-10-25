@@ -2,6 +2,41 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M15: the handover pack for the phone apps, and the owner app's API
+
+**Built (in `docs/handover/` and `webapp/`; roadmap §2–3, blueprint 05):**
+- **`docs/handover/README.md`** — what the phone session builds, the reading order, the founder's rules for phone
+  apps (native B4A/B4I only, nothing installed without asking, version shown, PIN and fingerprint), where the
+  projects live (`phoneapp/crew`, `phoneapp/owner`, `phoneapp/shared`), and how to ask for API changes.
+- **`local-setup.md`** — the web app on the laptop (portable PHP, XAMPP's MariaDB untouched), reaching it from the
+  B4A emulator (`10.0.2.2`), Nox and a real phone, cleartext only in debug builds, demo sign-ins for the web, the
+  owner app (SMS code in the log) and the crew app.
+- **`screens.md`** — 27 crew-app screens and 15 owner-app screens, each with what it shows and sends, the
+  permission and the API call.
+- **`sync-design.md`** — the phone's SQLite tables, one ordered send queue per company, photos after their entry,
+  GPS batches resent under the same id, what to do with every answer (saved, refused, 401, 403, 423 read-only, 429,
+  5xx), back-off, clocks after a restart, the location service rules for Android 14/15, pulling, tokens, the PIN,
+  several companies, forward compatibility.
+- **`api-v1.md`** gained §9 (signing the web in by QR) and §10 (the owner app's other screens), and My Khata.
+- **The owner app's API** (`/api/v1/owner/*`, each behind the web's permission): the dashboard (money only for
+  those who may see it), the live map (trips by their public id), trips with filters and search, a trip's detail
+  (stops, loads with freight when allowed, crew answers, entries to check, spent, profit from the books) and its
+  route, trucks with their next paper to expire, papers expiring or expired (ID papers only with
+  `people.id_documents`, every look logged), bills by tab with what is due and days overdue, a bill's detail, sharing
+  a bill on WhatsApp (marks it sent, gives the text and the link), ledgers with balances and a ledger's statement.
+- **The crew's My Khata**: `GET /crew/money` — the trip cash they hold, what the company owes them, the net and
+  their statement, from the books.
+- **`php artisan fleet:code <mobile>`** prints a crew member's activation code (demo company by default, or
+  `--company=<id>`), logged like the people page's.
+
+**Tests:** 216 passing (new `OwnerApiTest`, 5 tests: dashboard, map, trips, trip detail and route, trucks, and who
+sees money; papers with ID papers kept back and logged; bills, overdue, sharing on WhatsApp, ledgers and a statement,
+and who may share; the activation-code command; My Khata after an advance and an approved fuel entry).
+
+**Not yet (API v2, with the phone session's asks):** making a trip, an LR, a bill or a receipt from the owner app,
+hire challans, uploading papers by camera; leave and salary slips in the crew app (with payroll); push
+notifications from the server.
+
 ## 2026-10-26 — Milestone M14: the marketing website, sign-up from the pricing page, getting started
 
 **Built (in `webapp/`; blueprint 04 §5, the website guideline, decisions D20 and P11):**

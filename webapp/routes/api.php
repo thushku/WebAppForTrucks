@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CrewController;
+use App\Http\Controllers\Api\Owner\MoneyController;
+use App\Http\Controllers\Api\Owner\OfficeController;
 use App\Http\Controllers\Api\WebLoginController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +65,23 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/{uuid}/photos/{photo}', [ApprovalController::class, 'photo'])->whereUuid('uuid')->name('photo');
             });
 
+            // The owner app (M15): the same screens and permissions as the web, read only but for sharing a bill.
+            Route::prefix('owner')->name('api.owner.')->group(function () {
+                Route::get('/dashboard', [OfficeController::class, 'dashboard'])->middleware('permission:dashboard.view')->name('dashboard');
+                Route::get('/map', [OfficeController::class, 'map'])->middleware('permission:map.view')->name('map');
+                Route::get('/trips', [OfficeController::class, 'trips'])->middleware('permission:trip.view')->name('trips');
+                Route::get('/trips/{uuid}', [OfficeController::class, 'trip'])->whereUuid('uuid')->middleware('permission:trip.view')->name('trips.show');
+                Route::get('/trips/{uuid}/route', [OfficeController::class, 'route'])->whereUuid('uuid')->middleware('permission:map.view')->name('trips.route');
+                Route::get('/trucks', [OfficeController::class, 'trucks'])->middleware('permission:truck.view')->name('trucks');
+                Route::get('/papers', [OfficeController::class, 'papers'])->middleware('permission:document.view')->name('papers');
+                Route::get('/papers/{document}/files/{file}', [OfficeController::class, 'paperFile'])->middleware('permission:document.view')->name('papers.file');
+                Route::get('/invoices', [MoneyController::class, 'invoices'])->middleware('permission:invoice.view')->name('invoices');
+                Route::get('/invoices/{invoice}', [MoneyController::class, 'invoice'])->whereNumber('invoice')->middleware('permission:invoice.view')->name('invoices.show');
+                Route::post('/invoices/{invoice}/shared', [MoneyController::class, 'shared'])->whereNumber('invoice')->middleware('permission:invoice.send')->name('invoices.shared');
+                Route::get('/ledgers', [MoneyController::class, 'ledgers'])->middleware('permission:ledger.view')->name('ledgers');
+                Route::get('/ledgers/{ledger}', [MoneyController::class, 'statement'])->whereNumber('ledger')->middleware('permission:ledger.view')->name('ledgers.show');
+            });
+
             Route::prefix('crew')->name('api.crew.')->group(function () {
                 Route::get('/sync', [CrewController::class, 'sync'])->name('sync');
                 Route::post('/events', [CrewController::class, 'events'])->name('events');
@@ -72,6 +91,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/gps', [CrewController::class, 'gps'])->name('gps');
                 Route::post('/commands', [CrewController::class, 'commands'])->name('commands');
                 Route::get('/papers/{document}/files/{file}', [CrewController::class, 'paperFile'])->name('papers.file');
+                Route::get('/money', [CrewController::class, 'money'])->name('money');
             });
         });
     });

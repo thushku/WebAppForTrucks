@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Accounts\Models\LedgerAccount;
+use App\Modules\Accounts\Services\Statements;
 use App\Modules\Documents\Models\Document;
 use App\Modules\Documents\Models\DocumentFile;
 use App\Modules\Documents\Services\Compliance;
@@ -148,6 +150,44 @@ class CrewController extends Controller
      * A paper's file to show at a checkpost: the papers of the truck on one
      * of their open trips, or their own.
      */
+    /**
+     * My Khata (blueprint 05 §6.1): what the crew member holds of the
+     * company's trip cash, what the company owes them (bata, salary), the net,
+     * and their statement — from the books, the same as the office sees.
+     * Amounts are from the person's side: `holding` is cash they carry for
+     * the company, `owed_to_me` what the company owes them.
+     */
+    public function money(Request $request, Statements $statements): JsonResponse
+    {
+        $person = $this->person();
+        $f = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        $company = app(\App\Platform\Tenancy\CompanyContext::class)->company();
+        $today = CarbonImmutable::now($company->timezone ?: 'UTC')->startOfDay();
+        $to = isset($f['to']) ? CarbonImmutable::parse($f['to']) : $today;
+        $from = isset($f['from']) ? CarbonImmutable::parse($f['from']) : $to->subDays(90);
+
+        // No ledger yet (nothing posted for this person): everything is zero.
+        $ledger = LedgerAccount::where('person_id', $person->id)->first();
+        $buckets = $ledger ? $statements->crewBuckets($ledger, $to) : ['trip_cash' => 0, 'earnings' => 0, 'net' => 0];
+        $statement = $ledger ? $statements->ledger($ledger, $from, $to) : ['opening' => 0, 'rows' => collect(), 'closing' => 0];
+
+        return response()->json([
+            'currency' => $company->currency,
+            'holding' => round(max(0, $buckets['trip_cash']), 2),
+            'owed_to_me' => round(max(0, -$buckets['earnings']), 2),
+            // Positive: I give this much back; negative: the company pays me this much.
+            'net' => round($buckets['net'], 2),
+            'from' => $from->toDateString(), 'to' => $to->toDateString(),
+            'opening' => round((float) $statement['opening'], 2), 'closing' => round((float) $statement['closing'], 2),
+            'lines' => $statement['rows']->map(fn ($r) => [
+                'date' => (string) $r->voucher_date, 'what' => $r->note ?: $r->narration, 'reference' => $r->reference, 'bucket' => $r->bucket,
+                // given: money handed to me (advance, salary paid); credited: what counts for me (spent for the company, bata earned, cash returned).
+                'given' => round((float) $r->debit, 2), 'credited' => round((float) $r->credit, 2),
+                'balance' => round((float) $r->balance, 2), 'cancelled' => $r->status === 'cancelled',
+            ])->values(),
+        ]);
+    }
+
     public function paperFile(Document $document, DocumentFile $file, Compliance $compliance): Response
     {
         $person = $this->person();
