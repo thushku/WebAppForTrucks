@@ -54,6 +54,8 @@ class DocumentNumbering
         'quotation'       => ['quotations', 'number'],
         'fuel_slip'       => ['fuel_slips', 'number'],
         'journal'         => ['journal_vouchers', 'number'],
+        'complaint'       => ['complaints', 'number'],
+        'service_job'     => ['service_jobs', 'number'],
     ];
 
     /** Sample values for the context tokens, used by previews. */

@@ -6,7 +6,11 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\QrLoginController;
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Fleet\ComplaintController;
+use App\Http\Controllers\Fleet\ServiceController;
+use App\Http\Controllers\Fleet\TruckController;
 use App\Http\Controllers\Parties\PartyController;
+use App\Http\Controllers\People\PersonController;
 use App\Http\Controllers\Parties\PartyDetailsController;
 use App\Http\Controllers\Parties\RateContractController;
 use App\Http\Controllers\Settings;
@@ -95,6 +99,50 @@ Route::middleware('auth')->group(function () {
                 Route::delete('/{party}/banks/{bank}', [PartyDetailsController::class, 'destroyBank'])->name('banks.destroy');
             });
             Route::get('/{party}', [PartyController::class, 'show'])->middleware('permission:party.view')->name('show');
+        });
+
+        // Trucks, their complaints and service (M4).
+        Route::prefix('trucks')->name('trucks.')->group(function () {
+            Route::get('/', [TruckController::class, 'index'])->middleware('permission:truck.view')->name('index');
+            Route::middleware('permission:truck.manage')->group(function () {
+                Route::get('/new', [TruckController::class, 'create'])->name('create');
+                Route::post('/', [TruckController::class, 'store'])->name('store');
+                Route::get('/{truck}/edit', [TruckController::class, 'edit'])->name('edit');
+                Route::put('/{truck}', [TruckController::class, 'update'])->name('update');
+                Route::post('/{truck}/status', [TruckController::class, 'status'])->name('status');
+            });
+            Route::post('/{truck}/complaints', [ComplaintController::class, 'store'])->middleware('permission:complaint.raise,complaint.manage')->name('complaints.store');
+            Route::middleware('permission:complaint.manage')->group(function () {
+                Route::post('/{truck}/schedules', [ServiceController::class, 'storeSchedule'])->name('schedules.store');
+                Route::put('/{truck}/schedules/{schedule}', [ServiceController::class, 'updateSchedule'])->name('schedules.update');
+                Route::get('/{truck}/service/new', [ServiceController::class, 'create'])->name('service.create');
+                Route::post('/{truck}/service', [ServiceController::class, 'store'])->name('service.store');
+                Route::get('/{truck}/service/{job}', [ServiceController::class, 'edit'])->name('service.edit');
+                Route::put('/{truck}/service/{job}', [ServiceController::class, 'update'])->name('service.update');
+                Route::post('/{truck}/service/{job}/done', [ServiceController::class, 'complete'])->name('service.complete');
+                Route::post('/{truck}/service/{job}/cancel', [ServiceController::class, 'cancel'])->name('service.cancel');
+            });
+            Route::get('/{truck}', [TruckController::class, 'show'])->middleware('permission:truck.view')->name('show');
+        });
+
+        Route::prefix('complaints')->name('complaints.')->group(function () {
+            Route::get('/', [ComplaintController::class, 'index'])->middleware('permission:complaint.manage,truck.view')->name('index');
+            Route::get('/{complaint}', [ComplaintController::class, 'show'])->middleware('permission:complaint.manage,truck.view')->name('show');
+            Route::put('/{complaint}', [ComplaintController::class, 'update'])->middleware('permission:complaint.manage')->name('update');
+        });
+
+        // People: drivers, helpers, staff; crew-app activation codes (M4).
+        Route::prefix('people')->name('people.')->group(function () {
+            Route::get('/', [PersonController::class, 'index'])->middleware('permission:people.view')->name('index');
+            Route::middleware('permission:people.manage')->group(function () {
+                Route::get('/new', [PersonController::class, 'create'])->name('create');
+                Route::post('/', [PersonController::class, 'store'])->name('store');
+                Route::get('/{person}/edit', [PersonController::class, 'edit'])->name('edit');
+                Route::put('/{person}', [PersonController::class, 'update'])->name('update');
+                Route::post('/{person}/activate', [PersonController::class, 'activate'])->middleware('throttle:10,1')->name('activate');
+            });
+            Route::post('/{person}/reveal-id', [PersonController::class, 'revealId'])->middleware('permission:people.id_documents')->name('reveal-id');
+            Route::get('/{person}', [PersonController::class, 'show'])->middleware('permission:people.view')->name('show');
         });
 
         Route::prefix('settings')->name('settings.')->group(function () {

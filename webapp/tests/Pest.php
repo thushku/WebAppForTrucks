@@ -124,3 +124,19 @@ function makeParty(array $attributes = [], array $roles = ['client'], ?Company $
 
     return $company ? app(CompanyContext::class)->runAs($company, $make) : $make();
 }
+
+/** A truck in the company in context (or the one given). */
+function makeTruck(array $attributes = [], ?Company $company = null): \App\Modules\Fleet\Models\Truck
+{
+    $make = fn () => \App\Modules\Fleet\Models\Truck::create(array_merge(['reg_no' => 'KL-07-AB-1234', 'rc_owner_name' => 'Sharma Roadlines', 'truck_type' => 'w12'], $attributes));
+
+    return $company ? app(CompanyContext::class)->runAs($company, $make) : $make();
+}
+
+/** A driver (or other person) in the company in context (or the one given). */
+function makePerson(array $attributes = [], ?Company $company = null): \App\Modules\People\Models\Person
+{
+    $make = fn () => \App\Modules\People\Models\Person::create(array_merge(['name' => 'Ravi Kumar', 'type' => 'driver', 'mobile' => '+919847011111'], $attributes));
+
+    return $company ? app(CompanyContext::class)->runAs($company, $make) : $make();
+}

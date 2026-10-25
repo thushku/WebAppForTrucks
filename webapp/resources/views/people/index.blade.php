@@ -1,0 +1,61 @@
+@extends('layouts.app')
+@section('title', __('People'))
+@section('content')
+@php
+  $chip = ['valid' => ['bg-emerald-50 text-paid', __('Licence on file')], 'expiring' => ['bg-amber-50 text-partial', null], 'expired' => ['bg-red-50 text-overdue', __('Licence expired')], 'missing' => ['bg-red-50 text-overdue', __('Licence missing')]];
+@endphp
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="{{ __('Type') }}">
+    <a href="{{ route('people.index') }}" role="tab" aria-selected="{{ $type === '' ? 'true' : 'false' }}" class="rounded-xl border px-3 py-2 text-sm font-medium {{ $type === '' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-ink-100 bg-white text-ink-700' }}">{{ __('All') }}</a>
+    @foreach (\App\Modules\People\Models\Person::TYPES as $key => $label)
+      <a href="{{ route('people.index', ['type' => $key]) }}" role="tab" aria-selected="{{ $type === $key ? 'true' : 'false' }}" class="rounded-xl border px-3 py-2 text-sm font-medium {{ $type === $key ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-ink-100 bg-white text-ink-700' }}">{{ __($label) }} @if ($counts[$key] ?? 0)<span class="text-xs text-ink-400">{{ $counts[$key] }}</span>@endif</a>
+    @endforeach
+  </div>
+  @can('people.manage')<a href="{{ route('people.create', $type ? ['type' => $type] : []) }}" class="btn-primary"><x-icon name="plus" /> {{ __('Add person') }}</a>@endcan
+</div>
+
+<section class="card overflow-hidden">
+  <form method="GET" action="{{ route('people.index') }}" class="flex flex-wrap gap-2 border-b border-ink-100 p-4" role="search">
+    @if ($type)<input type="hidden" name="type" value="{{ $type }}">@endif
+    <input name="q" value="{{ $search }}" class="input max-w-xs" placeholder="{{ __('Name, mobile, licence or code') }}" maxlength="60" aria-label="{{ __('Search people') }}">
+    <select name="status" class="input w-36" aria-label="{{ __('Status') }}">
+      <option value="working" @selected($status === 'working')>{{ __('Working') }}</option>
+      <option value="left" @selected($status === 'left')>{{ __('Left') }}</option>
+      <option value="all" @selected($status === 'all')>{{ __('All') }}</option>
+    </select>
+    <button class="btn-secondary px-3" aria-label="{{ __('Search') }}"><x-icon name="search" /></button>
+  </form>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>{{ __('Person') }}</th><th>{{ __('Mobile') }}</th><th>{{ __('Licence') }}</th><th>{{ __('Truck') }}</th><th>{{ __('App') }}</th></tr></thead>
+      <tbody>
+        @forelse ($people as $p)
+          @php($state = $p->licenceState())
+          <tr class="{{ $p->status === 'left' ? 'opacity-60' : '' }}">
+            <td>
+              <div class="flex items-center gap-3">
+                <span class="grid size-9 shrink-0 place-items-center rounded-full bg-indigo-50 font-display text-xs font-bold text-indigo-700">{{ $p->initials() }}</span>
+                <div class="min-w-0">
+                  <a href="{{ route('people.show', $p) }}" class="font-medium text-ink-900 hover:text-brand-700">{{ $p->name }}</a>
+                  <div class="text-xs text-ink-500">{{ __(\App\Modules\People\Models\Person::TYPES[$p->type]) }}{{ $p->employee_code ? ' · ' . $p->employee_code : '' }}{{ $p->status === 'on_leave' ? ' · ' . __('On leave') : '' }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="nowrap text-sm">{{ $p->mobile }}</td>
+            <td>
+              @if (isset($chip[$state]))
+                <span class="pill {{ $chip[$state][0] }}">{{ $chip[$state][1] ?? trans_choice('Expires in :count day|Expires in :count days', now()->startOfDay()->diffInDays($p->licence_expiry)) }}</span>
+              @endif
+            </td>
+            <td class="docno font-mono text-xs">{{ $p->defaultTruck?->reg_no }}</td>
+            <td>@if ($p->company_user_id)<span class="pill bg-brand-50 text-brand-700"><x-icon name="phone" class="size-3" /> {{ __('Linked') }}</span>@endif</td>
+          </tr>
+        @empty
+          <tr><td colspan="5" class="py-12 text-center text-ink-500">{{ $search !== '' ? __('Nobody matches.') : __('No people yet — add your first driver.') }}</td></tr>
+        @endforelse
+      </tbody>
+    </table>
+  </div>
+  @if ($people->hasPages())<div class="p-4">{{ $people->links() }}</div>@endif
+</section>
+@endsection

@@ -30,7 +30,8 @@ founder's laptop) in `phoneapp/`.
 
 - `app/Platform` — tenancy, sign-in (incl. QR web login), roles and permissions, team, audit, signup, console.
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
-  (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts).
+  (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
+  service), `People` (people, activation codes).
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`
   (`settings/` pages extend `layouts/settings`, whose side list comes from `SettingsController::PAGES`).
 - Test helpers shared by several files live in `tests/Pest.php`; a helper inside one test file needs a name no other

@@ -78,6 +78,7 @@ class FleetDemo extends Command
             }
 
             $this->parties($parties, $owner->id);
+            $this->fleet($owner->id);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -131,6 +132,51 @@ class FleetDemo extends Command
         }
         auth()->setUser(\App\Models\Account::find($ownerId));
         $parties->approve($contract);
+    }
+
+    /** Four trucks, their crew, a schedule, a service job and two complaints. */
+    private function fleet(int $ownerId): void
+    {
+        auth()->setUser(\App\Models\Account::find($ownerId));
+        $fleet = app(\App\Modules\Fleet\Services\FleetService::class);
+        $trucks = [];
+        foreach ([
+            ['KL-07-CU-4521', 'Tata', 'Signa 4825.TK', 'w12', 'tipper', 2021, 25, 186400, '2021-03-18'],
+            ['KL-07-CV-1180', 'Ashok Leyland', 'AVTR 3120', 'w10', 'open', 2019, 16, 412300, '2019-08-02'],
+            ['KL-43-D-7702', 'BharatBenz', '3523R', 'w12', 'container', 2023, 21, 98700, '2023-01-11'],
+            ['MH-04-JK-3345', 'Eicher', 'Pro 6028', 'w10', 'open', 2022, 18, 154000, '2022-06-25'],
+        ] as [$reg, $make, $model, $type, $body, $year, $payload, $odo, $regDate]) {
+            $trucks[$reg] = \App\Modules\Fleet\Models\Truck::create([
+                'reg_no' => $reg, 'rc_owner_name' => 'Sharma Roadlines Pvt Ltd', 'make' => $make, 'model' => $model, 'truck_type' => $type, 'body_type' => $body,
+                'manufacture_year' => $year, 'payload_mt' => $payload, 'odometer_km' => $odo, 'odometer_at' => now(), 'registration_date' => $regDate,
+                'emission_norm' => $year >= 2020 ? 'BS6' : 'BS4', 'fuel_tank_l' => 365, 'mileage_loaded_kmpl' => 3.8, 'mileage_empty_kmpl' => 4.6,
+                'registration_state' => substr($reg, 0, 2) === 'MH' ? '27' : '32', 'created_by' => $ownerId,
+            ]);
+        }
+
+        foreach ([
+            ['Ravi Kumar', 'driver', '+919847100001', 'KL-07-CU-4521', '2027-04-30'], ['Suresh Babu', 'driver', '+919847100002', 'KL-07-CU-4521', '2026-11-15'],
+            ['Manoj Thomas', 'driver', '+919847100003', 'KL-07-CV-1180', '2026-10-10'], ['Abdul Rasheed', 'driver', '+919847100004', 'KL-43-D-7702', '2028-01-20'],
+            ['Binu Joseph', 'helper', '+919847100005', 'KL-07-CU-4521', null], ['Shibu P', 'helper', '+919847100006', 'KL-07-CV-1180', null],
+        ] as [$name, $type, $mobile, $reg, $expiry]) {
+            \App\Modules\People\Models\Person::create([
+                'name' => $name, 'type' => $type, 'mobile' => $mobile, 'default_truck_id' => $trucks[$reg]->id, 'joining_date' => '2024-04-01',
+                'licence_no' => $expiry ? 'KL07' . substr($mobile, -7) . '2015' : null, 'licence_expiry' => $expiry, 'licence_class' => $expiry ? 'Transport (HGMV)' : null,
+                'pay_basis' => $type === 'driver' ? 'monthly' : 'per_trip', 'monthly_salary' => $type === 'driver' ? 22000 : null, 'per_trip_rate' => $type === 'helper' ? 1500 : null,
+                'created_by' => $ownerId,
+            ]);
+        }
+
+        $truck = $trucks['KL-07-CU-4521'];
+        $schedule = $truck->serviceSchedules()->create(['name' => 'Engine oil and filters', 'every_km' => 30000, 'every_days' => 180, 'last_done_km' => 160000, 'last_done_on' => now()->subMonths(5)->toDateString()]);
+        $workshop = \App\Modules\Parties\Models\Party::where('name', 'Malabar Truck Works')->first();
+        $job = $fleet->saveJob(null, $truck, ['job_date' => now()->subMonths(5)->toDateString(), 'kind' => 'scheduled', 'odometer_km' => 160000, 'vendor_party_id' => $workshop?->id, 'service_schedule_id' => $schedule->id, 'bill_no' => 'MTW/1182'], [
+            ['kind' => 'part', 'description' => 'Engine oil 15W40', 'qty' => 28, 'rate' => 310], ['kind' => 'part', 'description' => 'Oil filter', 'qty' => 2, 'rate' => 650],
+            ['kind' => 'labour', 'description' => 'Labour', 'qty' => 1, 'rate' => 1200],
+        ]);
+        $fleet->completeJob($job);
+        $fleet->raiseComplaint($truck, ['title' => 'Brake noise, front left', 'priority' => 'high', 'category' => 'brakes', 'description' => 'Squeals when braking downhill.']);
+        $fleet->raiseComplaint($trucks['KL-07-CV-1180'], ['title' => 'Cabin AC not cooling', 'priority' => 'normal', 'category' => 'ac']);
     }
 
     /** Remove the old demo company and its people (only rows the demo made). */

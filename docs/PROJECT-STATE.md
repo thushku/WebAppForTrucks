@@ -2,6 +2,45 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M4: trucks and people
+
+**Built (in `webapp/`):**
+- **Trucks** (`/trucks`): list by status with open-complaint counts; profile with registration (RC owner required,
+  state, RTO, registration date → vehicle age), build (make, model, year, emission norm, fuel, truck/body type, wheels,
+  axles, lift axle, deck length, size label), weights and capacity (GVW, unladen, payload, tank), normal mileage
+  loaded/empty, ownership (own / attached with its owner party / leased), loan (financier, EMI, day, end), toll tag,
+  GPS tracker id, branch. A registration number is in the fleet once however it is typed. The odometer is typed once,
+  then only moves forward (service jobs, complaints, status changes; trips in M5). Status by hand (free, workshop,
+  breakdown, out of service, sold); "on trip" is left to trips.
+- Truck page: details, open complaints, service due, and **share details as text** (pick fields; chassis and engine
+  show the last 5 characters only) by copy or WhatsApp (Trucksarthi parity #18).
+- **Complaints**: raised from the truck page (crew too, with `complaint.raise`), numbered `C-1, C-2…`, priority,
+  category; a board across trucks (open → in progress → waiting for parts → solved → closed, most urgent first);
+  allowed status moves only; every note and change kept in the complaint's history; assign a person and a workshop.
+- **Service**: schedules per truck (every N km and/or N days, "soon" within 10% or 15 days, "overdue"); service jobs
+  numbered `SJ/26-27/0001` with parts and labour lines — totals always worked out from the lines; "Mark done" freezes
+  the job, resets its schedule, moves the odometer and frees a truck that was in the workshop; cancelled jobs keep
+  their number.
+- **People** (`/people`): drivers, helpers, office, mechanics; list with the **licence chip** (on file / expires in N
+  days / expired / missing); profile with licence (class, expiry, hazardous endorsement, badge), pay basis (monthly /
+  per trip / per km), emergency contact, blood group, usual truck. **ID numbers (Aadhaar shown as XXXX XXXX 1234,
+  Emirates ID checked) and bank details are encrypted**; only `people.id_documents` can enter or reveal them, each
+  reveal is logged as sensitive and never stored in the session.
+- **Crew-app activation codes**: 8 digits + QR, valid 72 hours, once; a new code retires the old one. Issuing a code
+  gives the person a login — the Account for their mobile number (shared if they already drive for another company,
+  P7) with the app role for their type (driver / helper…). Changing the mobile number ends the old app login in this
+  company. `ActivationService::redeem()` is ready for the phone API (M6).
+- Demo company now has four trucks, six crew, a service schedule with a finished job, and two complaints.
+
+**Tests:** 108 passing (new `FleetTest` 7, `PeopleTest` 7).
+
+**Not yet (later milestones):** tyres, fuel and mileage, costs and profit per truck, documents tab (next: Document
+Manager), trips tab, driving hours, ledger, leave.
+
+**Next:** Document Manager — documents of trucks, people, the company and parties, with versions (renewals), expiry
+dashboard and reminders, required types ("Missing" tiles), secure share links; then the dispatch check that blocks a
+trip when a required document has expired.
+
 ## 2026-10-25 — Milestone M3 (part 1): parties
 
 **Built (in `webapp/`):**

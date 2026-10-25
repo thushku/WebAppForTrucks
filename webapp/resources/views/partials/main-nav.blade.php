@@ -19,9 +19,10 @@
       [null, 'payroll', __('Payroll'), 'payroll.view', 'bg-orange-50 text-orange-700'],
     ],
     __('Fleet & people') => [
-      [null, 'truck', __('Trucks'), 'truck.view', 'bg-blue-50 text-blue-700'],
+      ['trucks.index', 'truck', __('Trucks'), 'truck.view', 'bg-blue-50 text-blue-700', 'trucks.'],
+      ['complaints.index', 'wrench', __('Complaints'), ['complaint.manage'], 'bg-red-50 text-red-700', 'complaints.'],
       [null, 'folder', __('Documents'), 'document.view', 'bg-yellow-50 text-yellow-700'],
-      [null, 'users', __('People'), 'people.view', 'bg-indigo-50 text-indigo-700'],
+      ['people.index', 'users', __('People'), 'people.view', 'bg-indigo-50 text-indigo-700', 'people.'],
       ['parties.index', 'handshake', __('Parties'), 'party.view', 'bg-lime-50 text-lime-700', 'parties.'],
     ],
     __('Insight') => [

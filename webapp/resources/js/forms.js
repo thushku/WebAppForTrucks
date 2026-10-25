@@ -118,3 +118,23 @@ document.querySelectorAll('[data-qr-login]').forEach((box) => {
   renew.addEventListener('click', begin);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (deadline && Date.now() < deadline && !timer) begin(); });
 });
+
+// Truck details as plain text: pick the fields, copy or send on WhatsApp.
+document.querySelectorAll('[data-share-text]').forEach((box) => {
+  const text = () => {
+    const lines = [...box.querySelectorAll('[data-share-field]:checked')].map((el) => `${el.dataset.label}: ${el.dataset.value}`);
+    return [...lines, '', `— ${box.dataset.footer}`].join('\n');
+  };
+  const wa = box.querySelector('[data-share-whatsapp]');
+  const refresh = () => { if (wa) wa.href = `https://wa.me/?text=${encodeURIComponent(text())}`; };
+  box.addEventListener('change', refresh);
+  refresh();
+  box.querySelector('[data-share-copy]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget;
+    navigator.clipboard?.writeText(text()).then(() => {
+      const label = button.textContent;
+      button.textContent = button.dataset.done;
+      setTimeout(() => { button.textContent = label; }, 1500);
+    });
+  });
+});
