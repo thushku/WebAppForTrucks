@@ -146,6 +146,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('/{trip}/hire/{challan}/issue', [HireChallanController::class, 'issue'])->name('hire.issue');
                 Route::post('/{trip}/hire/{challan}/lines', [HireChallanController::class, 'storeLine'])->name('hire.lines.store');
             });
+            Route::get('/{trip}/photos/{photo}', [TripController::class, 'photo'])->middleware('permission:trip.view')->name('photo');
             Route::get('/{trip}', [TripController::class, 'show'])->middleware('permission:trip.view')->name('show');
         });
 

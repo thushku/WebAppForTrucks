@@ -36,6 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
             Illuminate\Routing\Middleware\SubstituteBindings::class,
             App\Http\Middleware\ResolveCompany::class,
         );
+        $middleware->prependToPriorityList(
+            Illuminate\Routing\Middleware\SubstituteBindings::class,
+            App\Http\Middleware\ResolveApiCompany::class,
+        );
 
         // Security headers on every response: pages, API answers and errors alike.
         $middleware->append(App\Http\Middleware\SecurityHeaders::class);

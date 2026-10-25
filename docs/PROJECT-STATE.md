@@ -2,6 +2,59 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M6: the phone API
+
+**Built (in `webapp/`, API reference for the phone session in `docs/handover/api-v1.md`):**
+- **Signing a phone in** (`/api/v1/auth/*`): crew with the office's 8-digit **activation code** (once, 72 h; local or
+  +91/+971 numbers; 8 wrong codes per number per hour, then a pause); owners and office people with a **code by
+  SMS/WhatsApp** (D21, `log` driver until the provider is set up; the same answer for unknown numbers). One Sanctum
+  token per phone, **90 days**, renewed with `/auth/refresh`, ended with `/auth/logout`; the `devices` row records
+  platform, model, version, push token, last seen / sync / GPS. App **PIN** (4–6 digits, easy ones refused).
+- **Sync** (`GET /crew/sync`, full or `since`): the person's trips (sent, accepted, running, ended ≤ 15 days) with
+  stops, loads, e-way bills, crew and instructions; entries on those trips; **second approvals waiting for me**; who
+  holds the wheel; duty; the truck's papers and their own (files downloadable to show at a checkpost); the rules the
+  app needs; the entry types and payment modes. **Never sent:** the office note, freight (unless the owner allows it,
+  or "to pay" loads the driver collects), other people's ID papers, the manager's flags.
+- **Entries** (`POST /crew/events`, batches of 100, one answer per entry): fuel, toll, weighbridge, official fine with
+  receipt, **payment without receipt**, loading, parking, repair, food, other, money received, rest, incident, note —
+  each validated by type; unknown fields dropped. Saved **once per phone-made UUID**. **Trusted time** rebuilt from
+  the phone's uptime counter (else GPS time). Starting status: recorded / waiting for check / **waiting for the 2nd
+  driver** (dual approval on, another driver on the trip; on a one-driver trip the manager when the rule says so, A4)
+  / approved at once for tolls under the owner's limit. **Flags for the manager** (never a refusal): odometer going
+  back, more litres than the tank, mileage since the last full tank outside the truck's range ±25 %, litres × rate ≠
+  amount, entered far from the GPS track, fake location, changed clock, late entry, cash to one payee in a day above
+  ₹35,000, the same photo used before. A **repair opens a truck complaint**. Own entries can be **edited** (old values
+  kept) or **cancelled** with a reason until checked.
+- **Photos** (`POST /crew/events/{uuid}/photos`): shrunk to ≤ 1600 px / 500 KB, fingerprinted (exact bytes and
+  look-alike hash within 4 bits among the last 60 days): a re-used photo is flagged; a retry is harmless; the **POD
+  photo marks the load's POD received**. "1 of 3 photos" while uploads are pending.
+- **GPS** (`POST /crew/gps`, ≤ 500 points, batch UUID): impossible points dropped (future, > 7 days, 0,0, faster than
+  200 km/h); each point linked to the trip running then.
+- **Commands** (`POST /crew/commands`, kept answer per UUID so a retry never runs twice, a refusal rolls back fully):
+  accept / reject a trip (with reason, back to the office), **start** (odometer checked against the truck, starter
+  holds the wheel) and **end**, stop reached / left, loaded (seal, weight), **delivered = e-POD** (receiver, packages,
+  short, damaged, remarks, unloading times, part delivery), **driver change** (on another's phone the incoming driver's
+  PIN; odometer photo when the owner requires it), the second driver's **yes / no with a reason** (any time until
+  settled, D6), duty on / off, raise a truck complaint.
+- **Trip page — "From the road"**: every entry in time order (company time), amount, payment mode, odometer, the
+  status, the flags in plain words, photos (look-alikes outlined), a map link, the 2nd driver's reason; totals and how
+  many wait. Crew card: who rejected the trip and why; **driving hours per person, rests taken out**.
+- Permissions: drivers record (`event.record`), helpers only when the owner allows it; second approval needs
+  `event.second_approve` and being a driver/co-driver on that trip, never the one who paid.
+- Demo: the running Kochi → Mumbai trip now has a start, fuel, three tolls, a payment without receipt waiting, food, a
+  night halt and a GPS track. `fleet:demo --fresh` works again (it failed on hired-truck trips since M5: the demo
+  company's rows are now emptied table by table before the company is deleted).
+
+**Tests:** 147 passing (new `PhoneApiTest`, 14 tests that act like phones).
+
+**Not yet:** push notifications (Firebase, approved D18) for new trips and second approvals; the office's devices list
+(switch a phone off); the live map and route replay (Leaflet, approved D18); driving-limit alerts (hours are
+counted); GPS-silence alerts; owner-app endpoints beyond sign-in, QR web login and `/me` (approvals, dashboard —
+with M7 and M12); `gps_points` monthly partitions on the production server.
+
+**Next:** M7 — the approvals inbox (web and owner app: approve, query, reject; the manager's second approval on
+one-driver trips), settlement per crew member (advances, own-pocket spending, bata), close, office entries after close.
+
 ## 2026-10-25 — Milestone M5: trips (full load, part load, hired trucks)
 
 **Built (in `webapp/`):**

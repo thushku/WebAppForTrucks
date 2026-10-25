@@ -33,7 +33,11 @@ founder's laptop) in `phoneapp/`.
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
-  broker commissions; TripService is the trip life and the dispatch gate).
+  broker commissions; TripService is the trip life and the dispatch gate), `Road` (what the crew app sends: road events
+  with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `CrewCommands` are the phone's taps, kept per
+  UUID in `api_commands` so a retry never runs twice). Phone sign-in tokens and devices: `app/Platform/Devices`.
+- The phone API is documented for the phone-app session in `docs/handover/api-v1.md`; keep it in step with
+  `routes/api.php` and `tests/Feature/PhoneApiTest.php`.
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`
   (`settings/` pages extend `layouts/settings`, whose side list comes from `SettingsController::PAGES`).
 - Test helpers shared by several files live in `tests/Pest.php`; a helper inside one test file needs a name no other

@@ -44,7 +44,7 @@ class DocumentFiles
             }
             [$bytes, $mime, $ext] = [(string) file_get_contents($real), 'application/pdf', 'pdf'];
         } elseif ($info && in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
-            [$bytes, $mime, $ext] = [$this->shrink($real, $info[2]), 'image/jpeg', 'jpg'];
+            [$bytes, $mime, $ext] = [\App\Support\Images::shrink($real, self::LONG_SIDE, self::IMAGE_TARGET_BYTES), 'image/jpeg', 'jpg'];
         } else {
             throw ValidationException::withMessages(['files' => __(':name is not a photo (JPG, PNG, WebP) or a PDF.', ['name' => $upload->getClientOriginalName()])]);
         }
@@ -89,51 +89,5 @@ class DocumentFiles
         imagedestroy($image);
 
         return (string) ob_get_clean();
-    }
-
-    private function shrink(string $path, int $type): string
-    {
-        $image = match ($type) {
-            IMAGETYPE_JPEG => imagecreatefromjpeg($path),
-            IMAGETYPE_PNG  => imagecreatefrompng($path),
-            IMAGETYPE_WEBP => imagecreatefromwebp($path),
-        };
-        if (! $image) {
-            throw ValidationException::withMessages(['files' => __('That picture could not be read.')]);
-        }
-
-        // Photos from phones are often stored sideways with an orientation flag.
-        if ($type === IMAGETYPE_JPEG && function_exists('exif_read_data')) {
-            $orientation = (int) (@exif_read_data($path)['Orientation'] ?? 1);
-            $image = match ($orientation) {
-                3 => imagerotate($image, 180, 0),
-                6 => imagerotate($image, -90, 0),
-                8 => imagerotate($image, 90, 0),
-                default => $image,
-            };
-        }
-
-        // One white canvas at the final size: shrinks big photos and flattens
-        // PNG transparency (JPEG has none).
-        $w     = imagesx($image);
-        $h     = imagesy($image);
-        $scale = min(1, self::LONG_SIDE / max($w, $h));
-        $canvas = imagecreatetruecolor(max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
-        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
-        imagecopyresampled($canvas, $image, 0, 0, 0, 0, imagesx($canvas), imagesy($canvas), $w, $h);
-        imagedestroy($image);
-        $image = $canvas;
-
-        foreach ([82, 72, 62, 52, 42] as $quality) {
-            ob_start();
-            imagejpeg($image, null, $quality);
-            $bytes = (string) ob_get_clean();
-            if (strlen($bytes) <= self::IMAGE_TARGET_BYTES) {
-                break;
-            }
-        }
-        imagedestroy($image);
-
-        return $bytes;
     }
 }

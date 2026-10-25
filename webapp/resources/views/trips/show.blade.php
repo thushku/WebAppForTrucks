@@ -163,6 +163,8 @@
     @if ($t->truck_source === 'hired')
       @include('trips.partials.hire-summary')
     @endif
+
+    @include('trips.partials.road')
   </div>
 
   {{-- Side cards: a column on wide screens, two across below the loads otherwise. --}}
@@ -171,11 +173,22 @@
       <h3 class="font-semibold">{{ __('Crew') }}</h3>
       <ul class="mt-3 space-y-2 text-sm">
         @forelse ($t->crew as $m)
-          <li class="flex items-center justify-between gap-2"><a href="{{ route('people.show', $m->person) }}" class="font-medium hover:text-brand-700">{{ $m->person->name }}</a><span class="text-xs text-ink-500">{{ __(\App\Modules\Trips\Models\TripCrew::ROLES[$m->role]) }}{{ $m->accepted_at ? ' · ' . __('accepted') : '' }}</span></li>
+          <li>
+            <div class="flex items-center justify-between gap-2"><a href="{{ route('people.show', $m->person) }}" class="font-medium hover:text-brand-700">{{ $m->person->name }}</a><span class="text-xs text-ink-500">{{ __(\App\Modules\Trips\Models\TripCrew::ROLES[$m->role]) }}{{ $m->accepted_at ? ' · ' . __('accepted') : '' }}</span></div>
+            @if ($m->rejected_at)<p class="text-xs text-overdue">{{ __('Cannot take this trip: :reason', ['reason' => $m->reject_reason]) }}</p>@endif
+          </li>
         @empty
           <li class="text-ink-500">{{ $t->truck_source === 'hired' ? __('The supplier’s driver.') : __('No crew.') }}</li>
         @endforelse
       </ul>
+      @if ($driving->isNotEmpty())
+        <h4 class="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-500">{{ __('Driving') }}</h4>
+        <ul class="mt-2 space-y-1 text-sm">
+          @foreach ($driving as $d)
+            <li class="flex justify-between gap-2"><span>{{ $d['name'] }}@if ($d['now']) <span class="pill bg-brand-50 text-brand-700">{{ __('driving now') }}</span>@endif</span><span class="font-mono text-xs">{{ intdiv($d['minutes'], 60) }} h {{ str_pad((string) ($d['minutes'] % 60), 2, '0', STR_PAD_LEFT) }} min</span></li>
+          @endforeach
+        </ul>
+      @endif
     </section>
 
     @if ($canMoney)

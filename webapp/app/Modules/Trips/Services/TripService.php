@@ -27,8 +27,9 @@ use Illuminate\Validation\ValidationException;
  * why it goes anyway (kept on the trip and in the audit log). It also fixes
  * the trip number (P1) and numbers the LRs.
  *
- * Accept / reject and the crew's start and end come from the phone (M6); the
- * office can start and end a trip itself when the crew has no app.
+ * Accept / reject and the crew's start and end come from the phone
+ * (Road\Services\CrewCommands); the office can start and end a trip itself
+ * when the crew has no app.
  */
 class TripService
 {
@@ -240,8 +241,11 @@ class TripService
         ])->save();
     }
 
-    /** The office starts the trip (the crew app does this itself in M6). */
-    public function start(Trip $trip, ?int $odometer = null): void
+    /**
+     * Start the trip: the office does it, or the crew app (at the moment the
+     * driver tapped "Start", which may be hours before the phone had signal).
+     */
+    public function start(Trip $trip, ?int $odometer = null, ?\Carbon\CarbonInterface $at = null): void
     {
         if (! in_array($trip->status, ['assigned', 'accepted'], true)) {
             throw ValidationException::withMessages(['trip' => __('Send the trip to the crew first.')]);
@@ -251,8 +255,8 @@ class TripService
             throw ValidationException::withMessages(['start_odometer' => __('The truck already showed :km km. Check the reading.', ['km' => number_format($trip->truck->odometer_km)])]);
         }
 
-        DB::transaction(function () use ($trip, $odometer) {
-            $trip->forceFill(['status' => 'running', 'started_at' => now(), 'start_odometer' => $odometer])->save();
+        DB::transaction(function () use ($trip, $odometer, $at) {
+            $trip->forceFill(['status' => 'running', 'started_at' => $at ?? now(), 'start_odometer' => $odometer])->save();
             if ($trip->truck) {
                 $trip->truck->forceFill(['status' => 'on_trip'])->save();
                 if ($odometer) {
@@ -263,8 +267,8 @@ class TripService
         });
     }
 
-    /** The office ends the trip. Loads still on board are marked delivered now. */
-    public function end(Trip $trip, ?int $odometer = null, bool $early = false): void
+    /** End the trip (office or crew app). Loads still on board are marked delivered then. */
+    public function end(Trip $trip, ?int $odometer = null, bool $early = false, ?\Carbon\CarbonInterface $at = null): void
     {
         if ($trip->status !== 'running') {
             throw ValidationException::withMessages(['trip' => __('Only a running trip can end.')]);
@@ -273,8 +277,9 @@ class TripService
             throw ValidationException::withMessages(['end_odometer' => __('The end reading is below the start reading (:km).', ['km' => number_format($trip->start_odometer)])]);
         }
 
-        DB::transaction(function () use ($trip, $odometer, $early) {
-            $trip->forceFill(['status' => 'ended', 'ended_at' => now(), 'end_odometer' => $odometer, 'ended_early' => $early])->save();
+        DB::transaction(function () use ($trip, $odometer, $early, $at) {
+            $at ??= now();
+            $trip->forceFill(['status' => 'ended', 'ended_at' => $at, 'end_odometer' => $odometer, 'ended_early' => $early])->save();
             $trip->loadMissing('truck');
             if ($trip->truck) {
                 $trip->truck->forceFill(['status' => 'idle'])->save();
@@ -283,7 +288,7 @@ class TripService
                 }
             }
             Consignment::where('trip_id', $trip->id)->whereIn('status', ['booked', 'picked_up', 'in_transit'])
-                ->update(['status' => 'delivered', 'delivered_at' => now(), 'updated_at' => now()]);
+                ->update(['status' => 'delivered', 'delivered_at' => $at, 'updated_at' => now()]);
         });
     }
 

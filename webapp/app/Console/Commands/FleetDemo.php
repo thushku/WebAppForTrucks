@@ -220,7 +220,7 @@ class FleetDemo extends Command
              'description' => 'OPC 53 grade, 50 kg bags', 'packages' => 380, 'package_type' => 'bags', 'actual_weight_mt' => 19, 'freight_basis' => 'tonne', 'rate' => 3400,
              'rate_contract_line_id' => $line?->id, 'freight' => 71400, 'payment_type' => 'to_be_billed', 'gst_payable_by' => 'consignor']);
         $trips->assign($t1);
-        $trips->start($t1, 98700);
+        $trips->start($t1, 98700, now()->subHours(20));
         \App\Modules\Trips\Models\TripAdvance::create(['trip_id' => $t1->id, 'person_id' => $person['Abdul Rasheed'], 'amount' => 20000, 'mode' => 'cash', 'given_on' => now()->subDay()->toDateString(), 'created_by' => $ownerId]);
 
         // 2. A part-load draft: Kochi → Thrissur… → Coimbatore with two clients.
@@ -246,18 +246,78 @@ class FleetDemo extends Command
             'tds_section' => $tds['section'], 'tds_rate' => $tds['rate'], 'tds_nil_reason' => $tds['nil_reason'], 'balance_days_after_pod' => 15]);
         $hire->issue($challan);
         $hire->addLine($challan->fresh(), ['kind' => 'advance', 'amount' => 8000, 'line_date' => now()->toDateString(), 'mode' => 'upi', 'paid_to' => 'owner', 'reference' => 'UPI-4471']);
+
+        $this->road($t1->fresh());
     }
 
-    /** Remove the old demo company and its people (only rows the demo made). */
+    /**
+     * What the crew app would have sent on the running trip: fuel, tolls, a
+     * payment without receipt waiting for the manager (one driver), food,
+     * a rest, and the GPS track so far.
+     */
+    private function road(\App\Modules\Trips\Models\Trip $trip): void
+    {
+        $events = app(\App\Modules\Road\Services\RoadEventService::class);
+        $driver = \App\Modules\People\Models\Person::where('name', 'Abdul Rasheed')->first();
+        $start  = $trip->started_at->toImmutable();
+        $at     = fn (int $minutes) => $start->addMinutes($minutes)->toIso8601String();
+
+        \App\Modules\Road\Models\DrivingShift::create(['trip_id' => $trip->id, 'person_id' => $driver->id, 'started_at' => $start, 'start_odometer' => 98700, 'start_lat' => 9.9312, 'start_lng' => 76.2673]);
+
+        foreach ([
+            ['start_trip', 0, ['odometer' => 98700, 'data' => ['fuel_gauge' => '1/2']], 9.9312, 76.2673],
+            ['toll', 35, ['amount' => 155, 'payment_mode' => 'fastag', 'data' => ['plaza' => 'Kumbalam']], 9.9080, 76.3160],
+            ['fuel', 95, ['amount' => 23750, 'payment_mode' => 'fuel_card', 'odometer' => 98790, 'data' => ['litres' => 250, 'rate' => 95, 'full_tank' => true, 'pump' => 'HP Aluva']], 10.1076, 76.3516],
+            ['toll', 180, ['amount' => 255, 'payment_mode' => 'fastag', 'data' => ['plaza' => 'Paliyekkara']], 10.3940, 76.2870],
+            ['no_receipt', 300, ['amount' => 500, 'payment_mode' => 'cash', 'data' => ['authority' => 'police', 'reason' => 'Overload check', 'place' => 'Walayar']], 10.8470, 76.8390],
+            ['food', 420, ['amount' => 240, 'payment_mode' => 'cash', 'data' => ['what' => 'Lunch, two people']], 11.0168, 76.9558],
+            ['rest_start', 600, ['note' => 'Night halt at Salem bypass'], 11.6643, 78.1460],
+            ['rest_end', 1020, [], 11.6643, 78.1460],
+            ['toll', 1100, ['amount' => 310, 'payment_mode' => 'cash', 'data' => ['plaza' => 'Krishnagiri']], 12.5186, 78.2137],
+        ] as [$type, $minutes, $fields, $lat, $lng]) {
+            $payload = ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'trip' => $trip->uuid, 'type' => $type, 'event_at' => $at($minutes), 'lat' => $lat, 'lng' => $lng, 'accuracy_m' => 15] + $fields;
+            $type === 'start_trip'
+                ? $events->build($driver, $trip, $payload)->save()
+                : $events->push($driver, $payload, [], [$type]);
+        }
+
+        // A point every ten minutes along the way (straight lines between the stops above are enough for a demo).
+        $path = [[0, 9.9312, 76.2673], [95, 10.1076, 76.3516], [300, 10.8470, 76.8390], [600, 11.6643, 78.1460], [1020, 11.6643, 78.1460], [1180, 12.6, 78.0]];
+        $rows = [];
+        for ($i = 0; $i < count($path) - 1; $i++) {
+            [[$m1, $la1, $ln1], [$m2, $la2, $ln2]] = [$path[$i], $path[$i + 1]];
+            for ($m = $m1; $m < $m2; $m += 10) {
+                $f = ($m - $m1) / ($m2 - $m1);
+                $rows[] = ['company_id' => $trip->company_id, 'person_id' => $driver->id, 'trip_id' => $trip->id, 'recorded_at' => $start->addMinutes($m)->utc(),
+                    'lat' => round($la1 + ($la2 - $la1) * $f, 7), 'lng' => round($ln1 + ($ln2 - $ln1) * $f, 7), 'accuracy_m' => 12, 'speed_kmh' => $la1 === $la2 ? 0 : 48, 'received_at' => now()];
+            }
+        }
+        DB::table('gps_points')->insert($rows);
+    }
+
+    /**
+     * Remove the old demo company and its people (only rows the demo made).
+     * Every table with a company_id is emptied of the demo company's rows
+     * first: the company's own links (trips → hired trucks, entries → people)
+     * cannot be untied in one cascading delete.
+     */
     private function forget(Account $owner): void
     {
-        DB::transaction(function () use ($owner) {
-            foreach (Company::where('owner_account_id', $owner->id)->get() as $company) {
-                DB::table('role_assignments')->where('company_id', $company->id)->delete();
-                DB::table('role_permissions')->whereIn('role_id', DB::table('roles')->where('company_id', $company->id)->pluck('id'))->delete();
-                DB::table('roles')->where('company_id', $company->id)->delete();
-                DB::table('company_users')->where('company_id', $company->id)->delete();
-                $company->delete();
+        $tables = collect(DB::select("select table_name as t from information_schema.columns where table_schema = database() and column_name = 'company_id'"))
+            ->pluck('t')->reject(fn ($t) => in_array($t, ['audit_log'], true));
+
+        DB::transaction(function () use ($owner, $tables) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            try {
+                foreach (Company::where('owner_account_id', $owner->id)->get() as $company) {
+                    DB::table('role_permissions')->whereIn('role_id', DB::table('roles')->where('company_id', $company->id)->pluck('id'))->delete();
+                    foreach ($tables as $table) {
+                        DB::table($table)->where('company_id', $company->id)->delete();
+                    }
+                    $company->delete();
+                }
+            } finally {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
             Account::whereIn('email', [self::EMAIL, 'anita@fleet.test', 'vikram@fleet.test'])->delete();
         });

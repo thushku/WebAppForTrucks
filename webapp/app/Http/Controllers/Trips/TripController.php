@@ -7,6 +7,9 @@ use App\Modules\Fleet\Models\Truck;
 use App\Modules\Parties\Models\Party;
 use App\Modules\Parties\Models\SupplierVehicle;
 use App\Modules\People\Models\Person;
+use App\Modules\Road\Models\EventPhoto;
+use App\Modules\Road\Models\RoadEvent;
+use App\Modules\Road\Services\DrivingHours;
 use App\Modules\Settings\Models\Branch;
 use App\Modules\Settings\Models\MasterItem;
 use App\Modules\Settings\Models\Place;
@@ -21,6 +24,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -119,12 +124,22 @@ class TripController extends Controller
 
         return view('trips.show', [
             'trip'      => $trip,
+            'events'    => RoadEvent::with(['person:id,name', 'photos:id,road_event_id,slot,duplicate_of'])->where('trip_id', $trip->id)->orderBy('trusted_at')->orderBy('id')->get(),
+            'driving'   => app(DrivingHours::class)->forTrip($trip),
             'legs'      => $this->loadPlan->legs($trip),
             'check'     => $trip->isDraft() ? $this->trips->dispatchCheck($trip) : null,
             'materials' => MasterItem::ofList('material')->pluck('name', 'code'),
             'places'    => Place::active()->orderBy('name')->get(['id', 'name', 'short_code']),
             'canMoney'  => auth()->user()->can('trip.freight_view'),
         ]);
+    }
+
+    /** A photo the crew sent with an entry on this trip. */
+    public function photo(Trip $trip, EventPhoto $photo): Response
+    {
+        abort_unless(RoadEvent::whereKey($photo->road_event_id)->where('trip_id', $trip->id)->exists(), 404);
+
+        return response(Storage::disk('local')->get($photo->path), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=3600']);
     }
 
     public function edit(Trip $trip): View
