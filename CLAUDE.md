@@ -46,7 +46,8 @@ founder's laptop) in `phoneapp/`.
   `Accounts` (M11: `ChartOfAccounts` makes groups and ledgers on first use, `Books` posts balanced vouchers once
   per source and reverses — never edits — them, honouring the lock date; `Posting` holds the automatic entries and
   `BookKeeper` hooks them to the models' saves; `Statements` reads ledgers, trial balance, P&L, balance sheet and
-  truck profit; `php artisan fleet:books` posts anything missing). Phone sign-in tokens and devices:
+  truck profit; `Registers` ageing and TDS, `TaxReturns` GSTR-1 / VAT 201 data, `TallyExport` the Tally XML;
+  `php artisan fleet:books` posts anything missing). Phone sign-in tokens and devices:
   `app/Platform/Devices`.
 - The phone API is documented for the phone-app session in `docs/handover/api-v1.md`; keep it in step with
   `routes/api.php` and `tests/Feature/PhoneApiTest.php`.

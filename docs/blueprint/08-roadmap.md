@@ -25,7 +25,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M8 ✅ | **Tax engine** (masters, rules, dated rates, withholding, trace) with India preset + UAE preset | Tax worked out correctly in tests for the examples in `11-tax-engine.md` |
 | M9 | **Invoicing** ported from Clinic Ledger: LR with copies, invoices (single, consolidated, supplementary), credit/debit notes, receipts with TDS and deductions, payment vouchers, numbering, finalise/void, sharing, public links | Create, print, share an LR and an invoice from a trip |
 | M10 ✅ | **Templates and template editor** (themes incl. Classic LR, Compact A5; named templates, defaults per branch/client, copy sets, custom fields, label renames, versions) | Design an LR and an invoice in the editor |
-| M11 (part 1 ✅) | **Accounting core + five ledgers** (driver buckets, client bill-wise outstanding and queues, truck P&L, supplier settlement, vendor bills and fuel slips), statements, GST/TDS data, Tally/Excel export | Ledgers and profit per trip/truck/consignment from the books |
+| M11 (parts 1–2 ✅) | **Accounting core + five ledgers** (driver buckets, client bill-wise outstanding and queues, truck P&L, supplier settlement, vendor bills and fuel slips), statements, GST/TDS data, Tally/Excel export | Ledgers and profit per trip/truck/consignment from the books |
 | M12 | Live map, route replay, reports, dashboard, work queues | Owner dashboard with real numbers |
 | M13 | Super-admin: plans, trials, coupons, storage cleanup, DB export/import | Manage the SaaS |
 | M14 | Marketing website and sign-up (after pricing is decided) | Public site |

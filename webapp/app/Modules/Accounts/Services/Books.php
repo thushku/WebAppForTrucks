@@ -34,7 +34,7 @@ class Books
     public function __construct(private CompanyContext $context, private DocumentNumbering $numbering, private AuditRecorder $audit) {}
 
     /**
-     * @param array{type: string, date: CarbonInterface|string, narration: string, reference?: ?string, source_type?: ?string, source_id?: ?int, currency?: ?string, created_by?: ?int} $head
+     * @param array{type: string, date: CarbonInterface|string, narration: string, reference?: ?string, source_type?: ?string, source_id?: ?int, currency?: ?string, created_by?: ?int, series?: string} $head
      * @param array<int, array{ledger: LedgerAccount, debit?: float|int|string|null, credit?: float|int|string|null, bucket?: ?string, trip_id?: ?int, truck_id?: ?int, branch_id?: ?int, consignment_id?: ?int, note?: ?string}> $lines
      */
     public function post(array $head, array $lines): ?Voucher
@@ -55,14 +55,15 @@ class Books
             throw new RuntimeException("Voucher does not balance: debits {$debits}, credits {$credits} ({$head['narration']}).");
         }
 
-        $documentDate = CarbonImmutable::parse($head['date'] instanceof CarbonInterface ? $head['date']->toDateString() : $head['date']);
+        $documentDate = $this->localDate($head['date']);
         $date = $this->openDate($documentDate);
 
         return DB::transaction(function () use ($head, $lines, $debits, $documentDate, $date, $sourceType, $sourceId) {
             $earlier = $sourceType ? Voucher::where('source_type', $sourceType)->where('source_id', $sourceId)->where('voucher_type', '!=', 'reversal')->count() : 0;
             $voucher = Voucher::create([
                 'voucher_type'  => $head['type'],
-                'number'        => $this->numbering->assign($head['type'] === 'journal' && ! $sourceType ? 'journal' : 'voucher', $date->setTime(12, 0)),
+                // Typed by hand: journals and payment vouchers have their own series; the system's are V/.
+                'number'        => $this->numbering->assign($head['series'] ?? ($head['type'] === 'journal' && ! $sourceType ? 'journal' : 'voucher'), $date->setTime(12, 0)),
                 'voucher_date'  => $date->toDateString(),
                 'document_date' => $date->equalTo($documentDate) ? null : $documentDate->toDateString(),
                 'reference'     => isset($head['reference']) ? mb_substr((string) $head['reference'], 0, 60) : null,
@@ -91,7 +92,7 @@ class Books
             if ($voucher->voucher_type === 'reversal') {
                 throw ValidationException::withMessages(['voucher' => __('A reversal is not reversed again; post a new voucher instead.')]);
             }
-            $documentDate = CarbonImmutable::parse(($on ?? now())->toDateString());
+            $documentDate = $this->localDate($on ?? now());
             $date = $this->openDate($documentDate);
 
             $reversal = Voucher::create([
@@ -157,6 +158,23 @@ class Books
         $this->audit->record($until ? 'books.locked' : 'books.unlocked',
             $until ? 'Locked the books up to ' . $until->format('d M Y') : 'Unlocked the books', 'company', (string) $this->context->id(),
             changes: ['locked_until' => ['from' => $before?->toDateString(), 'to' => $until?->toDateString()]], reason: $reason, severity: 'notable');
+    }
+
+    /**
+     * The calendar day of a source: a plain date as it is; a moment (a road
+     * entry at 02:10, a settlement) on the company's clock, so an entry made
+     * after midnight in Kochi is not dated the day before (UTC).
+     */
+    public function localDate(CarbonInterface|string $value): CarbonImmutable
+    {
+        if (is_string($value)) {
+            return CarbonImmutable::parse(substr($value, 0, 10));
+        }
+        if ($value->format('H:i:s') === '00:00:00') {
+            return CarbonImmutable::parse($value->toDateString());
+        }
+
+        return CarbonImmutable::parse(CarbonImmutable::instance($value)->setTimezone($this->context->company()->timezone ?: 'UTC')->toDateString());
     }
 
     /** The date a voucher is posted on: its own, or the first day after the lock. */

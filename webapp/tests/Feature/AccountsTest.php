@@ -41,6 +41,12 @@ function accMember(array $w, string $role): Account
     return $account;
 }
 
+/** A downloaded CSV as rows of cells. */
+function accCsv(string $content): array
+{
+    return array_map('str_getcsv', explode("\n", trim(str_replace("\xEF\xBB\xBF", '', $content))));
+}
+
 function accBalanced(): bool
 {
     $t = VoucherLine::selectRaw('sum(debit) as d, sum(credit) as c')->first();
@@ -262,4 +268,131 @@ it('posts what was recorded before the books existed, once, and checks the book 
     $this->artisan('fleet:books', ['--company' => $w['company']->id])->expectsOutputToContain('0 new voucher(s)')->assertSuccessful();
     app(CompanyContext::class)->set($w['company']);
     expect(Voucher::count())->toBe(1)->and(accBalance('party:' . $w['client']->id))->toBe(75520.0);
+});
+
+it('pays a vendor and a crew member’s bata by payment voucher', function () {
+    $w = invWorld();
+    app(CompanyContext::class)->set($w['company']);
+    $chart = app(ChartOfAccounts::class);
+    $pump = makeParty(['name' => 'IOC Aluva'], ['vendor']);
+    $driver = makePerson(['name' => 'Ravi Kumar', 'mobile' => '+919847099999']);
+    $pumpLedger = $chart->party($pump);
+    $raviLedger = $chart->person($driver);
+    app(Books::class)->post(['type' => 'purchase', 'date' => '2026-10-20', 'narration' => 'Diesel bill'], [['ledger' => $chart->expense('fuel'), 'debit' => 42000], ['ledger' => $pumpLedger, 'credit' => 42000]]);
+    app(Books::class)->post(['type' => 'journal', 'date' => '2026-10-20', 'narration' => 'Bata'], [['ledger' => $chart->ledger('bata'), 'debit' => 1200], ['ledger' => $raviLedger, 'credit' => 1200, 'bucket' => 'earnings']]);
+
+    $this->get(route('ledgers.show', $pumpLedger))->assertOk()->assertSee(route('accounts.payments.create', ['ledger' => $pumpLedger->id]));
+    $this->get(route('accounts.payments.create', ['ledger' => $pumpLedger->id]))->assertOk()->assertSeeText('IOC Aluva');
+    $this->post(route('accounts.payments.store'), ['ledger_account_id' => $pumpLedger->id, 'amount' => 42000, 'paid_on' => '2026-10-25', 'mode' => 'bank'])->assertSessionHasErrors('reference');
+    $this->post(route('accounts.payments.store'), ['ledger_account_id' => $pumpLedger->id, 'amount' => 42000, 'paid_on' => '2026-10-25', 'mode' => 'bank', 'reference' => 'UTR991', 'narration' => 'October diesel'])->assertSessionHasNoErrors();
+    $this->post(route('accounts.payments.store'), ['ledger_account_id' => $raviLedger->id, 'amount' => 1200, 'paid_on' => '2026-10-25', 'mode' => 'cash', 'narration' => 'Bata, October trip'])->assertSessionHasNoErrors();
+
+    app(CompanyContext::class)->set($w['company']);
+    expect(Voucher::where('voucher_type', 'payment')->orderBy('id')->pluck('number')->all())->toBe(['PV/26-27/00001', 'PV/26-27/00002'])
+        ->and(accBalance('party:' . $pump->id))->toBe(0.0)
+        ->and(accBalance('person:' . $driver->id, 'earnings'))->toBe(0.0)
+        ->and(accBalance('cash'))->toBe(-1200.0)
+        ->and(accBalance('bank'))->toBe(-42000.0);
+});
+
+it('ages clients’ bills and the hire owed, and keeps the TDS register', function () {
+    $w = invWorld(client: ['tds_deducted' => true], loads: 2);
+    $first = invDraft($w, [$w['loads'][0]->id]);
+    $this->post(route('invoices.finalise', $first));
+    $second = invDraft($w, [$w['loads'][1]->id]);
+    $this->post(route('invoices.finalise', $second));
+    // Part of the first bill paid with TDS.
+    $this->post(route('receipts.store'), ['party_id' => $w['client']->id, 'receipt_date' => '2026-10-25', 'amount' => 50000, 'tds_amount' => 1280, 'tds_section' => '393(1)',
+        'mode' => 'neft', 'reference' => 'UTR1', 'narration' => 'Part', 'allocation' => 'oldest'])->assertSessionHasNoErrors();
+
+    // Due 24 Nov: on 10 Jan both are 47 days overdue.
+    $this->get(route('accounts.ageing', ['to' => '2027-01-10']))->assertOk()->assertSeeText('ACC Limited')->assertSeeText('47 days')->assertSeeText('₹99,760.00');
+    $this->get(route('accounts.ageing', ['to' => '2026-10-30']))->assertOk()->assertSeeText('not due');
+    $csv = $this->get(route('accounts.ageing', ['to' => '2027-01-10', 'format' => 'csv']))->streamedContent();
+    expect(accCsv($csv)[1])->toBe(['ACC Limited', '0', '0', '99760', '0', '0', '99760']);
+
+    $this->get(route('accounts.tds'))->assertOk()->assertSeeText('Q3 2026-27')->assertSeeText('INV/26-27/00001')->assertSeeText('₹1,280.00');
+    expect(array_slice(accCsv($this->get(route('accounts.tds', ['format' => 'csv']))->streamedContent())[1], 0, 3))->toBe(['Q3 2026-27', 'ACC Limited', 'AAACA1234B']);
+    $this->get(route('accounts.tds', ['tab' => 'payable']))->assertOk()->assertSeeText('No hire challans with TDS in this period.');
+});
+
+it('prepares GSTR-1 tables and the 3B working from the issued bills', function () {
+    $w = invWorld();
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice));
+
+    $this->get(route('accounts.tax', ['month' => '2026-10']))->assertOk()->assertSeeText('GSTR-1 for ' . $w['registration']->tax_id)
+        ->assertSeeText('32-Kerala')->assertSeeText('₹64,000.00')->assertSeeText('CGST ₹5,760.00');
+    $b2b = $this->get(route('accounts.tax', ['month' => '2026-10', 'section' => 'b2b']))->assertOk()->streamedContent();
+    expect(accCsv($b2b)[0])->toBe(\App\Http\Controllers\Accounts\ReportsController::GSTR1_SHEETS['b2b'][0])
+        ->and(accCsv($b2b)[1])->toBe([$w['client']->taxIds->first()->tax_id, 'ACC Limited', 'INV/26-27/00001', '25-Oct-2026', '75520', '32-Kerala', 'N', '', 'Regular B2B', '', '18', '64000', '0']);
+    $hsn = $this->get(route('accounts.tax', ['month' => '2026-10', 'section' => 'hsn']))->streamedContent();
+    expect($hsn)->toContain('996791')->toContain('5760');
+    $docs = $this->get(route('accounts.tax', ['month' => '2026-10', 'section' => 'docs']))->streamedContent();
+    expect(accCsv($docs)[1])->toBe(['Invoices for outward supply', 'INV/26-27/00001', 'INV/26-27/00001', '1', '0']);
+
+    // Reverse charge: reported with RCM "Y", no tax of ours.
+    $rcm = invWorld(gtaOption: null, clientState: '27');
+    $bill = invDraft($rcm);
+    $this->post(route('invoices.finalise', $bill));
+    app(CompanyContext::class)->set($rcm['company']);
+    $data = app(\App\Modules\Accounts\Services\TaxReturns::class)->gstr1($rcm['registration'], CarbonImmutable::parse('2026-10-01'));
+    expect($data['b2b'][0])->toMatchArray(['rcm' => 'Y', 'pos' => '27-Maharashtra', 'taxable' => 64000.0])
+        ->and($data['summary'])->toMatchArray(['taxable' => 0.0, 'rcm_taxable' => 64000.0, 'rcm_tax' => 3200.0, 'igst' => 0.0]);
+});
+
+it('writes the UAE VAT 201 output boxes', function () {
+    $company = makeCompany(['name' => 'Gulf Haulage', 'country' => 'AE', 'currency' => 'AED', 'timezone' => 'Asia/Dubai', 'fy_start_month' => 1]);
+    $owner = signInTo($company);
+    $invoice = app(CompanyContext::class)->runAs($company, function () use ($owner) {
+        \App\Modules\Tax\Models\TaxRegistration::create(['country' => 'AE', 'regime' => 'ae_vat', 'tax_id' => '100123456700003', 'state_code' => 'DU', 'is_default' => true]);
+        $buyer = makeParty(['name' => 'Emirates Steel', 'country' => 'AE', 'state_code' => 'AZ'], ['client']);
+        \App\Modules\Parties\Models\PartyTaxId::create(['party_id' => $buyer->id, 'country' => 'AE', 'tax_id' => '100987654300003', 'state_code' => 'AZ', 'is_default' => true]);
+        $service = app(\App\Modules\Invoicing\Services\InvoiceService::class);
+        $draft = $service->draftBlank($buyer->fresh('taxIds'), $owner);
+        $service->updateDraft($draft, ['issue_date' => '2026-10-25', 'due_date' => '2026-11-24', 'transport_type' => 'domestic', 'carrier_role' => 'main', 'discount_type' => 'none',
+            'lines' => [['service_class' => 'FREIGHT_ROAD', 'description' => 'Freight Dubai – Abu Dhabi', 'quantity' => 1, 'unit_rate' => 10000]]]);
+
+        return $service->finalise($draft->fresh(), $owner);
+    });
+
+    expect((float) $invoice->tax_total)->toBe(500.0);
+    $this->get(route('accounts.tax', ['month' => '2026-10']))->assertOk()->assertSeeText('VAT 201 for 100123456700003')
+        ->assertSeeText('Standard-rated supplies in Dubai')->assertSeeText('AED 10,000.00')->assertSeeText('AED 500.00');
+    app(CompanyContext::class)->set($company);
+    expect(accBalance('output_tax:VAT'))->toBe(-500.0);
+});
+
+it('exports the book for Tally: masters under Tally’s groups, vouchers with signed amounts', function () {
+    $w = invWorld();
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice));
+    app(CompanyContext::class)->runAs($w['company'], fn () => app(ChartOfAccounts::class)->ensure());
+
+    $xml = $this->get(route('accounts.tally'))->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8')->getContent();
+    $doc = simplexml_load_string($xml);
+    expect($doc)->not->toBeFalse()
+        ->and((string) $doc->HEADER->TALLYREQUEST)->toBe('Import Data');
+    $ledgers = collect($doc->xpath('//LEDGER'))->mapWithKeys(fn ($l) => [(string) $l['NAME'] => (string) $l->PARENT]);
+    expect($ledgers['ACC Limited'])->toBe('Sundry Debtors')->and($ledgers['Output CGST'])->toBe('Duties & Taxes')
+        ->and(collect($doc->xpath('//GROUP'))->mapWithKeys(fn ($g) => [(string) $g['NAME'] => (string) $g->PARENT])->all())->toMatchArray(['Crew accounts' => 'Loans & Advances (Asset)', 'Truck maintenance' => 'Direct Expenses']);
+    $sale = $doc->xpath('//VOUCHER[@VCHTYPE="Sales"]')[0];
+    expect((string) $sale->VOUCHERNUMBER)->toBe('V/26-27/000001')
+        ->and(collect($sale->xpath('ALLLEDGERENTRIES.LIST'))->mapWithKeys(fn ($e) => [(string) $e->LEDGERNAME => (string) $e->AMOUNT])->all())
+        ->toMatchArray(['ACC Limited' => '-75520.00', 'Freight income' => '62900.00', 'Output CGST' => '5760.00']);
+
+    signInTo($w['company'], 'manager');
+    $this->get(route('accounts.tally'))->assertForbidden();
+});
+
+it('dates a voucher on the company’s clock, and ages bills in whole calendar days', function () {
+    $company = makeCompany(['timezone' => 'Asia/Kolkata']);
+    app(CompanyContext::class)->set($company);
+    $books = app(Books::class);
+
+    // 20:00 UTC on 25 Oct is 01:30 on 26 Oct in Kochi; a plain date stays as it is.
+    expect($books->localDate(CarbonImmutable::parse('2026-10-25 20:00:00', 'UTC'))->toDateString())->toBe('2026-10-26')
+        ->and($books->localDate(CarbonImmutable::parse('2026-10-25 10:00:00', 'UTC'))->toDateString())->toBe('2026-10-25')
+        ->and($books->localDate(CarbonImmutable::parse('2026-10-25'))->toDateString())->toBe('2026-10-25')
+        ->and($books->localDate('2026-10-25')->toDateString())->toBe('2026-10-25');
 });

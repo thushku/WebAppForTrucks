@@ -18,6 +18,9 @@
   <div class="flex flex-wrap gap-2">
     @if ($ledger->party)<a href="{{ route('parties.show', $ledger->party) }}" class="btn-secondary text-sm">{{ __('Party') }}</a>@endif
     @if ($ledger->person)<a href="{{ route('people.show', $ledger->person) }}" class="btn-secondary text-sm">{{ __('Person') }}</a>@endif
+    @if ($s['closing'] < -0.004 && in_array($ledger->kind, ['party', 'person'], true))
+      @can('accounts.post')<a href="{{ route('accounts.payments.create', ['ledger' => $ledger->id]) }}" class="btn-primary text-sm"><x-icon name="wallet" class="size-4" /> {{ __('Pay') }}</a>@endcan
+    @endif
     @canany(['statement.export', 'accounts.view'])<a href="{{ route('ledgers.export', ['ledger' => $ledger] + $query) }}" class="btn-secondary text-sm"><x-icon name="download" class="size-4" /> {{ __('Excel (CSV)') }}</a>@endcanany
   </div>
 </div>

@@ -3,7 +3,7 @@
   $tabs = [
     'accounts.index' => __('Overview'), 'accounts.day-book' => __('Day book'), 'accounts.trial-balance' => __('Trial balance'),
     'accounts.profit-loss' => __('Profit and loss'), 'accounts.balance-sheet' => __('Balance sheet'), 'accounts.trucks' => __('Truck profit'),
-    'accounts.chart' => __('Chart of accounts'),
+    'accounts.ageing' => __('Ageing'), 'accounts.tax' => __('Tax returns'), 'accounts.tds' => __('TDS'), 'accounts.chart' => __('Chart of accounts'),
   ];
 @endphp
 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -15,6 +15,9 @@
   </nav>
   <div class="flex flex-wrap gap-2">
     @can('accounts.lock')<a href="{{ route('accounts.lock') }}" class="btn-secondary text-sm"><x-icon name="lock" class="size-4" /> {{ __('Lock') }}</a>@endcan
-    @can('accounts.post')<a href="{{ route('accounts.journal.create') }}" class="btn-primary text-sm"><x-icon name="plus" class="size-4" /> {{ __('Journal') }}</a>@endcan
+    @can('accounts.post')
+      <a href="{{ route('accounts.payments.create') }}" class="btn-secondary text-sm"><x-icon name="wallet" class="size-4" /> {{ __('Payment') }}</a>
+      <a href="{{ route('accounts.journal.create') }}" class="btn-primary text-sm"><x-icon name="plus" class="size-4" /> {{ __('Journal') }}</a>
+    @endcan
   </div>
 </div>

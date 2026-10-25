@@ -4,6 +4,9 @@
 @php($m = fn ($v) => (float) $v ? \App\Support\Money::company($v) : '')
 @include('accounts._nav')
 @include('accounts._period', ['csv' => route('accounts.day-book', ['from' => $from->toDateString(), 'to' => $to->toDateString(), 'format' => 'csv'])])
+@canany(['data.export', 'statement.export'])
+  <p class="text-end text-sm"><a href="{{ route('accounts.tally', ['from' => $from->toDateString(), 'to' => $to->toDateString()]) }}" class="text-brand-700 hover:underline"><x-icon name="download" class="size-4" /> {{ __('Tally import file (XML) for this period') }}</a></p>
+@endcanany
 
 <section class="card overflow-hidden">
   <div class="overflow-x-auto">

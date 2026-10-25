@@ -49,7 +49,7 @@ class DocumentNumbering
         'credit_note'     => ['invoices', 'number'],
         'debit_note'      => ['invoices', 'number'],
         'receipt'         => ['receipts', 'number'],
-        'payment_voucher' => ['payment_vouchers', 'number'],
+        'payment_voucher' => ['vouchers', 'number'],
         'hire_challan'    => ['hire_challans', 'number'],
         'quotation'       => ['quotations', 'number'],
         'fuel_slip'       => ['fuel_slips', 'number'],

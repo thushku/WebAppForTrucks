@@ -228,10 +228,16 @@ Route::middleware('auth')->group(function () {
             Route::get('/trucks', [Accounts\BooksController::class, 'trucks'])->name('trucks');
             Route::get('/chart', [Accounts\BooksController::class, 'chart'])->name('chart');
             Route::get('/vouchers/{voucher}', [Accounts\BooksController::class, 'voucher'])->whereNumber('voucher')->name('vouchers.show');
+            Route::get('/ageing', [Accounts\ReportsController::class, 'ageing'])->name('ageing');
+            Route::get('/tax', [Accounts\ReportsController::class, 'tax'])->name('tax');
+            Route::get('/tds', [Accounts\ReportsController::class, 'tds'])->name('tds');
+            Route::get('/tally', [Accounts\ReportsController::class, 'tally'])->middleware('permission:data.export,statement.export')->name('tally');
             Route::middleware('permission:accounts.post')->group(function () {
                 Route::post('/chart', [Accounts\BooksController::class, 'storeLedger'])->name('chart.store');
                 Route::get('/journal/new', [Accounts\JournalController::class, 'create'])->name('journal.create');
                 Route::post('/journal', [Accounts\JournalController::class, 'store'])->name('journal.store');
+                Route::get('/payments/new', [Accounts\PaymentController::class, 'create'])->name('payments.create');
+                Route::post('/payments', [Accounts\PaymentController::class, 'store'])->name('payments.store');
                 Route::post('/vouchers/{voucher}/reverse', [Accounts\JournalController::class, 'reverse'])->whereNumber('voucher')->name('vouchers.reverse');
             });
             Route::middleware('permission:accounts.lock')->group(function () {

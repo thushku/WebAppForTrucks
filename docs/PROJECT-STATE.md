@@ -2,6 +2,42 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M11 (part 2): payments, ageing, GST / VAT return data, TDS registers, Tally
+
+**Built (in `webapp/`, `app/Modules/Accounts/Services/{Registers,TaxReturns,TallyExport}`):**
+- **Payment voucher** (Accounts → Payment, `PV/26-27/00001`): pay a vendor (the pump's monthly bill, the workshop),
+  a truck supplier, a crew member's earnings (bata, salary) or an expense, from office cash or one of our bank
+  accounts (UTR needed for bank). A ledger that we owe shows **Pay**.
+- **Ageing** (Accounts → Ageing): clients' open bills by days past the due date (or the bill date) — not due,
+  1–30, 31–60, 61–90, over 90 — each bill under its client, the client's unapplied advance beside; the hire still
+  owed on issued challans to each truck supplier, by the challan's age. CSV.
+- **Tax returns** (Accounts → Tax returns), prepared from the bills as issued, never sent anywhere:
+  India — **GSTR-1** for a GSTIN and month: B2B (4A / 4B, reverse charge marked "Y"), B2C large, B2C small, credit /
+  debit notes (registered, unregistered), nil / exempt (bills of supply), the **HSN / SAC summary** (table 12) and
+  **documents issued** (table 13, with cancelled ones), each downloadable with the GST offline tool's sheet columns;
+  a **GSTR-3B working** (tax charged by head, supplies under reverse charge, exempt). UAE — the **VAT 201** output
+  boxes: standard-rated supplies and VAT per emirate (1a–1g), zero-rated (4), exempt (5), totals (8).
+- **TDS registers** (Accounts → TDS): **deducted by clients** — per receipt and bill, quarter (Q1 = Apr–Jun),
+  PAN (from the party, else from its GSTIN), TAN, section, what the bill expected and what was deducted, the
+  difference flagged — for matching with Form 26AS / AIS; **deducted by us** on lorry hire — per challan, PAN,
+  section, rate, TDS, and the nil-TDS reason (the declaration of 10 trucks or fewer is still reported). CSV.
+- **Tally import file** (Day book → "Tally import file (XML)", `data.export` / `statement.export`): our groups under
+  Tally's reserved groups (Sundry Debtors, Duties & Taxes, Cash-in-Hand…) and our own sub-groups created under
+  them, every ledger with its opening balance, every voucher of the period (Sales, Credit Note, Receipt / Payment
+  when cash or bank moves, else Journal) with debits negative and ISDEEMEDPOSITIVE, the way Tally writes its own
+  exports; a crew member and a party with the same name are told apart. The export is in the audit log.
+- Fixed on the way: day counts mixed the company's time zone with plain dates (a challan a day old showed "not
+  due"); a voucher from a moment (a road entry after midnight in Kochi) is now dated on the company's clock, not
+  UTC. The payment voucher series' duplicate guard pointed at a table that does not exist.
+
+**Tests:** 196 passing (`AccountsTest` now 12: payments, ageing and the TDS register, GSTR-1 tables and the RCM case,
+the UAE VAT 201 boxes, the Tally file read back as XML, dates on the company clock).
+
+**Not yet (M11 part 3 or later):** bank statement import and reconciliation, payment reminders, bill-wise opening
+balances (import from Tally / Excel), statements as PDF on letterhead and WhatsApp share, purchases with input tax
+(GSTR-2B / IMS matching, UAE boxes 9–11), the GSTR-1 JSON for direct upload, Tally import checked in a real Tally
+(verify), year-end closing.
+
 ## 2026-10-26 — Milestone M11 (part 1): the accounting core and the ledgers
 
 **Built (in `webapp/`, module `app/Modules/Accounts`; blueprint 07 §1, 09 §0):**
