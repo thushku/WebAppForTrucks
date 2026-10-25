@@ -24,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  */
 class PayRuns
 {
-    public function __construct(private PayCalculator $calculator, private AuditRecorder $audit, private Statements $statements) {}
+    public function __construct(private PayCalculator $calculator, private AuditRecorder $audit, private Statements $statements, private \App\Platform\Notifications\Notices $notices) {}
 
     /**
      * People already paid (or in another live run) for any day of the period
@@ -150,7 +150,7 @@ class PayRuns
             throw ValidationException::withMessages(['mode' => __('Choose how it was paid.')]);
         }
 
-        return DB::transaction(function () use ($slip, $mode, $on, $reference, $withDues, $by) {
+        $paid = DB::transaction(function () use ($slip, $mode, $on, $reference, $withDues, $by) {
             $slip = Payslip::with(['run', 'person'])->whereKey($slip->id)->lockForUpdate()->firstOrFail();
             $amount = (float) $slip->net;
             if ($withDues) {
@@ -169,6 +169,9 @@ class PayRuns
 
             return $slip;
         });
+        $this->notices->payslipPaid($paid);
+
+        return $paid;
     }
 
     /** A draft goes away; an approved run with nothing paid has its postings reversed. */

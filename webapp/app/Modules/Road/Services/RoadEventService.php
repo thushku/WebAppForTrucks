@@ -40,6 +40,7 @@ class RoadEventService
         private EventChecks $checks,
         private FleetService $fleet,
         private AuditRecorder $audit,
+        private \App\Platform\Notifications\Notices $notices,
     ) {}
 
     /**
@@ -94,6 +95,7 @@ class RoadEventService
         if ($event->type === 'incident') {
             $this->audit->record('road.incident', "Incident on {$trip->label}: " . ($event->data['kind'] ?? '') . ' — ' . ($event->data['description'] ?? ''), 'trip', (string) $trip->id, $trip->label, severity: 'notable');
         }
+        $this->notices->entryRecorded($event);
 
         return ['uuid' => $event->uuid, 'result' => 'saved', 'id' => $event->id, 'status' => $event->status, 'flags' => $event->flags ?? []];
     }
@@ -150,8 +152,9 @@ class RoadEventService
             'odometer'     => ['nullable', 'integer', 'min:0', 'max:9999999'],
             'note'         => ['nullable', 'string', 'max:500'],
         ] + EventTypes::dataRules($event->type))->validate();
+        $before = $event->status;
 
-        return DB::transaction(function () use ($person, $event, $data) {
+        $event = DB::transaction(function () use ($person, $event, $data) {
             RoadEventEdit::create(['road_event_id' => $event->id, 'person_id' => $person->id,
                 'before' => $event->only(['amount', 'payment_mode', 'odometer', 'note', 'data'])]);
             // Changing a queried entry is the crew's answer to the office's question.
@@ -178,6 +181,12 @@ class RoadEventService
 
             return $event;
         });
+        // An answered question goes back to the office; a changed entry back to the other driver.
+        if ($event->status !== $before) {
+            $this->notices->entryRecorded($event, false);
+        }
+
+        return $event;
     }
 
     public function cancel(Person $person, RoadEvent $event, string $reason): void
@@ -217,6 +226,7 @@ class RoadEventService
                 : ['status' => 'disputed', 'second_by' => $approver->id, 'second_at' => now(), 'second_reject_reason' => $reason])->save();
             EventApproval::create(['road_event_id' => $event->id, 'step' => 'second_driver', 'decision' => $approve ? 'approve' : 'reject', 'person_id' => $approver->id, 'note' => $approve ? null : $reason]);
         });
+        $this->notices->approvalsWaiting($event);
     }
 
     /** Once a trip is settled, the crew's entries are locked (blueprint 03 §3, D8). */

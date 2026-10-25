@@ -5,6 +5,7 @@
   $brand   = app(\App\Platform\Settings\PlatformSettings::class)->brandName();
   $notice  = app(\App\Platform\Settings\PlatformSettings::class)->get('announcement');
   $rtl     = \App\Support\Locales::isRtl(app()->getLocale());
+  $unread  = $company && $account ? \App\Platform\Notifications\UserNotification::for($account)->whereNull('read_at')->count() : 0;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $rtl ? 'rtl' : 'ltr' }}" class="h-full">
@@ -68,6 +69,14 @@
         <x-icon name="menu" />
       </button>
       <h1 class="min-w-0 flex-1 truncate font-display text-lg font-semibold">@yield('title', __('Dashboard'))</h1>
+
+      @if ($company)
+        <a href="{{ route('notifications.index') }}" class="relative grid size-10 place-items-center rounded-full border border-ink-100 bg-white text-ink-700 hover:border-brand-300" data-bell
+           aria-label="{{ $unread ? trans_choice('Notifications, :count unread|Notifications, :count unread', $unread) : __('Notifications') }}">
+          <x-icon name="bell" class="size-5" />
+          @if ($unread)<span class="absolute -end-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-overdue px-1 text-[11px] font-bold leading-none text-white">{{ $unread > 99 ? '99+' : $unread }}</span>@endif
+        </a>
+      @endif
 
       <div class="relative" data-menu>
         <button type="button" data-menu-button class="flex items-center gap-2 rounded-full border border-ink-100 bg-white py-1 ps-1 pe-3 text-sm hover:border-brand-300" aria-haspopup="menu" aria-expanded="false">

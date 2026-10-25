@@ -38,6 +38,7 @@ class TripService
         private Compliance $compliance,
         private FleetService $fleet,
         private AuditRecorder $audit,
+        private \App\Platform\Notifications\Notices $notices,
     ) {}
 
     /**
@@ -231,6 +232,7 @@ class TripService
                 'trip', (string) $trip->id, $trip->trip_number, reason: $overrideReason, severity: 'sensitive');
         }
         $this->audit->record('trip.assigned', "Sent {$trip->trip_number} to the crew", 'trip', (string) $trip->id, $trip->trip_number);
+        $this->notices->tripSent($trip);
     }
 
     /** Give an LR its number (on sending the trip, or when a load is added to a sent trip). */
@@ -299,6 +301,7 @@ class TripService
         if (! $trip->isCancellable()) {
             throw ValidationException::withMessages(['trip' => __('A trip that has started cannot be cancelled. End it early instead.')]);
         }
+        $wasSent = $trip->status !== 'draft';
 
         DB::transaction(function () use ($trip, $reason) {
             $trip->forceFill(['status' => 'cancelled', 'cancelled_at' => now(), 'cancel_reason' => $reason])->save();
@@ -306,6 +309,9 @@ class TripService
             Consignment::where('trip_id', $trip->id)->where('status', '!=', 'cancelled')->update(['status' => 'cancelled', 'updated_at' => now()]);
         });
         $this->audit->record('trip.cancelled', "Cancelled {$trip->label}", 'trip', (string) $trip->id, $trip->label, reason: $reason, severity: 'notable');
+        if ($wasSent) {
+            $this->notices->tripCancelled($trip, $reason);
+        }
     }
 
     /** A trip with a billed LR keeps its route, date and client (13 §A #6). */

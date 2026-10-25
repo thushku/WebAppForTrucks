@@ -90,6 +90,8 @@ class DocumentReminders
                 );
             }
 
+            app(\App\Platform\Notifications\Notices::class)->papersDue(collect($lines)->map(fn ($line) => preg_replace('/^•\s*/u', '', $line)));
+
             foreach ($due as [$doc, $step]) {
                 $doc->forceFill(['last_reminder_days' => $step, 'reminded_at' => now()])->saveQuietly();
             }

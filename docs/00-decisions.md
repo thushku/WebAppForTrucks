@@ -259,6 +259,27 @@ package), QR codes / amount in words / CSV written in-house. See
   email with the company's words (Settings → Messages → Sending a statement);
   every send is kept.
 
+### P15. Who is told what, and how (added 26 Oct 2026, M20)
+
+- **Every notice goes to the person's inbox** (the web bell, both apps) and, when
+  a phone has given its Firebase token, as a push. Notices belong to one company.
+- **Who hears what**: the crew — a trip sent to them or called off, a question
+  on or rejection of their entry, their pay paid; the other driver — an entry
+  waiting for their second approval; those who approve (`event.verify`) — how
+  many entries wait; those who see trips — an incident at once; those who keep
+  papers — the day's reminders (with the email). Approvals themselves tell
+  nobody (no noise for what went right).
+- **Like news collapses**: one "entries wait" notice keeps the count, updated
+  as entries come and decisions are made, pushed again only after 30 quiet
+  minutes, and marked read for everyone once nothing waits.
+- **Firebase HTTP v1 with the project's service-account key**, signed with
+  PHP's own OpenSSL — no SDK or package. The key file lives outside the
+  repository (`FIREBASE_CREDENTIALS`); without it pushes go to the log. Pushes
+  go through the queue (a worker must run); a token Firebase no longer knows
+  is forgotten.
+- Per-person choice of which notices to push, quiet hours and WhatsApp/SMS
+  notices come later (WhatsApp Business needs a provider — your approval).
+
 ---
 
 ## 4. Still open

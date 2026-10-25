@@ -2,6 +2,35 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M20: notifications — the bell, the phones' inbox, Firebase push
+
+**Built (in `webapp/`, `app/Platform/Notifications`; decision P15; api-v1 §11):**
+- **One inbox per person and company**: a bell with the unread count in the web header and a Notifications page
+  (open one → it is read and takes you there; mark all read); the same list for both phone apps
+  (`GET /notifications`, `POST /notifications/read`, `unread_notifications` in `GET /me`).
+- **What is told to whom** (`Notices`): the crew — a trip sent to them or called off, a question on or rejection of
+  their entry (with the office's note), their pay paid (amount, how, reference); the other driver — an entry waiting
+  for their second approval; whoever approves — **one** "N entries wait for your approval" notice that keeps count,
+  is pushed again only after 30 quiet minutes and is cleared when nothing waits; whoever sees trips — an incident at
+  once; whoever keeps the papers — the day's paper reminders (with the email).
+- **Firebase push** (`Push/FcmGateway`, FCM HTTP v1): the service-account key's JWT is signed with PHP's OpenSSL and
+  exchanged for an access token kept for the hour — no SDK, nothing installed. Android high priority on channel
+  `fleet`, iOS badge = unread count, `data` with the company and what to open. A phone token Firebase no longer knows
+  is forgotten; a busy Firebase is retried by the queue; nothing here can fail the request that caused it. Without a
+  key (`PUSH_DRIVER=log`, the default) pushes go to the log. `php artisan fleet:push <mobile|email>` sends a test.
+- Handover: api-v1 §11 (calls, the push message, every `kind` and what to open), local set-up §5 (Firebase project,
+  the key outside the repository, `php artisan queue:work`). The demo's owner has two notices waiting.
+
+**Tests:** 234 passing (new `NotificationsTest`, 4 tests: a trip called off and a trip sent reaching the crew's
+phones, a crew member without a token keeping it in the inbox, the phone inbox with paging, read and `/me`, another
+person's notice untouched; the co-driver asked, one counting notice for approvers held then pushed after 31 minutes,
+the bell and page, opening and its redirect, another's notice not found, a question to the driver, the notice updated
+and cleared, the workshop told nothing; an incident, pay paid, papers due; Firebase — the JWT verified with the
+key, the v1 message, the token cached, an unregistered phone forgotten, Firebase down marked failed, no key → log).
+
+**Not yet:** a person's choice of which notices reach the phone and quiet hours, notices in the person's own language
+(Q1), WhatsApp or SMS notices (needs a provider — your approval), email digests of the bell.
+
 ## 2026-10-26 — Milestone M19: opening balances, bank reconciliation, statements to print and send
 
 **Built (in `webapp/`, `app/Modules/Accounts`; blueprint 07 "Bank reconciliation"; decision P14):**

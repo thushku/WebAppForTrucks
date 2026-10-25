@@ -318,3 +318,37 @@ Not in version 1 (use the web app for now): making an LR, a bill or a receipt fr
 phone, hire challans, uploading a paper by camera, creating a trip. They come in API v2
 with the same rules as the web (finalised bills are never edited; every money write is
 one transaction).
+
+## 11. Notifications (both apps)
+
+The server tells people things (M20, decision P15): a notice goes to the person's **inbox**
+(the same on the web bell and in both apps) and, when the phone has sent its Firebase token
+with `POST /device`, as a **push**. Notices are per company: the inbox lists the company in
+`X-Company`. A push carries the company too, so the app can switch to it before opening.
+
+| Call | Answer |
+|---|---|
+| `GET /notifications?before=&limit=30` | `unread` (the badge), `items[]` newest first: `id`, `kind`, `title`, `body`, `data` (what to open, below), `times` (how often a collapsed notice was updated), `read`, `at`; `more` — then ask again with `before` = the last `id` |
+| `POST /notifications/read` `{ "ids": [12, 13] }` or `{ "all": true }` | `unread` after marking. Mark a notice read when the person opens it from the list or from the push |
+| `GET /me` | also `unread_notifications` |
+
+**The push message** (FCM HTTP v1): `notification.title` / `notification.body` as in the
+inbox, Android `priority: high`, channel id `fleet` (create it in the app; the name "Trips and
+approvals"), iOS badge = the unread count. `data` (all strings): `notification` (the inbox id),
+`kind`, `company` (the company's id as in `/companies`) and what to open:
+
+| `kind` | Who gets it | `data` → open |
+|---|---|---|
+| `trip.sent` | the trip's crew | `type: trip`, `trip` (uuid) → the trip; run `GET /crew/sync` first |
+| `trip.cancelled` | the trip's crew | `type: trip`, `trip` → the trip list (sync removes it) |
+| `entry.second` | the other driver | `type: entry`, `entry`, `trip` → the entry with Approve / Reject (`event.second_approve` / `event.second_reject`) |
+| `entry.queried`, `entry.rejected` | who recorded the entry | `type: entry`, `entry`, `trip` → the entry with the office's note; a queried entry can be changed (`PATCH /crew/events/{uuid}`) |
+| `pay.paid` | the person paid | `type: money` → My Khata (`GET /crew/money`) |
+| `approvals.waiting` | everyone with `event.verify` | `type: approvals` → the approvals list (`GET /approvals`). One notice keeps the count; pushed again only after half an hour |
+| `road.incident` | everyone with `trip.view` | `type: trip`, `trip` → the trip |
+| `papers.due` | everyone with `document.manage` | `type: papers` → papers (`GET /owner/papers`) |
+| `test` | one person (`php artisan fleet:push <mobile>`) | `type: test` |
+
+Unknown kinds may come later: show them in the list and open the list. After any push, a crew
+app runs `GET /crew/sync` (the push says *that* something changed; sync says *what*).
+

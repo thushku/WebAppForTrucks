@@ -45,8 +45,8 @@ side is built and tested; this pack says what to build and how it talks to the s
 
 | App | Who | API |
 |---|---|---|
-| **Crew app** | drivers, co-drivers, helpers | sign in with an activation code; `GET /crew/sync`; push entries, commands, photos, GPS (`api-v1.md` §2–6, §8) |
-| **Owner app** | owner, manager, accountant, workshop, viewer | sign in with an SMS/WhatsApp code; approvals (§7), QR web sign-in (§9), dashboard, map, trips, trucks, papers, bills, ledgers (§10) |
+| **Crew app** | drivers, co-drivers, helpers | sign in with an activation code; `GET /crew/sync`; push entries, commands, photos, GPS (`api-v1.md` §2–6, §8); notifications and Firebase push (§11) |
+| **Owner app** | owner, manager, accountant, workshop, viewer | sign in with an SMS/WhatsApp code; approvals (§7), QR web sign-in (§9), dashboard, map, trips, trucks, papers, bills, ledgers (§10); notifications and Firebase push (§11) |
 
 ## When the API needs to change
 

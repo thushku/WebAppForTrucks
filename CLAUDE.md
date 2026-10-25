@@ -38,6 +38,10 @@ founder's laptop) in `phoneapp/`.
   the law copy), `CompanyDeletion` (the 72-hour countdown and the hourly purge, `fleet:deletions`). A plan's
   `modules` take their permissions away in `PermissionResolver` (`Plan::MODULE_PERMISSIONS`); `Limits` also guards
   storage for office uploads.
+  `app/Platform/Notifications` (M20): `Notices` (who is told what, in what words — call it from the service where the
+  thing happens), `Notifier` (inbox row per person and company, like news collapsed by key, push after commit),
+  `SendPush` (queued; restores the company) and `Push/*` (`FcmGateway` — FCM HTTP v1 signed with OpenSSL, no SDK;
+  `LogGateway` while `PUSH_DRIVER=log`). Tests bind a fake `PushGateway` (`NotificationsTest::notePushes`).
   `app/Platform/Website` (M14): `Pricing` (the website's price table from the plans, with coupons), `SiteText` (About
   and legal pages: shipped drafts in `resources/site/*.txt`, replaceable in console → Settings), `ContactMessage`.
   Public pages: `Site/{Site,Contact}Controller`, views `resources/views/site` on `layouts/site`; "/" is the website

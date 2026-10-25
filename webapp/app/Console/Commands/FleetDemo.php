@@ -95,6 +95,9 @@ class FleetDemo extends Command
             }
         });
 
+        // The day's paper reminders, as the 01:30 run would send them: the email and the bell (M20).
+        app(\App\Modules\Documents\Services\DocumentReminders::class)->runFor($company->fresh());
+
         $this->plans();
         // The demo is set up already: no getting-started card.
         $company->forceFill(['setup_done_at' => now()])->save();

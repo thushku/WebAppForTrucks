@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CrewController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
 use App\Http\Controllers\Api\WebLoginController;
@@ -50,9 +51,14 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                         'status' => $member->company->status, 'read_only' => $member->company->isReadOnly(), 'trial_ends_at' => $member->company->trial_ends_at?->toDateString()],
                     'announcement' => app(\App\Platform\Settings\PlatformSettings::class)->get('announcement'),
                     'permissions' => app(\App\Platform\Authorization\PermissionResolver::class)->permissionsFor($member),
+                    'unread_notifications' => \App\Platform\Notifications\UserNotification::for($request->user())->whereNull('read_at')->count(),
                     'server_time' => now()->toIso8601String(),
                 ]);
             })->name('api.me');
+
+            // The inbox behind the push (M20), for both apps.
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('api.notifications');
+            Route::post('/notifications/read', [NotificationController::class, 'read'])->name('api.notifications.read');
 
             // The owner app approves a web sign-in it has scanned (decision P7).
             Route::post('/web-login/inspect', [WebLoginController::class, 'inspect'])->name('api.web-login.inspect');

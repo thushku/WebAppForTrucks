@@ -67,8 +67,26 @@ person page also makes codes, with a QR the app can scan (`fleet-activate:<mobil
 - The phone API's automated tests show every call working: `tests/Feature/PhoneApiTest.php`,
   `ApprovalTest.php`, `OwnerApiTest.php` (`php vendor/bin/pest < /dev/null`).
 
-## 5. Firebase push (later)
+## 5. Firebase push
 
-Push notifications (approved, D18) need a Firebase project. The app sends its token with
-`POST /device`; the server side of push comes with the notifications round. Keep
-`google-services.json` out of the repository.
+Push notifications (approved, D18) need a Firebase project (console.firebase.google.com):
+
+1. Add the Android app (package name of the B4A project) and later the iOS app. Download
+   `google-services.json` for B4A — **keep it out of the repository**.
+2. Project settings → Service accounts → **Generate new private key**: a JSON file. Put it on
+   the server **outside the repository** (for example `C:\keys\fleet-firebase.json`) and set in
+   `webapp/.env`:
+
+   ```
+   PUSH_DRIVER=fcm
+   FIREBASE_CREDENTIALS=C:\keys\fleet-firebase.json
+   ```
+
+3. Pushes are sent by the queue: run `php artisan queue:work` next to `php artisan serve`
+   (on the live server, as a service). Without a worker they wait in the `jobs` table.
+4. Sign a phone in, let it send its token (`POST /device`), then
+   `php artisan fleet:push +919847100001` sends it a test notice and prints the result.
+
+With `PUSH_DRIVER=log` (the default) every push is written to `storage/logs/laravel.log`
+instead, so the app's handling can be built before Firebase is set up; the inbox
+(`GET /notifications`, api-v1 §11) works either way.

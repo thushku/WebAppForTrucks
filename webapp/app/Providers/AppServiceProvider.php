@@ -25,6 +25,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PermissionResolver::class);
         $this->app->singleton(PlatformSettings::class);
         $this->app->singleton(\App\Modules\Settings\Services\CompanySettings::class);
+
+        // Where pushes go (M20): Firebase when its key is set, else the log.
+        $this->app->bind(\App\Platform\Notifications\Push\PushGateway::class, function () {
+            return match (config('services.fcm.driver')) {
+                'none' => new \App\Platform\Notifications\Push\NullGateway(),
+                'fcm' => \App\Platform\Notifications\Push\FcmGateway::fromConfig() ?? tap(new \App\Platform\Notifications\Push\LogGateway(),
+                    fn () => \Illuminate\Support\Facades\Log::warning('PUSH_DRIVER is fcm but FIREBASE_CREDENTIALS is not a readable service-account key; pushes go to the log.')),
+                default => new \App\Platform\Notifications\Push\LogGateway(),
+            };
+        });
     }
 
     public function boot(): void

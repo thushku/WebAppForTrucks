@@ -34,6 +34,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M17 ✅ | Your data: full export, company deletion with a 72-hour countdown and a law copy, plan modules and storage enforced | Leave or switch off parts safely |
 | M18 ✅ | Bills and receipts by email (PDF + secure link), message templates for email and WhatsApp, overdue reminders | Get paid without chasing by hand |
 | M19 ✅ | Opening balances (typed or from a CSV), bank reconciliation from the bank's CSV statement, party statements to print, save as PDF and email | Books that start right and agree with the bank |
+| M20 ✅ | Notifications: inbox on the web bell and both apps, Firebase push (HTTP v1, no SDK) for trips, questions, second approvals, approvals waiting, incidents, pay and papers | Nobody has to keep checking |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

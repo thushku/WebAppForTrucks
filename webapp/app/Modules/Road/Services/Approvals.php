@@ -83,6 +83,8 @@ class Approvals
 
             EventApproval::create(['road_event_id' => $event->id, 'step' => 'manager', 'decision' => $decision, 'account_id' => $by->id, 'note' => $note]);
         });
+        // Not injected: Notices counts the waiting entries through this class.
+        app(\App\Platform\Notifications\Notices::class)->entryDecided($event, $decision, $note);
 
         if ($decision === 'reject' || $event->type === 'no_receipt') {
             $what = EventTypes::label($event->type) . ($event->amount !== null ? ' ' . $event->amount : '');

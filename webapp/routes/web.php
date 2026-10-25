@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\QrLoginController;
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Documents\DocumentShareController;
 use App\Http\Controllers\Documents\RequiredTypesController;
@@ -96,6 +97,11 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('company')->group(function () {
         Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
+
+        // The bell (M20): everyone's own notices in this company.
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->whereNumber('notification')->name('notifications.open');
+        Route::post('/notifications/read', [NotificationController::class, 'readAll'])->name('notifications.read-all');
 
         // Parties: clients, consignors, consignees, suppliers, vendors, brokers (M3).
         Route::prefix('parties')->name('parties.')->group(function () {
