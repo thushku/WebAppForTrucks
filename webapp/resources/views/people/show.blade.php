@@ -22,6 +22,9 @@
         <a href="tel:{{ $dial }}" class="btn-secondary"><x-icon name="phone" /> {{ __('Call') }}</a>
         <a href="https://wa.me/{{ ltrim($dial, '+') }}?text={{ rawurlencode(__('Hello :name', ['name' => $person->name])) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer">{{ __('WhatsApp') }}</a>
       @endif
+      @canany(['ledger.view', 'accounts.view'])
+        @if ($ledgerId = \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'person:' . $person->id)->value('id'))<a href="{{ route('ledgers.show', $ledgerId) }}" class="btn-secondary"><x-icon name="ledger" /> {{ __('Khata') }}</a>@endif
+      @endcanany
       @can('people.manage')<a href="{{ route('people.edit', $person) }}" class="btn-primary">{{ __('Edit') }}</a>@endcan
     </div>
   </div>

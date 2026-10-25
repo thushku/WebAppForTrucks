@@ -38,6 +38,11 @@ class TripOfficeEntry extends Model
         return ['amount' => 'decimal:2', 'entry_date' => 'date', 'cancelled_at' => 'datetime'];
     }
 
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class);

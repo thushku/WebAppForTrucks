@@ -2,6 +2,71 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M11 (part 1): the accounting core and the ledgers
+
+**Built (in `webapp/`, module `app/Modules/Accounts`; blueprint 07 §1, 09 §0):**
+- **One book.** Account groups and ledgers (`account_groups`, `ledger_accounts`), vouchers and their lines
+  (`vouchers`, `voucher_lines`), the books lock (`book_locks`). The chart is ready-made per country (Tally-style
+  groups in India — Sundry debtors, Duties and taxes, Direct expenses…; IFRS wording in the UAE — Trade receivables,
+  Cost of revenue…). Nobody sets anything up: each client, supplier, vendor, crew member, bank account, expense
+  category (from the company's list), income class and tax (Output CGST / SGST / IGST / VAT) gets its ledger the
+  first time it is used.
+- **Every voucher balances** (debits = credits, to the paisa) or is refused; **a document posts once** (the voucher
+  carries its source — a retry or a rebuild never counts twice); **nothing is edited or deleted** — enforced in the
+  models; a cancel is the **exact reversal**, the original marked cancelled and linked to it. Number series: `V/26-27/
+  000001` for the system's vouchers, `JV/26-27/00001` for journals typed by the accountant.
+- **Automatic entries** (blueprint 07 §1.1), written in the same database transaction as the operation (so a failed
+  posting stops the operation and the book never disagrees with the trips): issued bill / supplementary / debit note
+  (Dr client; Cr freight or the charge's income ledger with **trip, truck, branch and LR** on each line; Cr output
+  tax; round off) and credit note (the other way); receipt (Dr bank or cash, Dr **TDS receivable**, Dr the client's
+  deductions; Cr the client); void of either → reversal. Trip advance (Dr the crew member's **trip cash**, Cr cash /
+  bank). Approved road entry: spending Dr its expense [trip, truck], Cr **by who paid** — the crew member's trip cash
+  (cash / own UPI), Fuel cards, FASTag / Salik wallet, the named pump on credit (or "Pump and vendor credit"), office
+  cash; paid by the party → nothing; money from the party → Dr crew trip cash, Cr the LR's billing party. Rejected
+  entries post nothing; an approved entry taken back is reversed. Settlement: bata Dr Bata [trip], Cr the crew
+  member's **earnings**; the trip cash balance returned in cash, paid to them, or moved to their personal account
+  (bucket to bucket); voided settlement → reversal. Office entries after close (D8): expense or income with the
+  party or cash. **Lorry hire challan** at issue: Dr Lorry hire [trip], Cr the supplier, less **TDS payable**,
+  munshiana (office charges recovered) and commission (owed on to the broker, or ours); its lines — detention and
+  extras, advances and the balance (cash / bank), fuel given, deductions; cancelled challan → reversals. Broker
+  commission typed alone (payable / receivable). Finished **service job**: Dr Service / Repair on road / Accident
+  repairs [truck], Cr the workshop or cash.
+- **Locked books**: Accounts → Lock (owner only by default, `accounts.lock`): nothing dated on or before the lock
+  date changes — a late entry, a voided bill or a reversal posts on the first open day with the document's own date
+  shown beside it; opening locked days again needs a reason; every lock is kept and audited.
+- **Ledgers** (menu → Ledgers, `ledger.view`): clients, suppliers and vendors, crew — each with its balance **in
+  plain words** ("UltraTech Cement will give you ₹15,620.00", "You will give Raju Transport ₹7,245.00"), totals to
+  receive / to pay / company cash with crew; the **running statement** of any ledger (opening, each voucher, balance
+  after it, closing) for any period, CSV for Excel. A crew member's ledger shows the **buckets** (trip cash,
+  earnings, net balance due — 09 §1.1) and each bucket's statement. Links from the party and person pages
+  ("Ledger", "Khata") and from the trip ("This trip in the books").
+- **Accounts** (menu → Accounts, `accounts.view`: owner, accountant): overview (profit for the period, clients owe,
+  you owe, cash and bank, trial balance check, latest vouchers), **day book**, **trial balance**, **profit and loss**
+  (for the company, one truck, one trip or one branch — from the cost centres on the lines), **balance sheet** (with
+  the profit so far), **truck profit** (income, running costs, maintenance, profit per truck; one truck month by
+  month — the truck ledger, 09 §3), each **voucher** with a link to its document, the **chart of accounts** with
+  balances, "Add a ledger" (capital, loans… with an opening balance), and the **journal voucher** for what the
+  operations cannot know (bank charges, capital, corrections), reversible by hand; system vouchers are cancelled only
+  from their document. CSV for the day book, trial balance and ledgers (Excel opens them; a cell that starts like a
+  formula is written as text).
+- `php artisan fleet:books [--company=]` posts whatever is not in the book yet (records from before M11), never twice,
+  and ends with the balance check. Demo: the owner's capital in cash and the HDFC account (a journal), every trip,
+  bill, receipt, challan and service job posted by itself; the book balances (₹7,46,730 each side).
+- Fixed on the way: the numbering guard for money receipts looked in a table that does not exist (`money_receipts`
+  → `receipts`); the trip advance, settlement, office entry, hire line and broker commission models gained their
+  `trip()` / `challan()` relations.
+
+**Tests:** 190 passing (new `AccountsTest`, 6 tests: crew money end to end, bill and receipt with TDS and voids, the
+lock, every book screen and CSV, permissions, the rebuild; the hired-truck test now also checks the supplier, TDS,
+broker and munshiana in the book). Every book screen checked in a real browser on the demo, no console errors.
+
+**Not yet (M11 part 2):** GSTR-1 / 3B data and the TDS registers (26AS matching), Tally XML export, bank statement
+import and reconciliation, ageing (0–30 / 31–60 / 61–90 / 90+) and reminders, bill-wise opening balances (import
+from Tally / Excel), statements as PDF on letterhead and WhatsApp share, salary and loans in the crew ledger
+(payroll, M-later), fixed assets and depreciation, input VAT on UAE fuel, multi-currency vouchers, the client's
+advance at loading when it is not recorded as money (today it posts only when the crew records it or a receipt is
+made), year-end closing.
+
 ## 2026-10-26 — Milestone M10: templates and the template editor
 
 **Built (in `webapp/`, `app/Modules/Invoicing/Design` + `Services/DocumentTemplates`, ported from Clinic Ledger — D14):**

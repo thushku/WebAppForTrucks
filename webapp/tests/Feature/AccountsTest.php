@@ -1,0 +1,265 @@
+<?php
+
+use App\Http\Middleware\ResolveCompany;
+use App\Models\Account;
+use App\Modules\Accounts\Models\LedgerAccount;
+use App\Modules\Accounts\Models\Voucher;
+use App\Modules\Accounts\Models\VoucherLine;
+use App\Modules\Accounts\Services\Books;
+use App\Modules\Accounts\Services\ChartOfAccounts;
+use App\Modules\Accounts\Services\Statements;
+use App\Modules\Invoicing\Models\Invoice;
+use App\Modules\Invoicing\Models\Receipt;
+use App\Modules\Road\Models\RoadEvent;
+use App\Platform\Tenancy\CompanyContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+
+// The accounting core (M11): every money record posts one balanced voucher
+// by itself; cancels are reversals; locked days never change; the ledgers,
+// trial balance, profit and loss, balance sheet and truck profit are read
+// from the book.
+
+/** A ledger's balance by its system key, debit positive (the context must be set). */
+function accBalance(string $key, ?string $bucket = null): float
+{
+    return round((float) VoucherLine::whereHas('ledger', fn ($q) => $q->where('system_key', $key))
+        ->when($bucket, fn ($q) => $q->where('bucket', $bucket))->sum(DB::raw('debit - credit')), 2);
+}
+
+function accOffice(Account $account, $company): void
+{
+    phoneReset();
+    test()->actingAs($account, 'web')->withSession([ResolveCompany::SESSION_KEY => $company->id]);
+}
+
+function accMember(array $w, string $role): Account
+{
+    $account = makeAccount(['name' => 'Office ' . $role]);
+    joinCompany($account, $w['company'], $role);
+
+    return $account;
+}
+
+function accBalanced(): bool
+{
+    $t = VoucherLine::selectRaw('sum(debit) as d, sum(credit) as c')->first();
+
+    return abs((float) $t->d - (float) $t->c) < 0.0005;
+}
+
+it('posts the crew’s money: advance, spending by who paid, money from the party, settlement and bata', function () {
+    $w = phoneWorld();
+    $phones = phoneCrew($w);
+    $owner = accMember($w, 'owner');
+
+    accOffice($owner, $w['company']);
+    $this->post(route('trips.advances.store', $w['trip']), ['person_id' => $w['driver']->id, 'amount' => 20000, 'mode' => 'cash', 'given_on' => '2026-10-25'])->assertSessionHasNoErrors();
+
+    phoneAs($phones['driver'], $w['company']);
+    phoneStart($w);
+    $driver = phonePush([
+        phoneEvent($w, 'fuel', ['amount' => 12400, 'payment_mode' => 'cash', 'data' => ['litres' => 130.5, 'pump' => 'IOC Thrissur']]),
+        phoneEvent($w, 'toll', ['amount' => 1850, 'payment_mode' => 'cash', 'data' => ['plaza' => 'Paliyekkara']]),
+        phoneEvent($w, 'fuel', ['amount' => 10000, 'payment_mode' => 'fuel_card', 'data' => ['litres' => 105, 'pump' => 'HP Salem']]),
+        phoneEvent($w, 'money_received', ['amount' => 10000, 'payment_mode' => 'cash', 'data' => ['from' => 'party', 'reference' => 'Freight balance']]),
+        phoneEvent($w, 'toll', ['amount' => 500, 'payment_mode' => 'cash', 'data' => ['plaza' => 'Walayar']]),
+    ]);
+    phoneAs($phones['co'], $w['company']);
+    $coFood = phonePush([phoneEvent($w, 'food', ['amount' => 850, 'payment_mode' => 'upi', 'data' => ['what' => 'Food, two days']])])[0];
+    $this->travel(20)->hours();
+    phoneAs($phones['driver'], $w['company']);
+    phoneRun([phoneCommand($w, 'trip.end', ['event' => ['event_at' => now()->toIso8601String(), 'odometer' => 101630]])]);
+
+    accOffice($owner, $w['company']);
+    foreach ([$driver[0]['id'], $driver[1]['id'], $driver[2]['id'], $driver[3]['id'], $coFood['id']] as $id) {
+        $this->post(route('approvals.decide', $id), ['decision' => 'approve'])->assertSessionHasNoErrors();
+    }
+    $this->post(route('approvals.decide', $driver[4]['id']), ['decision' => 'reject', 'note' => 'Paid by FASTag'])->assertSessionHasNoErrors();
+
+    app(CompanyContext::class)->set($w['company']);
+    $truck = $w['truck']->id;
+    // Approved spending is a cost of the trip and truck; a rejected one posts nothing.
+    expect(accBalance('expense:fuel'))->toBe(22400.0)
+        ->and(accBalance('expense:toll'))->toBe(1850.0)
+        ->and(accBalance('fuel_card'))->toBe(-10000.0)
+        ->and(accBalance('person:' . $w['driver']->id, 'trip_cash'))->toBe(15750.0)      // 20,000 + 10,000 − 12,400 − 1,850
+        ->and(accBalance('party:' . $w['trip']->consignments->first()->billing_party_id))->toBe(-10000.0)
+        ->and(VoucherLine::whereHas('ledger', fn ($q) => $q->where('system_key', 'expense:fuel'))->pluck('truck_id')->unique()->all())->toBe([$truck])
+        ->and(Voucher::where('source_type', 'road_event')->where('source_id', $driver[4]['id'])->exists())->toBeFalse();
+
+    $this->post(route('trips.settle', [$w['trip'], $w['driver']]), ['mode' => 'cash_returned', 'reference' => 'Receipt 118'])->assertSessionHasNoErrors();
+    $this->post(route('trips.settle', [$w['trip'], $w['co']]), ['mode' => 'paid_to_crew', 'bata_amount' => 1500])->assertSessionHasNoErrors();
+    $this->post(route('trips.settle', [$w['trip'], $w['helper']]), ['mode' => 'nil'])->assertSessionHasNoErrors();
+
+    app(CompanyContext::class)->set($w['company']);
+    $ravi = LedgerAccount::where('system_key', 'person:' . $w['driver']->id)->first();
+    expect(app(Statements::class)->crewBuckets($ravi))->toBe(['trip_cash' => 0.0, 'earnings' => -1200.0, 'net' => -1200.0])
+        ->and(accBalance('person:' . $w['co']->id))->toBe(-1500.0)
+        ->and(accBalance('person:' . $w['helper']->id))->toBe(-800.0)
+        ->and(accBalance('bata'))->toBe(3500.0)
+        ->and(accBalance('cash'))->toBe(-5100.0)                                               // −20,000 + 15,750 − 850
+        ->and(\App\Modules\Trips\Models\TripSettlement::whereNotNull('voucher_id')->count())->toBe(3)
+        ->and(app(Statements::class)->tripProfit($w['trip']->id))->toBe(['income' => 0.0, 'expense' => 28600.0, 'profit' => -28600.0])
+        ->and(accBalanced())->toBeTrue();
+
+    // The crew ledger in plain words, its buckets and statement.
+    $this->get(route('ledgers.show', $ravi))->assertOk()->assertSeeText('You will give Ravi Kumar ₹1,200.00')->assertSeeText('Trip cash')
+        ->assertSeeText('Trip advance to Ravi Kumar')->assertSeeText('Settlement of Ravi Kumar');
+    $this->get(route('ledgers.index', ['tab' => 'crew']))->assertOk()->assertSeeText('Suresh Nair')->assertSeeText('You will give Binu Joseph ₹800.00');
+    $this->get(route('people.show', $w['driver']))->assertOk()->assertSee(route('ledgers.show', $ravi));
+
+    // An approved entry the office takes back is reversed, not deleted.
+    app(CompanyContext::class)->set($w['company']);
+    $fuel = RoadEvent::find($driver[0]['id']);
+    $fuel->forceFill(['status' => 'cancelled', 'cancel_reason' => 'Entered twice'])->save();
+    expect(accBalance('expense:fuel'))->toBe(10000.0)
+        ->and(Voucher::where('source_type', 'road_event')->where('source_id', $fuel->id)->pluck('voucher_type', 'status')->all())->toBe(['cancelled' => 'expense', 'posted' => 'reversal']);
+});
+
+it('posts a bill and its receipt with TDS; voiding reverses; a posted voucher is never edited', function () {
+    $w = invWorld(client: ['tds_deducted' => true]);
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice))->assertSessionHasNoErrors();
+
+    app(CompanyContext::class)->set($w['company']);
+    $client = 'party:' . $w['client']->id;
+    $sale = Voucher::where('source_type', 'invoice')->firstOrFail();
+    expect([$sale->voucher_type, $sale->reference, (float) $sale->total])->toBe(['sales', 'INV/26-27/00001', 75520.0])
+        ->and(accBalance($client))->toBe(75520.0)
+        ->and(accBalance('freight_income'))->toBe(-62900.0)
+        ->and(accBalance('output_tax:CGST'))->toBe(-5760.0)
+        ->and(accBalance('output_tax:SGST'))->toBe(-5760.0)
+        ->and(VoucherLine::whereHas('ledger', fn ($q) => $q->where('system_key', 'freight_income'))->first()->only(['trip_id', 'truck_id', 'consignment_id']))
+        ->toBe(['trip_id' => $w['loads'][0]->trip_id, 'truck_id' => $w['loads'][0]->trip->truck_id, 'consignment_id' => $w['loads'][0]->id]);
+
+    expect(fn () => $sale->forceFill(['total' => 1])->save())->toThrow(RuntimeException::class, 'A posted voucher is never edited')
+        ->and(fn () => $sale->delete())->toThrow(RuntimeException::class, 'never deleted')
+        ->and(fn () => $sale->lines()->first()->delete())->toThrow(RuntimeException::class);
+
+    // 75,520 settled by 70,000 money + 1,280 TDS + 4,240 shortage.
+    $this->post(route('receipts.store'), ['party_id' => $w['client']->id, 'receipt_date' => '2026-10-25', 'amount' => 70000, 'tds_amount' => 1280, 'tds_section' => '393(1)',
+        'deduction_amount' => 4240, 'deduction_note' => 'Shortage', 'mode' => 'neft', 'reference' => 'UTR77', 'narration' => 'October', 'allocation' => 'oldest'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    expect(accBalance($client))->toBe(0.0)->and(accBalance('bank'))->toBe(70000.0)->and(accBalance('tds_receivable'))->toBe(1280.0)->and(accBalance('client_deductions'))->toBe(4240.0);
+
+    $this->post(route('receipts.void', Receipt::first()), ['reason' => 'Cheque bounced'])->assertSessionHasNoErrors();
+    $this->post(route('invoices.void', $invoice), ['reason' => 'Billed to the wrong GSTIN'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    expect(accBalance($client))->toBe(0.0)->and(accBalance('freight_income'))->toBe(0.0)->and(accBalance('bank'))->toBe(0.0)
+        ->and($sale->fresh()->status)->toBe('cancelled')
+        ->and(Voucher::where('voucher_type', 'reversal')->count())->toBe(2)
+        ->and(accBalanced())->toBeTrue();
+});
+
+it('keeps locked days unchanged: late entries and reversals land on the first open day', function () {
+    $w = invWorld();
+    $owner = $w['owner'];
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice));
+
+    $this->put(route('accounts.lock.update'), ['locked_until' => '2026-10-25'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    expect(app(Books::class)->lockedUntil()?->toDateString())->toBe('2026-10-25');
+
+    // A journal for a locked day posts the next day, with its own date kept.
+    $chart = app(ChartOfAccounts::class);
+    $lines = [['ledger_account_id' => $chart->expense('office')->id, 'debit' => 350], ['ledger_account_id' => $chart->ledger('cash')->id, 'credit' => 350]];
+    $this->post(route('accounts.journal.store'), ['voucher_date' => '2026-10-20', 'narration' => 'Bank charges for October', 'lines' => $lines])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    $journal = Voucher::where('voucher_type', 'journal')->firstOrFail();
+    expect([$journal->voucher_date->toDateString(), $journal->document_date->toDateString(), $journal->number])->toBe(['2026-10-26', '2026-10-20', 'JV/26-27/00001']);
+
+    // Voiding the bill of a locked day: the reversal is in the open period; the locked day still shows the sale.
+    $this->post(route('invoices.void', $invoice), ['reason' => 'Wrong client'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    $reversal = Voucher::where('voucher_type', 'reversal')->firstOrFail();
+    expect($reversal->voucher_date->toDateString())->toBe('2026-10-26')
+        ->and(app(Statements::class)->trialBalance(CarbonImmutable::parse('2026-10-25'))['debit'])->toBe(75520.0);
+
+    // Unbalanced journals are refused; a journal is reversed by hand, a system voucher only from its document.
+    $this->post(route('accounts.journal.store'), ['voucher_date' => '2026-10-26', 'narration' => 'Wrong one', 'lines' => [['ledger_account_id' => $lines[0]['ledger_account_id'], 'debit' => 100], ['ledger_account_id' => $lines[1]['ledger_account_id'], 'credit' => 90]]])
+        ->assertSessionHasErrors('lines');
+    $this->post(route('accounts.vouchers.reverse', $journal), ['reason' => 'Posted to the wrong ledger'])->assertSessionHasNoErrors();
+    $this->post(route('accounts.vouchers.reverse', $reversal->reverses_voucher_id), ['reason' => 'Trying it'])->assertSessionHasErrors('voucher');
+    app(CompanyContext::class)->set($w['company']);
+    expect($journal->fresh()->status)->toBe('cancelled')->and(accBalance('cash'))->toBe(0.0)->and(accBalanced())->toBeTrue();
+
+    // Opening locked days again needs a reason; every lock is kept.
+    $this->put(route('accounts.lock.update'), ['locked_until' => ''])->assertSessionHasErrors('reason');
+    $this->put(route('accounts.lock.update'), ['locked_until' => '', 'reason' => 'GST return corrected'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    expect(app(Books::class)->lockedUntil())->toBeNull()
+        ->and(\App\Platform\Audit\AuditLog::where('action', 'books.unlocked')->exists())->toBeTrue();
+});
+
+it('shows the book: overview, day book, trial balance, profit and loss, balance sheet, truck profit, chart; exports CSV', function () {
+    $w = invWorld(client: ['name' => '=HYPERLINK("x")']);
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice));
+    app(CompanyContext::class)->set($w['company']);
+    $truck = \App\Modules\Trips\Models\Trip::whereKey($w['loads'][0]->trip_id)->value('truck_id');
+
+    $this->get(route('accounts.index'))->assertOk()->assertSeeText('Debits and credits agree: ₹75,520.00 on each side.')->assertSeeText('₹64,000.00');
+    $this->get(route('accounts.day-book'))->assertOk()->assertSeeText('INV/26-27/00001')->assertSeeText('Output CGST');
+    $this->get(route('accounts.trial-balance'))->assertOk()->assertSeeText('Balanced')->assertSeeText('Freight income');
+    $this->get(route('accounts.profit-loss', ['truck_id' => $truck]))->assertOk()->assertSeeText('Profit')->assertSeeText('₹64,000.00');
+    $this->get(route('accounts.balance-sheet'))->assertOk()->assertSeeText('Profit so far')->assertSeeText('Sundry debtors');
+    $this->get(route('accounts.trucks', ['truck' => $truck]))->assertOk()->assertSeeText('KL-07-AB-1210')->assertSeeText('month by month');
+    $this->get(route('accounts.chart'))->assertOk()->assertSeeText('Crew accounts')->assertSeeText('Duties and taxes');
+    app(CompanyContext::class)->set($w['company']);
+    $voucher = Voucher::firstOrFail();
+    $this->get(route('accounts.vouchers.show', $voucher))->assertOk()->assertSeeText('The system, from the document')->assertSee(route('invoices.show', $invoice));
+
+    app(CompanyContext::class)->set($w['company']);
+    $client = LedgerAccount::where('system_key', 'party:' . $w['client']->id)->firstOrFail();
+    $this->get(route('ledgers.show', $client))->assertOk()->assertSeeText('will give you ₹75,520.00');
+    $csv = $this->get(route('ledgers.export', $client))->assertOk()->streamedContent();
+    expect($csv)->toContain('Opening balance')->toContain('INV/26-27/00001')->toContain('75520');
+    $day = $this->get(route('accounts.day-book', ['format' => 'csv']))->assertOk()->streamedContent();
+    expect($day)->toContain("'=HYPERLINK")->not->toContain(',=HYPERLINK');
+    expect($this->get(route('accounts.trial-balance', ['format' => 'csv']))->streamedContent())->toContain('Total,75520,75520');
+
+    // The accountant adds their own ledgers.
+    app(CompanyContext::class)->set($w['company']);
+    $capital = \App\Modules\Accounts\Models\AccountGroup::where('code', 'capital')->value('id');
+    $this->post(route('accounts.chart.store'), ['name' => 'Capital — Anil Sharma', 'account_group_id' => $capital, 'opening_balance' => 500000, 'opening_side' => 'cr'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    expect((float) LedgerAccount::where('name', 'Capital — Anil Sharma')->value('opening_balance'))->toBe(-500000.0);
+});
+
+it('gives the book to those allowed: ledgers for managers, the book for accountants, the lock for the owner', function () {
+    $w = invWorld();
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice));
+
+    foreach (['viewer', 'manager'] as $role) {
+        signInTo($w['company'], $role);
+        $this->get(route('ledgers.index'))->assertOk();
+        $this->get(route('accounts.index'))->assertForbidden();
+    }
+    signInTo($w['company'], 'accountant');
+    $this->get(route('accounts.index'))->assertOk();
+    $this->get(route('accounts.journal.create'))->assertOk();
+    $this->get(route('accounts.lock'))->assertForbidden();
+
+    signInTo($w['company'], 'driver');
+    $this->get(route('ledgers.index'))->assertForbidden();
+});
+
+it('posts what was recorded before the books existed, once, and checks the book balances', function () {
+    $w = invWorld();
+    $invoice = invDraft($w);
+    $this->post(route('invoices.finalise', $invoice));
+    app(CompanyContext::class)->set($w['company']);
+    expect(Voucher::count())->toBe(1);
+
+    // As if the bill was issued before M11: no voucher.
+    DB::table('voucher_lines')->delete();
+    DB::table('vouchers')->delete();
+
+    $this->artisan('fleet:books', ['--company' => $w['company']->id])->expectsOutputToContain('1 new voucher(s); debits 75,520.00, credits 75,520.00 — balanced')->assertSuccessful();
+    $this->artisan('fleet:books', ['--company' => $w['company']->id])->expectsOutputToContain('0 new voucher(s)')->assertSuccessful();
+    app(CompanyContext::class)->set($w['company']);
+    expect(Voucher::count())->toBe(1)->and(accBalance('party:' . $w['client']->id))->toBe(75520.0);
+});

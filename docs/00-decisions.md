@@ -147,6 +147,24 @@ package), QR codes / amount in words / CSV written in-house. See
 - Templates are chosen in this order: the bill's own choice in the builder, the
   client's, the branch's, the company default, the built-in design.
 
+### P9. How the book is kept (added 26 Oct 2026, M11)
+
+- **One ledger per party**, even when the firm is a client and a supplier: the
+  balance is what is really owed between us. It sits with the debtors when the
+  party is a client, otherwise with the creditors. (Set-off entries per role
+  come later if asked.)
+- **A crew member has one personal account with buckets** — trip cash and
+  earnings (loan later) — so "Ravi holds ₹3,750 of trip cash" and "the company
+  owes Ravi ₹4,200 bata" never mix (09 §1.1).
+- **Locked days never change**: an entry or reversal for a locked day posts on
+  the first open day, its own date kept beside it.
+- The client's **advance at loading** posts only when it is recorded as money
+  (the crew's "money received", or a receipt). The bill still prints "less
+  advance received".
+- The system's vouchers are numbered `V/26-27/000001`; the accountant's
+  journals `JV/26-27/00001`. Bills, receipts and challans keep their own numbers
+  as the voucher's reference.
+
 ---
 
 ## 4. Still open

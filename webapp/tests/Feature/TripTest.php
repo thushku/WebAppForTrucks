@@ -289,6 +289,17 @@ it('hires a market truck: challan, TDS, commission, advances and the balance', f
     $challan = $challan->fresh();
     expect($challan->balance())->toBe(0.0)->and($challan->status)->toBe('settled');
 
+    // In the books (M11): the hire is the trip's cost; the supplier's account is square once the balance is paid,
+    // TDS is owed to the government, the commission to the broker, the munshiana and the deduction are ours.
+    $balance = fn (string $key) => round((float) \App\Modules\Accounts\Models\VoucherLine::whereHas('ledger', fn ($q) => $q->where('system_key', $key))->sum(\Illuminate\Support\Facades\DB::raw('debit - credit')), 2);
+    expect($balance('party:' . $raju->id))->toBe(0.0)
+        ->and($balance('lorry_hire'))->toBe(52000.0)
+        ->and($balance('tds_payable'))->toBe(-520.0)
+        ->and($balance('party:' . $broker->id))->toBe(-1500.0)
+        ->and($balance('office_charges'))->toBe(-200.0)
+        ->and($balance('supplier_deductions'))->toBe(-780.0)
+        ->and(\App\Modules\Accounts\Models\VoucherLine::whereHas('ledger', fn ($q) => $q->where('system_key', 'lorry_hire'))->value('trip_id'))->toBe($trip->id);
+
     // An issued challan's hire is fixed.
     $this->put(route('trips.hire.update', [$trip, $challan]), ['challan_date' => '2026-10-25', 'vehicle_reg' => 'X', 'hire_basis' => 'fixed', 'hire_amount' => '1', 'commission_mode' => 'paid'])->assertSessionHasErrors('challan');
 });

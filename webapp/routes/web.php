@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Accounts;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
@@ -206,6 +207,37 @@ Route::middleware('auth')->group(function () {
                 Route::post('/', [ReceiptController::class, 'store'])->name('store');
             });
             Route::post('/{receipt}/void', [ReceiptController::class, 'void'])->middleware('permission:payment.void')->name('void');
+        });
+
+        // The ledgers: clients, suppliers and vendors, crew (M11).
+        Route::prefix('ledgers')->name('ledgers.')->group(function () {
+            Route::get('/', [Accounts\LedgerController::class, 'index'])->middleware('permission:ledger.view')->name('index');
+            Route::middleware('permission:ledger.view,accounts.view')->group(function () {
+                Route::get('/{ledger}', [Accounts\LedgerController::class, 'show'])->whereNumber('ledger')->name('show');
+                Route::get('/{ledger}/export', [Accounts\LedgerController::class, 'export'])->whereNumber('ledger')->name('export');
+            });
+        });
+
+        // The book (M11).
+        Route::prefix('accounts')->name('accounts.')->middleware('permission:accounts.view')->group(function () {
+            Route::get('/', [Accounts\BooksController::class, 'index'])->name('index');
+            Route::get('/day-book', [Accounts\BooksController::class, 'dayBook'])->name('day-book');
+            Route::get('/trial-balance', [Accounts\BooksController::class, 'trialBalance'])->name('trial-balance');
+            Route::get('/profit-loss', [Accounts\BooksController::class, 'profitLoss'])->name('profit-loss');
+            Route::get('/balance-sheet', [Accounts\BooksController::class, 'balanceSheet'])->name('balance-sheet');
+            Route::get('/trucks', [Accounts\BooksController::class, 'trucks'])->name('trucks');
+            Route::get('/chart', [Accounts\BooksController::class, 'chart'])->name('chart');
+            Route::get('/vouchers/{voucher}', [Accounts\BooksController::class, 'voucher'])->whereNumber('voucher')->name('vouchers.show');
+            Route::middleware('permission:accounts.post')->group(function () {
+                Route::post('/chart', [Accounts\BooksController::class, 'storeLedger'])->name('chart.store');
+                Route::get('/journal/new', [Accounts\JournalController::class, 'create'])->name('journal.create');
+                Route::post('/journal', [Accounts\JournalController::class, 'store'])->name('journal.store');
+                Route::post('/vouchers/{voucher}/reverse', [Accounts\JournalController::class, 'reverse'])->whereNumber('voucher')->name('vouchers.reverse');
+            });
+            Route::middleware('permission:accounts.lock')->group(function () {
+                Route::get('/lock', [Accounts\LockController::class, 'edit'])->name('lock');
+                Route::put('/lock', [Accounts\LockController::class, 'update'])->name('lock.update');
+            });
         });
 
         // The crew's entries waiting for the office (M7).

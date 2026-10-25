@@ -26,6 +26,11 @@ class BrokerCommission extends Model
         return ['amount' => 'decimal:2', 'percent' => 'decimal:3'];
     }
 
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
     public function broker(): BelongsTo
     {
         return $this->belongsTo(Party::class, 'broker_party_id');

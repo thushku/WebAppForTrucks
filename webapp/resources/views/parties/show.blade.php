@@ -31,6 +31,9 @@
         <a href="tel:{{ $dial }}" class="btn-secondary"><x-icon name="phone" /> {{ __('Call') }}</a>
         <a href="{{ $wa }}" class="btn-secondary" target="_blank" rel="noopener noreferrer">{{ __('WhatsApp') }}</a>
       @endif
+      @canany(['ledger.view', 'accounts.view'])
+        @if ($ledgerId = \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'party:' . $party->id)->value('id'))<a href="{{ route('ledgers.show', $ledgerId) }}" class="btn-secondary"><x-icon name="ledger" /> {{ __('Ledger') }}</a>@endif
+      @endcanany
       @can('party.manage')<a href="{{ route('parties.edit', $party) }}" class="btn-primary">{{ __('Edit') }}</a>@endcan
     </div>
   </div>

@@ -278,6 +278,13 @@ class FleetDemo extends Command
 
         $this->templates($ownerId);
 
+        // The books open with the owner's capital in the office cash and the bank (a journal, as the accountant would type it).
+        $chart = app(\App\Modules\Accounts\Services\ChartOfAccounts::class);
+        $capital = \App\Modules\Accounts\Models\LedgerAccount::create(['name' => 'Capital — Rajesh Sharma', 'account_group_id' => $chart->group('capital')->id, 'kind' => 'general']);
+        app(\App\Modules\Accounts\Services\Books::class)->post(['type' => 'journal', 'date' => '2026-04-01', 'narration' => 'Capital brought in: office cash and HDFC current', 'created_by' => $ownerId], [
+            ['ledger' => $chart->ledger('cash'), 'debit' => 100000], ['ledger' => $chart->bank(), 'debit' => 500000], ['ledger' => $capital, 'credit' => 600000],
+        ]);
+
         $load = \App\Modules\Trips\Models\Consignment::where('trip_id', $trip->id)->first();
         $invoices = app(\App\Modules\Invoicing\Services\InvoiceService::class);
         $invoice = $invoices->draftFromLoads($load->billingParty, [$load->id], $owner);

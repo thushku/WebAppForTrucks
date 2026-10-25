@@ -248,7 +248,8 @@
           @if ($p['per_km'])<div class="flex justify-between text-xs text-ink-500"><dt>{{ __('per km') }}</dt><dd class="money">{{ \App\Support\Money::company($p['per_km']) }}</dd></div>@endif
         </dl>
         @if ($p['waiting'] > 0)<p class="mt-3 text-xs text-partial">{{ __(':amount of crew entries still wait for approval and are not counted yet.', ['amount' => \App\Support\Money::company($p['waiting'])]) }}</p>@endif
-        <p class="mt-3 text-xs text-ink-500">{{ __('Shared costs (salary share, EMI, insurance, tyres) come with accounting.') }}</p>
+        <p class="mt-3 text-xs text-ink-500">{{ __('Shared costs (salary share, EMI, insurance, tyres) are not spread to trips yet.') }}
+          @can('accounts.view')<a href="{{ route('accounts.profit-loss', ['trip_id' => $trip->id, 'from' => '2000-01-01']) }}" class="text-brand-700 hover:underline">{{ __('This trip in the books') }}</a>@endcan</p>
       </section>
     @endif
 

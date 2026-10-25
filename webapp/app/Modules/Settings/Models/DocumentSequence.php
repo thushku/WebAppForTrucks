@@ -30,6 +30,7 @@ class DocumentSequence extends Model
         'quotation'       => ['Quotation', 'QT/', '{PREFIX}{FY2}/{0001}', 'fiscal_year'],
         'fuel_slip'       => ['Fuel slip', 'FS/', '{PREFIX}{FY2}/{00001}', 'fiscal_year'],
         'journal'         => ['Journal voucher', 'JV/', '{PREFIX}{FY2}/{00001}', 'fiscal_year'],
+        'voucher'         => ['Accounting voucher (made by the system)', 'V/', '{PREFIX}{FY2}/{000001}', 'fiscal_year'],
         'complaint'       => ['Truck complaint', 'C-', '{PREFIX}{1}', 'never'],
         'service_job'     => ['Service job', 'SJ/', '{PREFIX}{FY2}/{0001}', 'fiscal_year'],
     ];

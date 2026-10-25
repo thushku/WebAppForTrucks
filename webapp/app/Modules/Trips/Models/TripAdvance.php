@@ -22,6 +22,11 @@ class TripAdvance extends Model
         return ['given_on' => 'date', 'amount' => 'decimal:2'];
     }
 
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);

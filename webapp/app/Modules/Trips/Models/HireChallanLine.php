@@ -18,6 +18,11 @@ class HireChallanLine extends Model
         return ['line_date' => 'date', 'amount' => 'decimal:2'];
     }
 
+    public function challan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(HireChallan::class, 'hire_challan_id');
+    }
+
     public function getLabelAttribute(): string
     {
         return $this->kind . ' ' . $this->amount;

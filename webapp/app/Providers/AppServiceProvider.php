@@ -33,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
         // attributes while developing; never in production.
         Model::shouldBeStrict(! $this->app->isProduction());
 
+        // The book follows the operations: every money record posts (or reverses) its voucher (M11).
+        \App\Modules\Accounts\Services\BookKeeper::register();
+
         // Every permission code is also a Gate ability, so Blade can say
         // @can('trip.create'). Unknown abilities fall through to policies.
         Gate::before(function ($user, string $ability) {

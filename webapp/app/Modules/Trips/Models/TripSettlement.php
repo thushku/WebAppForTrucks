@@ -37,6 +37,11 @@ class TripSettlement extends Model
         ];
     }
 
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
