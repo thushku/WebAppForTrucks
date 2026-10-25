@@ -1,0 +1,82 @@
+// The trip form: own or hired truck, the supplier's trucks, empty runs,
+// the agreed rate from the rate contract, and a freight preview. The server
+// works the freight out again when saving; this only shows it.
+
+const money = new Intl.NumberFormat(document.documentElement.lang || 'en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+document.querySelectorAll('[data-trip-form]').forEach((form) => {
+  const $ = (sel) => form.querySelector(sel);
+
+  // Our truck / hired truck.
+  const syncSource = () => {
+    const hired = form.querySelector('[data-truck-source]:checked')?.value === 'hired';
+    form.querySelectorAll('[data-source-own]').forEach((el) => el.classList.toggle('hidden', hired));
+    form.querySelectorAll('[data-source-hired]').forEach((el) => el.classList.toggle('hidden', !hired));
+  };
+  form.querySelectorAll('[data-truck-source]').forEach((el) => el.addEventListener('change', syncSource));
+
+  // Only the chosen supplier's trucks.
+  const supplier = $('[data-supplier]');
+  const vehicle = $('[data-supplier-vehicle]');
+  const syncVehicles = () => {
+    if (!supplier || !vehicle) return;
+    [...vehicle.options].forEach((o) => { if (o.value) o.hidden = o.dataset.party !== supplier.value; });
+    if (vehicle.selectedOptions[0]?.hidden) vehicle.value = '';
+  };
+  supplier?.addEventListener('change', syncVehicles);
+  syncVehicles();
+
+  // An empty run has no load.
+  const kind = $('[data-trip-kind]');
+  kind?.addEventListener('change', () => $('[data-first-load]')?.classList.toggle('hidden', kind.value === 'empty'));
+
+  form.querySelectorAll('[data-load]').forEach((load) => {
+    const q = (sel) => load.querySelector(sel);
+    const rate = q('[data-calc-rate]');
+    const basis = q('[data-calc-basis]');
+    const line = q('[data-rate-line]');
+    const note = q('[data-rate-note]');
+    let typedByHand = !!rate?.value;
+
+    const preview = () => {
+      const r = parseFloat(rate?.value || '0');
+      const weight = parseFloat(q('[data-calc-charged]')?.value || q('[data-calc-weight]')?.value || '0');
+      const km = parseFloat($('[data-calc-km]')?.value || '0');
+      const packages = parseFloat(q('[data-calc-packages]')?.value || '0');
+      const min = parseFloat(line?.dataset.min || '0');
+      const amount = { trip: r, tonne: r * Math.max(weight, min), kg: r * Math.max(weight, min) * 1000, km: r * km, package: r * packages }[basis?.value || 'trip'];
+      const out = q('[data-calc-freight]');
+      if (out) out.textContent = r ? money.format(amount || 0) : '—';
+    };
+    load.addEventListener('input', preview);
+    load.addEventListener('change', preview);
+    rate?.addEventListener('input', () => { typedByHand = true; if (line) { line.value = ''; line.dataset.min = ''; } });
+
+    const lookup = () => {
+      const party = q('[data-rate-party]')?.value;
+      const from = $('[data-rate-from]')?.value;
+      const to = $('[data-rate-to]')?.value;
+      if (!party || !from || !to) return;
+      const params = new URLSearchParams({ party, from, to, material: q('[data-rate-material]')?.value || '', truck: $('[data-rate-truck]')?.value || '', date: $('[data-rate-date]')?.value || '' });
+      fetch(`${load.dataset.rateUrl}?${params}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then((r) => r.json())
+        .then(({ rate: found }) => {
+          if (!found) { if (note) note.textContent = ''; return; }
+          if (note) note.textContent = `${found.contract}: ${money.format(found.rate)} ${basis?.querySelector(`option[value="${found.basis}"]`)?.textContent || ''}${found.min_weight ? ` · min ${found.min_weight} MT` : ''}`;
+          if (typedByHand && line?.value === '' && rate.value && parseFloat(rate.value) !== found.rate) return;
+          rate.value = found.rate;
+          if (basis) basis.value = found.basis;
+          if (line) { line.value = found.line_id; line.dataset.min = found.min_weight || ''; }
+          typedByHand = false;
+          preview();
+        })
+        .catch(() => {});
+    };
+    ['[data-rate-party]', '[data-rate-material]'].forEach((sel) => q(sel)?.addEventListener('change', lookup));
+    ['[data-rate-from]', '[data-rate-to]', '[data-rate-truck]', '[data-rate-date]'].forEach((sel) => $(sel)?.addEventListener('change', lookup));
+    preview();
+  });
+});
+
+// Bars whose width comes from the server (set here: no inline styles under the CSP).
+document.querySelectorAll('[data-width]').forEach((el) => { el.style.width = `${Math.max(0, Math.min(100, Number(el.dataset.width)))}%`; });

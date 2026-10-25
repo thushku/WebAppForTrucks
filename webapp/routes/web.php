@@ -14,6 +14,10 @@ use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
 use App\Http\Controllers\Parties\PartyController;
 use App\Http\Controllers\People\PersonController;
+use App\Http\Controllers\Trips\ConsignmentController;
+use App\Http\Controllers\Trips\HireChallanController;
+use App\Http\Controllers\Trips\TripController;
+use App\Http\Controllers\Trips\TripMoneyController;
 use App\Http\Controllers\Parties\PartyDetailsController;
 use App\Http\Controllers\Parties\RateContractController;
 use App\Http\Controllers\Settings;
@@ -106,6 +110,43 @@ Route::middleware('auth')->group(function () {
                 Route::delete('/{party}/banks/{bank}', [PartyDetailsController::class, 'destroyBank'])->name('banks.destroy');
             });
             Route::get('/{party}', [PartyController::class, 'show'])->middleware('permission:party.view')->name('show');
+        });
+
+        // Trips: full load, part load, mixed; own or hired trucks (M5).
+        Route::prefix('trips')->name('trips.')->group(function () {
+            Route::get('/', [TripController::class, 'index'])->middleware('permission:trip.view')->name('index');
+            Route::middleware('permission:trip.create')->group(function () {
+                Route::get('/new', [TripController::class, 'create'])->name('create');
+                Route::post('/', [TripController::class, 'store'])->name('store');
+                Route::get('/rate', [TripController::class, 'rate'])->name('rate');
+                Route::get('/{trip}/edit', [TripController::class, 'edit'])->name('edit');
+                Route::put('/{trip}', [TripController::class, 'update'])->name('update');
+                Route::get('/{trip}/loads/new', [ConsignmentController::class, 'create'])->name('loads.create');
+                Route::post('/{trip}/loads', [ConsignmentController::class, 'store'])->name('loads.store');
+                Route::get('/{trip}/loads/{consignment}', [ConsignmentController::class, 'edit'])->name('loads.edit');
+                Route::put('/{trip}/loads/{consignment}', [ConsignmentController::class, 'update'])->name('loads.update');
+                Route::post('/{trip}/loads/{consignment}/cancel', [ConsignmentController::class, 'cancel'])->name('loads.cancel');
+                Route::post('/{trip}/stops', [ConsignmentController::class, 'storeStop'])->name('stops.store');
+                Route::delete('/{trip}/stops/{stop}', [ConsignmentController::class, 'destroyStop'])->name('stops.destroy');
+                Route::post('/{trip}/commissions', [TripMoneyController::class, 'storeCommission'])->name('commissions.store');
+                Route::delete('/{trip}/commissions/{commission}', [TripMoneyController::class, 'destroyCommission'])->name('commissions.destroy');
+            });
+            Route::middleware('permission:trip.assign')->group(function () {
+                Route::post('/{trip}/assign', [TripController::class, 'assign'])->name('assign');
+                Route::post('/{trip}/start', [TripController::class, 'start'])->name('start');
+                Route::post('/{trip}/end', [TripController::class, 'end'])->name('end');
+            });
+            Route::post('/{trip}/cancel', [TripController::class, 'cancel'])->middleware('permission:trip.cancel')->name('cancel');
+            Route::post('/{trip}/advances', [TripMoneyController::class, 'storeAdvance'])->middleware('permission:trip.settle')->name('advances.store');
+            Route::middleware('permission:hire.manage')->group(function () {
+                Route::get('/{trip}/hire/new', [HireChallanController::class, 'create'])->name('hire.create');
+                Route::post('/{trip}/hire', [HireChallanController::class, 'store'])->name('hire.store');
+                Route::get('/{trip}/hire/{challan}', [HireChallanController::class, 'edit'])->name('hire.edit');
+                Route::put('/{trip}/hire/{challan}', [HireChallanController::class, 'update'])->name('hire.update');
+                Route::post('/{trip}/hire/{challan}/issue', [HireChallanController::class, 'issue'])->name('hire.issue');
+                Route::post('/{trip}/hire/{challan}/lines', [HireChallanController::class, 'storeLine'])->name('hire.lines.store');
+            });
+            Route::get('/{trip}', [TripController::class, 'show'])->middleware('permission:trip.view')->name('show');
         });
 
         // Document Manager: every owner's papers, expiry, renewals, shares (M3).

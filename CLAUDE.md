@@ -32,7 +32,8 @@ founder's laptop) in `phoneapp/`.
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
-  reminders, compliance / dispatch check).
+  reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
+  broker commissions; TripService is the trip life and the dispatch gate).
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`
   (`settings/` pages extend `layouts/settings`, whose side list comes from `SettingsController::PAGES`).
 - Test helpers shared by several files live in `tests/Pest.php`; a helper inside one test file needs a name no other

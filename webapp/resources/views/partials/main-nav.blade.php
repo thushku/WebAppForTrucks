@@ -8,7 +8,7 @@
   $groups = [
     __('Work') => [
       ['dashboard', 'home', __('Dashboard'), 'dashboard.view', 'bg-brand-50 text-brand-700'],
-      [null, 'route', __('Trips'), 'trip.view', 'bg-amber-50 text-amber-700'],
+      ['trips.index', 'route', __('Trips'), 'trip.view', 'bg-amber-50 text-amber-700', 'trips.'],
       [null, 'check', __('Approvals'), 'event.verify', 'bg-emerald-50 text-emerald-700'],
       [null, 'map', __('Live map'), 'map.view', 'bg-sky-50 text-sky-700'],
     ],

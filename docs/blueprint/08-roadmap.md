@@ -19,7 +19,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M2 ✅ | Companies, branches, users, roles, crew in several companies, QR web login, settings, masters (places with short codes, categories), number series | Create a company, users, places |
 | M3 ✅ | **Parties** (clients, suppliers, vendors, brokers — one firm, many roles; tax IDs; credit terms; rate contracts) and **Document Manager** (all owners, versions, expiry alerts, shares) | Party pages; document expiry dashboard |
 | M4 ✅ | Trucks (profile, complaints, service) and people (profiles, activation codes); expired documents block dispatch | Truck and person pages |
-| M5 | **Trips with FTL / PTL / mixed**, stops, several consignments (LR data), own or **hired truck**, hire challan, broker commission, trip number | Create and send a part-load trip with a hired truck |
+| M5 ✅ | **Trips with FTL / PTL / mixed**, stops, several consignments (LR data), own or **hired truck**, hire challan, broker commission, trip number | Create and send a part-load trip with a hired truck |
 | M6 | Mobile API: activation, sync pull/push, photos, GPS, commands, stop tasks, e-POD — with a test script that acts like a phone | Trip timeline fills with "phone" entries |
 | M7 | Approvals (incl. dual approval), settlement, close, office entries after close, audit log | Full trip from start to close |
 | M8 | **Tax engine** (masters, rules, dated rates, withholding, trace) with India preset + UAE preset | Tax worked out correctly in tests for the examples in `11-tax-engine.md` |

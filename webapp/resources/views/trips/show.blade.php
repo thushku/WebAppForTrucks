@@ -1,0 +1,249 @@
+@extends('layouts.app')
+@section('title', $trip->trip_number ?? __('Draft trip'))
+@section('content')
+@php
+  $t = $trip;
+  $loads = $t->consignments;
+  $live  = $loads->where('status', '!=', 'cancelled');
+  $income = $live->sum(fn ($c) => $c->totalCharges()) + (float) $t->other_charges;
+  $driver = $t->crew->firstWhere('role', 'driver');
+  // Loads without an LR yet are called by their place in the list ("LR #2").
+  $loadNo = $live->values()->pluck('id')->flip();
+@endphp
+<section class="card p-6">
+  <div class="flex flex-wrap items-start gap-4">
+    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-700"><x-icon name="route" class="size-6" /></span>
+    <div class="min-w-0 flex-1">
+      <h2 class="docno font-mono text-2xl font-semibold">{{ $t->trip_number ?? __('Draft trip') }}</h2>
+      <p class="mt-0.5 text-sm text-ink-500">{{ $t->trip_date->format('d M Y') }} · {{ $t->from->name }} → {{ $t->to->name }}{{ $t->planned_km ? ' · ' . number_format($t->planned_km) . ' km' : '' }} · {{ __(\App\Modules\Trips\Models\Trip::LOAD_TYPES[$t->load_type]) }}{{ $t->trip_kind !== 'loaded' ? ' · ' . __(\App\Modules\Trips\Models\Trip::KINDS[$t->trip_kind]) : '' }}</p>
+      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        @include('trips._status', ['status' => $t->status])
+        <span class="pill bg-blue-50 text-blue-700"><x-icon name="truck" class="size-3" /> {{ $t->vehicleLabel() }}</span>
+        @if ($driver)<span class="pill bg-indigo-50 text-indigo-700">{{ $driver->person->name }}</span>@endif
+        @if ($t->returnOf)<a href="{{ route('trips.show', $t->returnOf) }}" class="pill bg-ink-100 text-ink-700 hover:underline">{{ __('Return of :trip', ['trip' => $t->returnOf->label]) }}</a>@endif
+        @if ($t->ended_early)<span class="pill bg-red-50 text-overdue">{{ __('Ended early') }}</span>@endif
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      @if ($t->isPlanning())
+        @can('trip.create')<a href="{{ route('trips.edit', $t) }}" class="btn-secondary">{{ __('Edit') }}</a>@endcan
+      @endif
+      @can('trip.assign')
+        @if (in_array($t->status, ['assigned', 'accepted'], true))
+          <form method="POST" action="{{ route('trips.start', $t) }}" class="flex gap-2">@csrf
+            <input name="start_odometer" type="number" class="input w-36 py-2" placeholder="{{ __('Start km') }}" aria-label="{{ __('Start odometer') }}">
+            <button class="btn-primary">{{ __('Start trip') }}</button>
+          </form>
+        @elseif ($t->status === 'running')
+          <form method="POST" action="{{ route('trips.end', $t) }}" class="flex flex-wrap items-center gap-2" data-confirm="{{ __('End the trip? Loads still on board are marked delivered.') }}">@csrf
+            <input name="end_odometer" type="number" class="input w-36 py-2" placeholder="{{ __('End km') }}" aria-label="{{ __('End odometer') }}">
+            <label class="flex items-center gap-1.5 text-xs"><input type="checkbox" name="ended_early" value="1" class="size-4 rounded border-ink-300"> {{ __('Ended early') }}</label>
+            <button class="btn-primary">{{ __('End trip') }}</button>
+          </form>
+        @endif
+      @endcan
+    </div>
+  </div>
+  @foreach (['trip', 'start_odometer', 'end_odometer', 'override_reason'] as $f)@error($f)<p class="error mt-2">{{ $message }}</p>@enderror @endforeach
+  @if ($t->status === 'cancelled')<p class="mt-3 text-sm text-ink-500">{{ __('Cancelled :date: :reason', ['date' => $t->cancelled_at->format('d M Y'), 'reason' => $t->cancel_reason]) }}</p>@endif
+  @if ($t->dispatch_override_reason)<p class="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-overdue">{{ __('Sent despite an expired paper: :reason', ['reason' => $t->dispatch_override_reason]) }}</p>@endif
+</section>
+
+{{-- Send to the crew: the dispatch check (blueprint 03 §4). --}}
+@if ($t->isDraft())
+  @can('trip.assign')
+    <section class="card p-6">
+      <h3 class="font-semibold">{{ __('Send to the crew') }}</h3>
+      @if ($check['busy'])
+        <ul class="mt-3 space-y-1 text-sm text-overdue">@foreach ($check['busy'] as $b)<li class="flex gap-2"><x-icon name="alert" class="size-4 shrink-0" /> {{ $b }}</li>@endforeach</ul>
+      @endif
+      @if ($check['papers'])
+        <ul class="mt-3 space-y-1 text-sm text-overdue">
+          @foreach ($check['papers'] as $p)<li class="flex gap-2"><x-icon name="alert" class="size-4 shrink-0" /> {{ $p['who'] }}: {{ $p['name'] }} — {{ $p['reason'] === 'missing' ? __('missing') : __('expired') }}</li>@endforeach
+        </ul>
+      @endif
+      @if (! $check['busy'] && ! $check['papers'])<p class="mt-2 text-sm text-paid">{{ __('Truck and crew are free and their papers are in order.') }}</p>@endif
+      @if (! $check['busy'])
+        <form method="POST" action="{{ route('trips.assign', $t) }}" class="mt-4 flex flex-wrap items-end gap-3">
+          @csrf
+          @if ($check['papers'])
+            <div class="min-w-[18rem] flex-1">
+              <label class="label" for="override_reason">{{ __('Why it must go anyway (kept on the trip and in the audit log)') }}</label>
+              <input id="override_reason" name="override_reason" class="input" maxlength="255" placeholder="{{ __('Renewal paid today, copy coming by evening') }}">
+            </div>
+          @endif
+          <button class="btn-primary"><x-icon name="send" /> {{ __('Send to crew') }}</button>
+        </form>
+      @endif
+    </section>
+  @endcan
+@endif
+
+<div class="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+  <div class="min-w-0 space-y-6">
+    {{-- Stops and how full the truck is between them. --}}
+    <section class="card p-6">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold">{{ __('Route') }}</h3>
+      </div>
+      <ol class="mt-3 space-y-2">
+        @foreach ($t->stops as $s)
+          <li class="flex flex-wrap items-center gap-3 text-sm">
+            <span class="grid size-7 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">{{ $s->seq }}</span>
+            <span class="font-medium">{{ $s->place->name }}</span>
+            <span class="text-xs text-ink-500">{{ __(\App\Modules\Trips\Models\TripStop::KINDS[$s->kind]) }}</span>
+            @php($here = $live->filter(fn ($c) => $c->pickup_stop_id === $s->id || $c->drop_stop_id === $s->id))
+            @foreach ($here as $c)
+              <span class="pill {{ $c->pickup_stop_id === $s->id ? 'bg-emerald-50 text-paid' : 'bg-amber-50 text-partial' }}">{{ $c->pickup_stop_id === $s->id ? __('Load') : __('Unload') }} {{ $c->lr_number ?? __('LR #:n', ['n' => ($loadNo[$c->id] ?? 0) + 1]) }}</span>
+            @endforeach
+            @if ($t->isPlanning() && ! $loop->first && ! $loop->last)
+              @can('trip.create')<form method="POST" action="{{ route('trips.stops.destroy', [$t, $s]) }}" class="ms-auto">@csrf @method('DELETE')<button class="btn-ghost px-2 py-1" aria-label="{{ __('Remove stop') }}"><x-icon name="trash" class="size-4" /></button></form>@endcan
+            @endif
+          </li>
+        @endforeach
+      </ol>
+      @error('stop')<p class="error mt-2">{{ $message }}</p>@enderror
+      @if ($legs)
+        <div class="mt-4 space-y-2">
+          @foreach ($legs as $leg)
+            <div>
+              <div class="flex justify-between text-xs text-ink-500"><span>{{ $leg['from'] }} → {{ $leg['to'] }}</span><span>{{ rtrim(rtrim(number_format($leg['weight'], 3), '0'), '.') }}{{ $leg['payload'] ? ' / ' . rtrim(rtrim(number_format($leg['payload'], 3), '0'), '.') : '' }} MT{{ $leg['percent'] !== null ? ' · ' . $leg['percent'] . '%' : '' }}</span></div>
+              @if ($leg['percent'] !== null)
+                <div class="mt-1 h-2 overflow-hidden rounded-full bg-ink-100"><div class="h-full rounded-full {{ $leg['percent'] > 100 ? 'bg-overdue' : ($leg['percent'] >= 85 ? 'bg-paid' : 'bg-brand-400') }} fl-bar" data-width="{{ min(100, $leg['percent']) }}"></div></div>
+              @endif
+            </div>
+          @endforeach
+          @if (collect($legs)->contains(fn ($l) => $l['percent'] !== null && $l['percent'] > 100))<p class="text-sm font-medium text-overdue">{{ __('Over the truck’s payload on at least one leg. Check before sending.') }}</p>@endif
+        </div>
+      @endif
+      @if ($t->isPlanning())
+        @can('trip.create')
+          <form method="POST" action="{{ route('trips.stops.store', $t) }}" class="mt-4 flex flex-wrap items-end gap-2">
+            @csrf
+            <select name="place_id" class="input w-48 py-2" aria-label="{{ __('Place') }}">@foreach ($places as $p)<option value="{{ $p->id }}">{{ $p->name }} ({{ $p->short_code }})</option>@endforeach</select>
+            <select name="kind" class="input w-40 py-2" aria-label="{{ __('Kind') }}">@foreach (\App\Modules\Trips\Models\TripStop::KINDS as $v => $label)<option value="{{ $v }}">{{ __($label) }}</option>@endforeach</select>
+            <select name="after_seq" class="input w-40 py-2" aria-label="{{ __('After stop') }}">@foreach ($t->stops->slice(0, -1) as $s)<option value="{{ $s->seq }}" @selected($loop->last)>{{ __('after :place', ['place' => $s->place->name]) }}</option>@endforeach</select>
+            <button class="btn-secondary"><x-icon name="plus" /> {{ __('Add stop') }}</button>
+          </form>
+        @endcan
+      @endif
+    </section>
+
+    <section class="card overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 p-6 pb-4">
+        <h3 class="font-semibold">{{ __('Loads (LRs)') }}</h3>
+        @if (! in_array($t->status, ['ended', 'settled', 'closed', 'cancelled'], true))
+          @can('trip.create')<a href="{{ route('trips.loads.create', $t) }}" class="btn-secondary"><x-icon name="plus" /> {{ __('Add a load') }}</a>@endcan
+        @endif
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead><tr><th>{{ __('LR') }}</th><th>{{ __('Party') }}</th><th>{{ __('Goods') }}</th><th>{{ __('Pick → drop') }}</th>@if ($canMoney)<th class="text-end">{{ __('Freight') }}</th>@endif<th>{{ __('Status') }}</th></tr></thead>
+          <tbody>
+            @forelse ($loads as $c)
+              <tr class="{{ $c->status === 'cancelled' ? 'opacity-50' : '' }}">
+                <td>
+                  @can('trip.create')<a href="{{ route('trips.loads.edit', [$t, $c]) }}" class="docno font-mono text-sm font-semibold text-brand-700 hover:underline">{{ $c->lr_number ?? __('(on sending)') }}</a>@else<span class="docno font-mono text-sm">{{ $c->lr_number }}</span>@endcan
+                  <div class="text-xs text-ink-500">{{ __(\App\Modules\Trips\Models\Consignment::PAYMENT_TYPES[$c->payment_type]) }}</div>
+                </td>
+                <td class="text-sm">{{ $c->billingParty->name }}@if ($c->consignee)<div class="text-xs text-ink-500">→ {{ $c->consignee->name }}</div>@endif</td>
+                <td class="text-sm">{{ $materials[$c->material] ?? $c->description ?? '—' }}<div class="text-xs text-ink-500">{{ collect([$c->packages ? $c->packages . ' ' . __($c->package_type ?? 'pcs') : null, $c->weight() ? rtrim(rtrim(number_format($c->weight(), 3), '0'), '.') . ' MT' : null])->filter()->join(' · ') }}</div></td>
+                <td class="text-sm">{{ $c->pickupStop?->place?->name }} → {{ $c->dropStop?->place?->name }}</td>
+                @if ($canMoney)<td class="money text-end">{{ \App\Support\Money::company($c->totalCharges()) }}<div class="text-xs text-ink-500">{{ $c->rate !== null ? \App\Support\Money::company($c->rate) . ' ' . __(\App\Modules\Trips\Models\Consignment::BASES[$c->freight_basis]) : '' }}</div></td>@endif
+                <td><span class="pill bg-ink-100 text-ink-700">{{ __(\App\Modules\Trips\Models\Consignment::STATUSES[$c->status]) }}</span>@if ($c->hazardous)<span class="pill ms-1 bg-red-50 text-overdue">{{ __('Hazardous') }}</span>@endif</td>
+              </tr>
+            @empty
+              <tr><td colspan="6" class="py-8 text-center text-ink-500">{{ $t->trip_kind === 'empty' ? __('Empty run — no load.') : __('No load yet.') }}</td></tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    @if ($t->truck_source === 'hired')
+      @include('trips.partials.hire-summary')
+    @endif
+  </div>
+
+  {{-- Side cards: a column on wide screens, two across below the loads otherwise. --}}
+  <div class="grid content-start gap-6 md:grid-cols-2 2xl:grid-cols-1">
+    <section class="card p-6">
+      <h3 class="font-semibold">{{ __('Crew') }}</h3>
+      <ul class="mt-3 space-y-2 text-sm">
+        @forelse ($t->crew as $m)
+          <li class="flex items-center justify-between gap-2"><a href="{{ route('people.show', $m->person) }}" class="font-medium hover:text-brand-700">{{ $m->person->name }}</a><span class="text-xs text-ink-500">{{ __(\App\Modules\Trips\Models\TripCrew::ROLES[$m->role]) }}{{ $m->accepted_at ? ' · ' . __('accepted') : '' }}</span></li>
+        @empty
+          <li class="text-ink-500">{{ $t->truck_source === 'hired' ? __('The supplier’s driver.') : __('No crew.') }}</li>
+        @endforelse
+      </ul>
+    </section>
+
+    @if ($canMoney)
+      <section class="card p-6">
+        <h3 class="font-semibold">{{ __('Money') }}</h3>
+        <dl class="mt-3 space-y-1.5 text-sm">
+          <div class="flex justify-between"><dt class="text-ink-500">{{ __('Freight and charges') }}</dt><dd class="money">{{ \App\Support\Money::company($live->sum(fn ($c) => $c->totalCharges())) }}</dd></div>
+          @if ((float) $t->other_charges > 0)<div class="flex justify-between"><dt class="text-ink-500">{{ __('Other charges (billed)') }}</dt><dd class="money">{{ \App\Support\Money::company($t->other_charges) }}</dd></div>@endif
+          <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold"><dt>{{ __('Trip income') }}</dt><dd class="money">{{ \App\Support\Money::company($income) }}</dd></div>
+          @if ($t->hireChallans->where('status', '!=', 'cancelled')->isNotEmpty())
+            @php($hire = (float) $t->hireChallans->where('status', '!=', 'cancelled')->sum('hire_amount'))
+            <div class="flex justify-between"><dt class="text-ink-500">{{ __('Lorry hire') }}</dt><dd class="money">− {{ \App\Support\Money::company($hire) }}</dd></div>
+            <div class="flex justify-between font-semibold text-paid"><dt>{{ __('Margin on hire') }}</dt><dd class="money">{{ \App\Support\Money::company($income - $hire) }}</dd></div>
+          @endif
+        </dl>
+        <p class="mt-3 text-xs text-ink-500">{{ __('Fuel, tolls and other crew costs come from the road (crew app) and settlement.') }}</p>
+      </section>
+    @endif
+
+    <section class="card p-6">
+      <h3 class="font-semibold">{{ __('Advances to the crew') }}</h3>
+      <ul class="mt-3 space-y-1.5 text-sm">
+        @forelse ($t->advances as $a)
+          <li class="flex justify-between gap-2"><span>{{ $a->person->name }} <span class="text-xs text-ink-500">· {{ $a->given_on->format('d M') }} · {{ __(\App\Modules\Trips\Models\TripAdvance::MODES[$a->mode]) }}</span></span><span class="money">{{ \App\Support\Money::company($a->amount) }}</span></li>
+        @empty
+          <li class="text-ink-500">{{ __('None yet.') }}</li>
+        @endforelse
+      </ul>
+      @can('trip.settle')
+        @if ($t->crew->isNotEmpty() && ! in_array($t->status, ['settled', 'closed', 'cancelled'], true))
+          <form method="POST" action="{{ route('trips.advances.store', $t) }}" class="mt-4 grid gap-2" novalidate>
+            @csrf
+            <select name="person_id" class="input py-2" aria-label="{{ __('To') }}">@foreach ($t->crew as $m)<option value="{{ $m->person_id }}">{{ $m->person->name }}</option>@endforeach</select>
+            <div class="grid grid-cols-2 gap-2">
+              <input name="amount" type="number" min="1" step="0.01" class="input py-2" placeholder="{{ __('Amount') }}" aria-label="{{ __('Amount') }}">
+              <select name="mode" class="input py-2" aria-label="{{ __('Mode') }}">@foreach (\App\Modules\Trips\Models\TripAdvance::MODES as $v => $label)<option value="{{ $v }}">{{ __($label) }}</option>@endforeach</select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <input name="given_on" type="date" class="input py-2" value="{{ now()->toDateString() }}" aria-label="{{ __('Date') }}">
+              <input name="reference" class="input py-2" placeholder="{{ __('UTR / UPI ref') }}" maxlength="60" aria-label="{{ __('Reference') }}">
+            </div>
+            @foreach (['person_id', 'amount', 'reference', 'given_on', 'advance'] as $f)@error($f)<span class="error">{{ $message }}</span>@enderror @endforeach
+            <button class="btn-secondary"><x-icon name="wallet" /> {{ __('Give advance') }}</button>
+          </form>
+        @endif
+      @endcan
+    </section>
+
+    @include('trips.partials.commissions')
+
+    @if ($t->instructions || $t->office_note)
+      <section class="card space-y-3 p-6 text-sm">
+        @if ($t->instructions)<div><h3 class="font-semibold">{{ __('Instructions to the crew') }}</h3><p class="mt-1 whitespace-pre-line">{{ $t->instructions }}</p></div>@endif
+        @if ($t->office_note)<div><h3 class="font-semibold">{{ __('Office note') }}</h3><p class="mt-1 whitespace-pre-line text-ink-700">{{ $t->office_note }}</p></div>@endif
+      </section>
+    @endif
+
+    @if ($t->isCancellable())
+      @can('trip.cancel')
+        <form method="POST" action="{{ route('trips.cancel', $t) }}" class="card space-y-2 p-6" data-confirm="{{ __('Cancel this trip? LR numbers stay used.') }}">
+          @csrf
+          <label class="label" for="cancel_reason">{{ __('Cancel the trip') }}</label>
+          <input id="cancel_reason" name="reason" class="input" maxlength="255" placeholder="{{ __('Why') }}">
+          @error('reason')<span class="error">{{ $message }}</span>@enderror
+          <button class="btn-danger w-full">{{ __('Cancel trip') }}</button>
+        </form>
+      @endcan
+    @endif
+  </div>
+</div>
+@endsection

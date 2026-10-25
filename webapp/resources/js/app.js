@@ -2,3 +2,4 @@
 // add convenience on top (Clinic Ledger style: no framework on the page).
 import './ui.js';
 import './forms.js';
+import './trips.js';

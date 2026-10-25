@@ -79,6 +79,7 @@ class FleetDemo extends Command
 
             $this->parties($parties, $owner->id);
             $this->fleet($owner->id);
+            $this->trips($owner->id);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -196,6 +197,55 @@ class FleetDemo extends Command
 
         $fleet->raiseComplaint($truck, ['title' => 'Brake noise, front left', 'priority' => 'high', 'category' => 'brakes', 'description' => 'Squeals when braking downhill.']);
         $fleet->raiseComplaint($trucks['KL-07-CV-1180'], ['title' => 'Cabin AC not cooling', 'priority' => 'normal', 'category' => 'ac']);
+    }
+
+    /** A running full load, a delivered one, a part-load draft and a hired truck with its challan. */
+    private function trips(int $ownerId): void
+    {
+        auth()->setUser(\App\Models\Account::find($ownerId));
+        $trips  = app(\App\Modules\Trips\Services\TripService::class);
+        $loads  = app(\App\Modules\Trips\Services\ConsignmentService::class);
+        $hire   = app(\App\Modules\Trips\Services\HireService::class);
+        $place  = \App\Modules\Settings\Models\Place::pluck('id', 'short_code');
+        $party  = \App\Modules\Parties\Models\Party::pluck('id', 'name');
+        $truck  = \App\Modules\Fleet\Models\Truck::pluck('id', 'reg_no');
+        $person = \App\Modules\People\Models\Person::pluck('id', 'name');
+        $line   = \App\Modules\Parties\Models\RateContractLine::whereHas('contract', fn ($q) => $q->where('status', 'approved'))->where('to_place_id', $place['BOM'])->first();
+
+        // 1. Kochi → Mumbai, cement for ACC, running (its insurance is fine).
+        $t1 = $trips->create(['trip_date' => now()->subDay()->toDateString(), 'truck_source' => 'own', 'truck_id' => $truck['KL-43-D-7702'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['BOM'],
+            'planned_km' => 1380, 'budget_fuel' => 36000, 'budget_toll' => 9500, 'instructions' => 'Unload at ACC depot gate 2. Call Suresh 30 min before.'],
+            [['person_id' => $person['Abdul Rasheed'], 'role' => 'driver'], ['person_id' => $person['Binu Joseph'], 'role' => 'helper']],
+            ['billing_party_id' => $party['ACC Limited'], 'consignor_party_id' => $party['ACC Limited'], 'consignee_party_id' => $party['ACC Limited'], 'material' => 'cement',
+             'description' => 'OPC 53 grade, 50 kg bags', 'packages' => 380, 'package_type' => 'bags', 'actual_weight_mt' => 19, 'freight_basis' => 'tonne', 'rate' => 3400,
+             'rate_contract_line_id' => $line?->id, 'freight' => 71400, 'payment_type' => 'to_be_billed', 'gst_payable_by' => 'consignor']);
+        $trips->assign($t1);
+        $trips->start($t1, 98700);
+        \App\Modules\Trips\Models\TripAdvance::create(['trip_id' => $t1->id, 'person_id' => $person['Abdul Rasheed'], 'amount' => 20000, 'mode' => 'cash', 'given_on' => now()->subDay()->toDateString(), 'created_by' => $ownerId]);
+
+        // 2. A part-load draft: Kochi → Thrissur… → Coimbatore with two clients.
+        $t2 = $trips->create(['trip_date' => now()->toDateString(), 'load_type' => 'ptl', 'truck_source' => 'own', 'truck_id' => $truck['KL-07-CU-4521'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['CJB'], 'planned_km' => 195],
+            [['person_id' => $person['Ravi Kumar'], 'role' => 'driver'], ['person_id' => $person['Suresh Babu'], 'role' => 'co_driver']],
+            ['billing_party_id' => $party['Kerala Agro Foods'], 'consignor_party_id' => $party['Kerala Agro Foods'], 'material' => 'food_grains', 'packages' => 200, 'package_type' => 'bags', 'actual_weight_mt' => 10,
+             'freight_basis' => 'tonne', 'rate' => 1100, 'freight' => 11000, 'payment_type' => 'to_pay']);
+        $stop = $trips->addStop($t2, $place['WLR'], 'both', 1);
+        $stops = $t2->stops()->get();
+        $loads->save($t2, null, ['billing_party_id' => $party['UltraTech Cement'], 'material' => 'cement', 'packages' => 160, 'package_type' => 'bags', 'actual_weight_mt' => 8,
+            'freight_basis' => 'trip', 'rate' => 9000, 'payment_type' => 'to_be_billed', 'pickup_stop_id' => $stop->id, 'drop_stop_id' => $stops->last()->id]);
+
+        // 3. A hired truck for the Bhiwandi run, with its hire challan and an advance.
+        $raju = \App\Modules\Parties\Models\Party::where('name', 'Raju Transport')->first();
+        $vehicle = \App\Modules\Parties\Models\SupplierVehicle::where('party_id', $raju->id)->first();
+        $t3 = $trips->create(['trip_date' => now()->toDateString(), 'truck_source' => 'hired', 'supplier_party_id' => $raju->id, 'supplier_vehicle_id' => $vehicle->id,
+            'from_place_id' => $place['BHW'], 'to_place_id' => $place['PNQ'], 'planned_km' => 150], [],
+            ['billing_party_id' => $party['ACC Limited'], 'material' => 'cement', 'actual_weight_mt' => 20, 'freight_basis' => 'trip', 'rate' => 18500, 'freight' => 18500, 'payment_type' => 'to_be_billed']);
+        $trips->assign($t3);
+        $tds = $hire->tdsFor($raju);
+        $challan = $hire->save($t3, null, ['challan_date' => now()->toDateString(), 'vehicle_reg' => $vehicle->reg_no, 'driver_name' => $vehicle->driver_name, 'driver_mobile' => $vehicle->driver_mobile,
+            'hire_basis' => 'fixed', 'hire_amount' => 15500, 'commission_mode' => 'deducted', 'commission_amount' => 0, 'office_charge' => 100,
+            'tds_section' => $tds['section'], 'tds_rate' => $tds['rate'], 'tds_nil_reason' => $tds['nil_reason'], 'balance_days_after_pod' => 15]);
+        $hire->issue($challan);
+        $hire->addLine($challan->fresh(), ['kind' => 'advance', 'amount' => 8000, 'line_date' => now()->toDateString(), 'mode' => 'upi', 'paid_to' => 'owner', 'reference' => 'UPI-4471']);
     }
 
     /** Remove the old demo company and its people (only rows the demo made). */

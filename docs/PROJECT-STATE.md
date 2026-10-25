@@ -2,6 +2,52 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M5: trips (full load, part load, hired trucks)
+
+**Built (in `webapp/`):**
+- **Trips** (`/trips`): list with status tabs, date, place (origin, destination or any stop), truck, client and trip-no.
+  filters, reset, newest first, and a **totals bar** "N trips · freight · other charges · total" that follows the
+  filters (13 §A #4).
+- **New trip**: date, load type (FTL / PTL / mixed), kind (loaded / empty run / round trip), branch, **our truck or a
+  hired truck** (supplier + one of the supplier's trucks), driver, co-driver, helpers, from/to, planned km, planned
+  start and delivery, fuel and toll budget, return-of trip, **other charges billed to the client** (#1), instructions
+  to the crew and an **office note the crew never see** (#2). The FTL quick form includes the load.
+- **Loads (consignments / LRs)**: billing party, consignor, consignee, material, said-to-contain, packages and kind,
+  actual and charged weight, basis (trip / tonne / kg / km / package) and rate — **filled from the approved rate
+  contract** for the party, route, material and truck type, with its minimum weight — loading/unloading charges,
+  advance from the party, LR payment (to be billed / paid / to pay / free), **GST paid by**, e-way bill no. and
+  validity, consignor invoice, client PO/indent, hazardous / over-dimension, risk; UAE: transport type for VAT and main
+  carrier / subcontractor. **Freight is always worked out on the server** (a typed total is not trusted).
+- **Part loads**: stops between from and to (load / unload / both / fuel / border); each load picks up and drops at
+  its own stops (drop after pickup); the page shows what loads and unloads at each stop and a **load bar per leg**
+  against the truck's payload, with an over-payload warning.
+- **Send to crew = the dispatch gate**: the truck and every crew member must be free (no other open trip, truck not in
+  the workshop) and have no expired or missing dispatch-blocking paper (licence only for people at the wheel). Papers
+  can be overridden with a written reason (≥ 10 letters), kept on the trip and logged as sensitive. Sending fixes the
+  **trip number** `261025-ACC-COK-BOM-01` (shipper = consignor's or billing party's short code; `MTY` for an empty
+  run) and gives every load its **LR number**.
+- **Start / end** by the office (the crew app does it in M6): odometer checks against the truck, truck on trip → free,
+  loads in transit → delivered, "ended early". **Cancel** before it runs, with a reason; LR numbers stay used.
+- **Hired trucks**: **lorry hire challan** — vehicle, driver, hire fixed or per tonne, broker and commission (taken
+  from the hire or paid by us, mirrored in the broker register), office charge, **TDS 194C suggested** (1 % for
+  individual/HUF PAN, 2 % others, nil with the supplier's ≤10-truck declaration for the year — to be confirmed by a
+  CA), balance days after POD, terms. Issue numbers it `HC/26-27/00001` and fixes the hire; then advances, fuel,
+  detention, extras, deductions (with a reason) and payments, never above the balance; settled at zero. The trip page
+  shows **margin on hire** (freight − hire).
+- **Broker commissions** on a trip, either way (we pay a load broker / we earned it), fixed or % of freight.
+- **Crew advances** (cash / UPI / bank with reference) to the trip's crew only.
+- Demo: a running Kochi → Mumbai cement trip with an advance, a part-load draft Kochi → Walayar → Coimbatore with two
+  clients, and a hired truck Bhiwandi → Pune with its issued challan and an advance.
+
+**Tests:** 133 passing (new `TripTest`, 15 tests).
+
+**Not yet:** "+ Add new" quick forms inside the trip form (#3), trip report PDF/Excel (#5), lock of invoiced trips
+(#6, with invoicing), split deliveries and e-POD (M6), cost sharing per consignment (with accounting), suggestions
+from the last trip on the same route.
+
+**Next:** M6 — the phone API (activation, sync pull/push, photos, GPS, commands, stop tasks, e-POD) with a test
+script that acts like a phone; then M7 approvals and settlement.
+
 ## 2026-10-25 — Milestone M3 (part 2): Document Manager
 
 **Built (in `webapp/`):**
