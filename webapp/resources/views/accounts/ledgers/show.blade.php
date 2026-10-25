@@ -21,9 +21,29 @@
     @if ($s['closing'] < -0.004 && in_array($ledger->kind, ['party', 'person'], true))
       @can('accounts.post')<a href="{{ route('accounts.payments.create', ['ledger' => $ledger->id]) }}" class="btn-primary text-sm"><x-icon name="wallet" class="size-4" /> {{ __('Pay') }}</a>@endcan
     @endif
-    @canany(['statement.export', 'accounts.view'])<a href="{{ route('ledgers.export', ['ledger' => $ledger] + $query) }}" class="btn-secondary text-sm"><x-icon name="download" class="size-4" /> {{ __('Excel (CSV)') }}</a>@endcanany
+    @canany(['statement.export', 'accounts.view'])
+      <a href="{{ route('ledgers.export', ['ledger' => $ledger] + $query) }}" class="btn-secondary text-sm"><x-icon name="download" class="size-4" /> {{ __('Excel (CSV)') }}</a>
+      <a href="{{ route('ledgers.print', ['ledger' => $ledger] + $query) }}" target="_blank" rel="noopener" class="btn-secondary text-sm"><x-icon name="printer" class="size-4" /> {{ __('Statement') }}</a>
+      <a href="{{ route('ledgers.pdf', ['ledger' => $ledger] + $query) }}" class="btn-secondary text-sm"><x-icon name="download" class="size-4" /> {{ __('PDF') }}</a>
+    @endcanany
   </div>
 </div>
+
+@canany(['statement.export', 'accounts.view'])
+  @if (in_array($ledger->kind, ['party', 'person'], true))
+    <details class="card p-4" @if ($errors->hasAny(['to_email', 'subject', 'body'])) open @endif>
+      <summary class="cursor-pointer font-medium"><x-icon name="mail" class="inline size-4 text-brand-700" /> {{ __('Email this statement') }}</summary>
+      <form method="POST" action="{{ route('ledgers.email', ['ledger' => $ledger] + $query) }}" class="mt-3 grid gap-3 sm:max-w-2xl">
+        @csrf
+        <div><label class="label" for="st_to">{{ __('To') }}</label><input id="st_to" name="to_email" type="email" class="input" value="{{ old('to_email', $email['to']) }}" required>@error('to_email')<span class="error">{{ $message }}</span>@enderror</div>
+        <div><label class="label" for="st_subject">{{ __('Subject') }}</label><input id="st_subject" name="subject" class="input" value="{{ old('subject', $email['subject']) }}" maxlength="200" required></div>
+        <div><label class="label" for="st_body">{{ __('Message') }}</label><textarea id="st_body" name="body" rows="6" class="input text-sm" maxlength="5000" required>{{ old('body', $email['body']) }}</textarea></div>
+        <p class="text-xs text-ink-500">{{ __('The statement for :from – :to goes attached.', ['from' => $from->format('d M Y'), 'to' => $to->format('d M Y')]) }}</p>
+        <div><button class="btn-primary"><x-icon name="send" /> {{ __('Send') }}</button></div>
+      </form>
+    </details>
+  @endif
+@endcanany
 
 @if ($buckets)
   <div class="grid gap-4 sm:grid-cols-3">

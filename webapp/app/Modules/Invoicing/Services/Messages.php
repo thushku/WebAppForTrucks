@@ -16,7 +16,7 @@ use Carbon\CarbonImmutable;
  */
 class Messages
 {
-    public const PURPOSES = ['invoice' => 'Sending a bill', 'receipt' => 'Sending a receipt', 'reminder' => 'Overdue reminder'];
+    public const PURPOSES = ['invoice' => 'Sending a bill', 'receipt' => 'Sending a receipt', 'reminder' => 'Overdue reminder', 'statement' => 'Sending a statement'];
 
     public const CHANNELS = ['email' => 'Email', 'whatsapp' => 'WhatsApp'];
 
@@ -42,12 +42,14 @@ class Messages
         $email = [
             'invoice' => [__('{document} {number} from {company}'), __("Dear {party},\n\nPlease find {document} {number} dated {date} for {amount}, due on {due_date}.\n\nView or download it here: {link}\n\nThank you,\n{company}")],
             'receipt' => [__('Receipt {number} from {company}'), __("Dear {party},\n\nThank you for your payment. Receipt {number} dated {date} for {amount} is here: {link}\n\nRegards,\n{company}")],
+            'statement' => [__('Statement of account from {company}, to {date}'), __("Dear {party},\n\nPlease find attached our statement of your account to {date}. The balance is {amount}.\n\nPlease tell us within 15 days if anything is different in your books.\n\nRegards,\n{company}")],
             'reminder' => [__('Reminder: {document} {number} is {days_overdue} days overdue'), __("Dear {party},\n\nThis is a reminder that {document} {number} dated {date} is past its due date ({due_date}). {amount} is still due.\n\nYou can see the bill here: {link}\n\nIf you have paid already, please send us the payment details and ignore this message.\n\nRegards,\n{company}")],
         ];
         $whatsapp = [
             'invoice' => __('{document} {number} from {company} for {amount}. View or download: {link}'),
             'receipt' => __('Receipt {number} from {company} for {amount}. Thank you! {link}'),
             'reminder' => __('Reminder from {company}: {document} {number} for {amount} was due on {due_date}. {link}'),
+            'statement' => __('Statement of account from {company} to {date}: the balance is {amount}.'),
         ];
 
         return $channel === 'email' ? ['subject' => $email[$purpose][0], 'body' => $email[$purpose][1]] : ['subject' => null, 'body' => $whatsapp[$purpose]];
@@ -59,6 +61,18 @@ class Messages
         $template = $this->template($purpose, $channel);
         $values = $this->values($doc);
         $fill = fn (?string $text) => $text === null ? null : strtr($text, $values);
+
+        return ['subject' => $fill($template['subject']), 'body' => $fill($template['body'])];
+    }
+
+    /** A ledger statement's message: the balance in words for the party (M19). */
+    public function renderStatement(string $channel, string $name, float $closing, CarbonImmutable $to): array
+    {
+        $template = $this->template('statement', $channel);
+        $values = ['{company}' => $this->context->company()->name, '{party}' => $name, '{document}' => __('Statement of account'), '{number}' => '',
+            '{amount}' => Money::company(abs($closing)) . ' ' . ($closing > 0.004 ? __('due to us') : ($closing < -0.004 ? __('due to you') : '')), '{total}' => Money::company(abs($closing)),
+            '{date}' => $to->format('d M Y'), '{due_date}' => '', '{days_overdue}' => '', '{link}' => ''];
+        $fill = fn (?string $text) => $text === null ? null : trim(strtr($text, $values));
 
         return ['subject' => $fill($template['subject']), 'body' => $fill($template['body'])];
     }

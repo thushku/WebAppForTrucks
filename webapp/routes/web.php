@@ -239,6 +239,9 @@ Route::middleware('auth')->group(function () {
             Route::middleware('permission:ledger.view,accounts.view')->group(function () {
                 Route::get('/{ledger}', [Accounts\LedgerController::class, 'show'])->whereNumber('ledger')->name('show');
                 Route::get('/{ledger}/export', [Accounts\LedgerController::class, 'export'])->whereNumber('ledger')->name('export');
+                Route::get('/{ledger}/print', [Accounts\LedgerController::class, 'print'])->whereNumber('ledger')->name('print');
+                Route::get('/{ledger}/pdf', [Accounts\LedgerController::class, 'pdf'])->whereNumber('ledger')->name('pdf');
+                Route::post('/{ledger}/email', [Accounts\LedgerController::class, 'email'])->whereNumber('ledger')->middleware('throttle:30,60')->name('email');
             });
         });
 
@@ -256,6 +259,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/tax', [Accounts\ReportsController::class, 'tax'])->name('tax');
             Route::get('/tds', [Accounts\ReportsController::class, 'tds'])->name('tds');
             Route::get('/tally', [Accounts\ReportsController::class, 'tally'])->middleware('permission:data.export,statement.export')->name('tally');
+            Route::get('/bank', [Accounts\BankController::class, 'index'])->name('bank');
             Route::middleware('permission:accounts.post')->group(function () {
                 Route::post('/chart', [Accounts\BooksController::class, 'storeLedger'])->name('chart.store');
                 Route::get('/journal/new', [Accounts\JournalController::class, 'create'])->name('journal.create');
@@ -263,6 +267,12 @@ Route::middleware('auth')->group(function () {
                 Route::get('/payments/new', [Accounts\PaymentController::class, 'create'])->name('payments.create');
                 Route::post('/payments', [Accounts\PaymentController::class, 'store'])->name('payments.store');
                 Route::post('/vouchers/{voucher}/reverse', [Accounts\JournalController::class, 'reverse'])->whereNumber('voucher')->name('vouchers.reverse');
+                Route::get('/opening', [Accounts\OpeningController::class, 'edit'])->name('opening');
+                Route::put('/opening', [Accounts\OpeningController::class, 'update'])->name('opening.update');
+                Route::post('/opening/import', [Accounts\OpeningController::class, 'import'])->name('opening.import');
+                Route::post('/bank/import', [Accounts\BankController::class, 'import'])->middleware('throttle:20,60')->name('bank.import');
+                Route::post('/bank/auto', [Accounts\BankController::class, 'auto'])->name('bank.auto');
+                Route::post('/bank/lines/{line}', [Accounts\BankController::class, 'match'])->whereNumber('line')->name('bank.match');
             });
             Route::middleware('permission:accounts.lock')->group(function () {
                 Route::get('/lock', [Accounts\LockController::class, 'edit'])->name('lock');

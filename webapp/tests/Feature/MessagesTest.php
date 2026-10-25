@@ -72,7 +72,7 @@ it('keeps the company’s own wording, shows a preview, and goes back to the shi
     $page = $this->get(route('settings.messages'))->assertOk()->assertSeeText('Overdue reminder')->assertSeeText('{days_overdue}')->assertSeeText('INV/26-27/00042');
 
     $form = [];
-    foreach (['invoice', 'receipt', 'reminder'] as $purpose) {
+    foreach (array_keys(\App\Modules\Invoicing\Services\Messages::PURPOSES) as $purpose) {
         foreach (['email', 'whatsapp'] as $channel) {
             $t = app(\App\Modules\Invoicing\Services\Messages::class)->shipped($purpose, $channel);
             $form["{$purpose}_{$channel}_subject"] = $t['subject'];

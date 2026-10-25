@@ -2,6 +2,40 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M19: opening balances, bank reconciliation, statements to print and send
+
+**Built (in `webapp/`, `app/Modules/Accounts`; blueprint 07 "Bank reconciliation"; decision P14):**
+- **Accounts → Opening balances**: debit and credit per ledger for the balance-sheet ledgers (clients, suppliers,
+  crew, cash, banks, loans, capital), dated the first day of the financial year; or **bring them from Tally or Excel**
+  as a CSV (Name, Debit, Credit — or Name, Amount, Type), matched by name to ledgers and parties (a party without a
+  ledger gets one; names not found are listed). What does not balance sits in "Difference in opening balances" and the
+  page says by how much. Not changed while the books are locked; logged. New system ledger "Owner's capital".
+- **Accounts → Bank reconciliation**: choose the bank (the company's default account first), **bring in its statement
+  as CSV** — the header row is found below the bank's title lines, column names of SBI, HDFC, ICICI, Axis and UAE banks
+  are read, dates day first (with or without the time), "1,23,456.50", "(500)" and "250 Dr" amounts. Lines brought in
+  before are left out (two alike lines in one file stay two). **What is clear matches by itself** (one entry of the same
+  amount and side within 7 days, or the one carrying the line's UTR / cheque number); the rest are matched by hand from
+  the entries that fit, **booked as bank charges or interest** in one click, or left out with a reason; undo any time.
+  The top shows the book's balance and the bank's on the statement's last day, what is on the statement but not in the
+  book, what is in the book but not on the statement (cheques not yet cleared), and whether that explains the gap.
+- **A party's statement of account** (Ledgers → a ledger → Statement / PDF): on the letterhead with the party's tax
+  ID, opening, every entry, closing and "X will give you / you will give X"; prints, saves as PDF (server Chromium, or
+  the print page), and **Email this statement** with the company's words (Settings → Messages now has "Sending a
+  statement" for email and WhatsApp); every send is kept.
+- The demo (`fleet:demo`) brings in an HDFC statement: two lines matched by themselves, SMS charges and interest left to
+  book, and the reconciliation agreeing.
+
+**Tests:** 230 passing (new `BankTest`, 4 tests: opening balances typed, the difference, income ledgers left out, the
+CSV with a BOM and an unknown name, a bad file, the lock, who may; a statement printed, the PDF falling back to the print
+page, emailed with the HTML attached and the delivery kept, a viewer refused; a bank CSV with title lines — auto
+matches by amount and by UTR, the same file again adding nothing, the summary and the page; match by hand, a wrong
+entry refused, bank charges booked once, a line left out needing a reason, the gap shown, viewer / accountant, another
+company's line not found).
+
+**Not yet:** bank feeds straight from the bank (needs an aggregator — your approval), PDF or Excel statements (save as
+CSV first), matching one bank line to several book entries (a cheque paying two bills — book one receipt for both),
+reconciliation of the cash book.
+
 ## 2026-10-26 — Milestone M18: bills and receipts by email, message templates, overdue reminders
 
 **Built (in `webapp/`, `app/Modules/Invoicing/Services`; blueprint 10 "Email", "Reminders", "Message templates"):**

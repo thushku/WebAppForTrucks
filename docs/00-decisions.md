@@ -236,6 +236,29 @@ package), QR codes / amount in words / CSV written in-house. See
   photos from the road are never refused (they are the proof) — the owner is
   warned from 90 %.
 
+### P14. Opening balances and bank reconciliation (added 26 Oct 2026, M19)
+
+- **Opening balances sit on the ledgers**, dated the first day of the
+  financial year, typed per ledger or brought from Tally or Excel as a CSV.
+  Only balance-sheet ledgers have them (income and expenses start each year at
+  nothing; a company starting mid-year puts the profit so far in "Reserves and
+  surplus"). **What does not balance goes to "Difference in opening
+  balances"**, so the trial balance always agrees and the gap stays visible.
+  They cannot change while the books are locked; every change is logged.
+- **The bank's statement comes in as CSV** (every Indian and UAE bank gives
+  one); no bank feed or aggregator (that would need approval). Lines brought
+  in before are left out by a print of date, amount, words and reference.
+- **A line matches by itself only when it is clear**: one book entry of the
+  same amount on the same side of the bank ledger within 7 days, not matched
+  already — or, among several, the one whose reference carries the line's UTR
+  or cheque number. Everything else waits for a person: match by hand (within
+  31 days), book it as bank charges or interest (a journal made from the line),
+  or leave it out with a reason. A match never changes the book; undo is
+  always possible.
+- **A party's statement** prints on the letterhead, saves as PDF and goes by
+  email with the company's words (Settings → Messages → Sending a statement);
+  every send is kept.
+
 ---
 
 ## 4. Still open

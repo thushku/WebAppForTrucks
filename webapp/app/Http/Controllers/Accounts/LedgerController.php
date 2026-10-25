@@ -8,6 +8,7 @@ use App\Modules\Accounts\Services\Statements;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -60,11 +61,55 @@ class LedgerController extends AccountsController
         $bucket = $request->validate(['bucket' => ['nullable', Rule::in(array_keys(VoucherLine::BUCKETS))]])['bucket'] ?? null;
         $ledger->load(['group', 'party', 'person']);
 
+        $statement = $statements->ledger($ledger, $from, $to, $bucket);
+
         return view('accounts.ledgers.show', [
             'ledger' => $ledger, 'from' => $from, 'to' => $to, 'fy' => $fy, 'bucket' => $bucket,
-            'statement' => $statements->ledger($ledger, $from, $to, $bucket),
+            'statement' => $statement,
+            // The statement email, filled in from Settings → Messages (M19).
+            'email' => app(\App\Modules\Invoicing\Services\Messages::class)->renderStatement('email', $ledger->name, $statement['closing'], $to) + ['to' => $ledger->party?->email],
             'buckets' => $ledger->kind === 'person' ? $statements->crewBuckets($ledger) : null,
         ]);
+    }
+
+    /** The statement on the letterhead, to print or save as PDF from the browser (M19). */
+    public function print(Request $request, LedgerAccount $ledger, Statements $statements, \App\Modules\Invoicing\Services\DocumentData $data): Response
+    {
+        abort_unless($request->user()->canAny(['statement.export', 'accounts.view']), 403);
+        [$from, $to] = $this->period($request);
+
+        return response($this->statementHtml($ledger, $from, $to, $statements, $data));
+    }
+
+    public function pdf(Request $request, LedgerAccount $ledger, Statements $statements, \App\Modules\Invoicing\Services\DocumentData $data, \App\Modules\Invoicing\Services\DocumentRenderer $renderer): Response|\Illuminate\Http\RedirectResponse
+    {
+        abort_unless($request->user()->canAny(['statement.export', 'accounts.view']), 403);
+        [$from, $to] = $this->period($request);
+        if (! $renderer->canPdf()) {
+            return redirect()->route('ledgers.print', ['ledger' => $ledger, 'from' => $from->toDateString(), 'to' => $to->toDateString()]);
+        }
+
+        return \App\Modules\Invoicing\Services\DocumentRenderer::pdfResponse($renderer->pdf($this->statementHtml($ledger, $from, $to, $statements, $data)), 'Statement-' . \Illuminate\Support\Str::slug($ledger->name) . '-' . $to->format('Ymd'));
+    }
+
+    public function email(Request $request, LedgerAccount $ledger, Statements $statements, \App\Modules\Invoicing\Services\DocumentData $data, \App\Modules\Invoicing\Services\DocumentMailer $mailer): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($request->user()->canAny(['statement.export', 'accounts.view']), 403);
+        [$from, $to] = $this->period($request);
+        $fields = $request->validate(['to_email' => ['required', 'email:filter', 'max:255'], 'subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:5000']]);
+        $sent = $mailer->sendStatement($ledger->id, $ledger->name, $this->statementHtml($ledger, $from, $to, $statements, $data), [$fields['to_email']], $fields['subject'], $fields['body'], $request->user());
+
+        return back()->with($sent ? 'status' : 'error', $sent ? __('Statement sent to :to.', ['to' => $fields['to_email']]) : __('The mail could not be sent. Check the address and try again.'));
+    }
+
+    private function statementHtml(LedgerAccount $ledger, CarbonImmutable $from, CarbonImmutable $to, Statements $statements, \App\Modules\Invoicing\Services\DocumentData $data): string
+    {
+        $ledger->loadMissing(['party']);
+        $s = $statements->ledger($ledger, $from, $to);
+        $taxId = $ledger->party_id ? \App\Modules\Parties\Models\PartyTaxId::where('party_id', $ledger->party_id)->orderByDesc('is_default')->value('tax_id') : null;
+
+        return view('documents.statement', ['ledger' => $ledger, 'from' => $from, 'to' => $to, 's' => $s, 'head' => $data->letterhead(), 'taxId' => $taxId,
+            'words' => self::words($ledger->kind, $ledger->name, $s['closing']), 'tz' => $this->context->company()->timezone ?: 'UTC'])->render();
     }
 
     public function export(Request $request, LedgerAccount $ledger, Statements $statements): StreamedResponse

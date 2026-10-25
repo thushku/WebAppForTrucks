@@ -77,4 +77,41 @@ class DocumentMailer
 
         return $error === null;
     }
+
+    /**
+     * A ledger statement by email (M19): the statement attached as a PDF, or
+     * as the page itself where the server cannot make PDFs.
+     *
+     * @param string[] $to
+     */
+    public function sendStatement(int $ledgerId, string $name, string $html, array $to, string $subject, string $body, ?Account $by): bool
+    {
+        $pdf = null;
+        if ($this->renderer->canPdf()) {
+            try {
+                $pdf = $this->renderer->pdf($html);
+            } catch (\Throwable $e) {
+                Log::warning('Statement PDF failed', ['ledger' => $ledgerId, 'error' => $e->getMessage()]);
+            }
+        }
+        $company = app(\App\Platform\Tenancy\CompanyContext::class)->company();
+        $file = 'Statement-' . \Illuminate\Support\Str::slug($name);
+        $error = null;
+        try {
+            Mail::raw($body, function ($m) use ($to, $subject, $company, $pdf, $html, $file) {
+                $m->to($to)->subject($subject);
+                if ($company->email) {
+                    $m->replyTo($company->email, $company->name);
+                }
+                $pdf !== null ? $m->attachData($pdf, $file . '.pdf', ['mime' => 'application/pdf']) : $m->attachData($html, $file . '.html', ['mime' => 'text/html']);
+            });
+        } catch (\Throwable $e) {
+            $error = mb_substr($e->getMessage(), 0, 500);
+            Log::warning('Statement email failed', ['ledger' => $ledgerId, 'error' => $error]);
+        }
+        DocumentDelivery::create(['document_type' => 'statement', 'document_id' => $ledgerId, 'channel' => 'email', 'recipient' => mb_substr(implode(', ', $to), 0, 255),
+            'status' => $error ? 'failed' : 'sent', 'error' => $error, 'sent_by' => $by?->id, 'sent_at' => now()]);
+
+        return $error === null;
+    }
 }

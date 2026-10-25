@@ -73,12 +73,15 @@ class ChartOfAccounts
         'commission_expense' => ['Brokerage and commission paid', 'direct_expenses', 'general'],
         'bata'               => ['Bata and daily allowance', 'direct_expenses', 'general'],
         'salaries'           => ['Salaries and wages', 'direct_expenses', 'general'],
+        'bank_charges'       => ['Bank charges', 'indirect_expenses', 'general'],
+        'bank_interest'      => ['Bank interest received', 'indirect_income', 'general'],
         'staff_recoveries'   => ['Recoveries from staff (fines, damage)', 'indirect_income', 'general'],
         'fuel_card'          => ['Fuel cards', 'loans_advances', 'general'],
         'fastag'             => ['FASTag / Salik / Darb wallet', 'loans_advances', 'general'],
         'vendor_credit'      => ['Pump and vendor credit (vendor not named)', 'sundry_creditors', 'general'],
         'accident_repairs'   => ['Accident repairs', 'maintenance', 'general'],
         'opening_difference' => ['Difference in opening balances', 'suspense', 'general'],
+        'owners_capital'     => ['Owner’s capital', 'capital', 'general'],
     ];
 
     /** Expense category group (master list meta) => chart group. */

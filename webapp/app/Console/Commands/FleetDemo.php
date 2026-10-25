@@ -82,6 +82,7 @@ class FleetDemo extends Command
             $this->fleet($owner->id);
             $this->trips($owner->id);
             $this->payroll($owner);
+            $this->bankStatement($owner);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -101,6 +102,39 @@ class FleetDemo extends Command
         $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test, same password).');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * HDFC's statement brought in (M19), written from the book's own bank
+     * entries a day later, as the bank shows them, with two lines the book
+     * does not have yet: the SMS charges and the quarter's interest.
+     */
+    private function bankStatement(Account $owner): void
+    {
+        $bank = app(\App\Modules\Accounts\Services\ChartOfAccounts::class)->bank();
+        $entries = \App\Modules\Accounts\Models\VoucherLine::query()->join('vouchers as v', 'v.id', '=', 'voucher_lines.voucher_id')
+            ->where('voucher_lines.ledger_account_id', $bank->id)->where('v.status', 'posted')->where('v.voucher_date', '>', '2026-04-01')
+            ->orderBy('v.voucher_date')->get(['voucher_lines.debit', 'voucher_lines.credit', 'v.voucher_date', 'v.reference', 'v.narration']);
+        $lines = [];
+        foreach ($entries as $e) {
+            $day = \Carbon\CarbonImmutable::parse($e->voucher_date)->addDay();
+            $day = $day->isAfter(now()) ? \Carbon\CarbonImmutable::parse($e->voucher_date) : $day;
+            $lines[] = [$day, mb_strtoupper(mb_substr((string) $e->narration, 0, 40)), str_replace(' ', '', (string) $e->reference), (float) $e->credit, (float) $e->debit];
+        }
+        $lines[] = [now()->subDays(3)->startOfDay()->toImmutable(), 'SMS CHARGES FOR THE QUARTER', '', 17.70, 0.0];
+        $lines[] = [now()->subDays(2)->startOfDay()->toImmutable(), 'CREDIT INTEREST CAPITALISED', '', 0.0, 1245.0];
+        usort($lines, fn ($a, $b) => $a[0] <=> $b[0]);
+
+        $balance = 500000.0;
+        $rows = ['HDFC BANK LTD,Statement of account', 'Account No,50200012345678', '', 'Date,Narration,Chq./Ref.No.,Value Dt,Withdrawal Amt.,Deposit Amt.,Closing Balance'];
+        foreach ($lines as [$day, $text, $ref, $out, $in]) {
+            $balance = round($balance + $in - $out, 2);
+            $rows[] = implode(',', [$day->format('d/m/y'), '"' . $text . '"', $ref, $day->format('d/m/y'), $out ? number_format($out, 2, '.', '') : '', $in ? number_format($in, 2, '.', '') : '', number_format($balance, 2, '.', '')]);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'bank');
+        file_put_contents($path, implode("\n", $rows) . "\n");
+        app(\App\Modules\Accounts\Services\BankReconciliation::class)->import($bank, $path, 'HDFC-statement.csv', $owner);
+        @unlink($path);
     }
 
     /** Last month's pay run, approved, with Ravi's payslip paid (M16). */

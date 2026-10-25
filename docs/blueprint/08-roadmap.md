@@ -33,6 +33,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M16 ✅ | **Basic driver pay run** (13-parity #24): pay per month, trip or km for any period, payslips, approval into the books, payment | Pay the crew from the same ledgers |
 | M17 ✅ | Your data: full export, company deletion with a 72-hour countdown and a law copy, plan modules and storage enforced | Leave or switch off parts safely |
 | M18 ✅ | Bills and receipts by email (PDF + secure link), message templates for email and WhatsApp, overdue reminders | Get paid without chasing by hand |
+| M19 ✅ | Opening balances (typed or from a CSV), bank reconciliation from the bank's CSV statement, party statements to print, save as PDF and email | Books that start right and agree with the bank |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

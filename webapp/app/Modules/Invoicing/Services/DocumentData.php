@@ -248,6 +248,14 @@ class DocumentData
 
     // ---- Parts -----------------------------------------------------------------
 
+    /** The company's letterhead (name, address, tax ID, logo) for pages that are not bills: statements (M19). */
+    public function letterhead(): array
+    {
+        $company = $this->context->company();
+
+        return $this->seller($company, TaxRegistration::usable()->orderByDesc('is_default')->first());
+    }
+
     private function seller(Company $company, ?TaxRegistration $registration): array
     {
         $india = $company->country === 'IN';

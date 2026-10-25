@@ -64,7 +64,9 @@ founder's laptop) in `phoneapp/`.
   per source and reverses — never edits — them, honouring the lock date; `Posting` holds the automatic entries and
   `BookKeeper` hooks them to the models' saves; `Statements` reads ledgers, trial balance, P&L, balance sheet and
   truck profit; `Registers` ageing and TDS, `TaxReturns` GSTR-1 / VAT 201 data, `TallyExport` the Tally XML;
-  `php artisan fleet:books` posts anything missing), `Reports` (M12: `Dashboard` numbers and alerts, `LiveMap`
+  `php artisan fleet:books` posts anything missing; M19: `OpeningBalances` — balance-sheet ledgers only, the rest in
+  "Difference in opening balances" —, `BankReconciliation` — the bank's CSV in, auto match only when clear, match by
+  hand, book charges or interest, the summary; a party's statement is `documents/statement` from `LedgerController`), `Reports` (M12: `Dashboard` numbers and alerts, `LiveMap`
   positions and route replay; maps in `resources/js/map.js` with Leaflet, charts as server-drawn SVG in
   `resources/views/charts` with `resources/js/charts.js`), `Payroll` (M16: `PayCalculator` works out pay per month — prorated by days of
   employment —, per trip ended or per km driven; `PayRuns` makes, edits, approves, pays and cancels runs; approval
