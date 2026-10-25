@@ -196,6 +196,10 @@
       @include('trips.partials.hire-summary')
     @endif
 
+    @if (in_array($t->status, ['running', 'ended', 'settled', 'closed'], true))
+      @include('trips.partials.route')
+    @endif
+
     @include('trips.partials.road')
 
     @if (in_array($t->status, ['ended', 'settled', 'closed'], true))

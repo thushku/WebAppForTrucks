@@ -10,7 +10,7 @@
       ['dashboard', 'home', __('Dashboard'), 'dashboard.view', 'bg-brand-50 text-brand-700'],
       ['trips.index', 'route', __('Trips'), 'trip.view', 'bg-amber-50 text-amber-700', 'trips.'],
       ['approvals.index', 'check', __('Approvals'), 'event.verify', 'bg-emerald-50 text-emerald-700', 'approvals.'],
-      [null, 'map', __('Live map'), 'map.view', 'bg-sky-50 text-sky-700'],
+      ['map.index', 'map', __('Live map'), 'map.view', 'bg-sky-50 text-sky-700', 'map.'],
     ],
     __('Money') => [
       ['invoices.index', 'receipt', __('Invoices & LR'), 'invoice.view', 'bg-violet-50 text-violet-700', 'invoices.'],
@@ -26,7 +26,7 @@
       ['parties.index', 'handshake', __('Parties'), 'party.view', 'bg-lime-50 text-lime-700', 'parties.'],
     ],
     __('Insight') => [
-      [null, 'bar-chart', __('Reports'), 'report.view', 'bg-cyan-50 text-cyan-700'],
+      ['reports.index', 'bar-chart', __('Reports'), 'report.view', 'bg-cyan-50 text-cyan-700', 'reports.'],
       ['settings.index', 'settings', __('Settings'), \App\Http\Controllers\Settings\SettingsController::anyPermission(), 'bg-slate-100 text-slate-700', 'settings.'],
     ],
   ];

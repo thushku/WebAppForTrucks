@@ -342,19 +342,33 @@ class FleetDemo extends Command
         \App\Modules\Road\Models\DrivingShift::create(['trip_id' => $trip->id, 'person_id' => $driver->id, 'started_at' => $start, 'ended_at' => $start->addHours(26)->addMinutes(40), 'start_odometer' => 154000, 'end_odometer' => 154720]);
 
         foreach ([
-            ['fuel', 60, ['amount' => 14250, 'payment_mode' => 'cash', 'odometer' => 154050, 'data' => ['litres' => 150, 'rate' => 95, 'full_tank' => true, 'pump' => 'BPCL Angamaly']]],
-            ['toll', 200, ['amount' => 255, 'payment_mode' => 'cash', 'data' => ['plaza' => 'Paliyekkara']]],
-            ['toll', 420, ['amount' => 390, 'payment_mode' => 'fastag', 'data' => ['plaza' => 'Walayar']]],
-            ['food', 480, ['amount' => 320, 'payment_mode' => 'cash', 'data' => ['what' => 'Lunch, two people']]],
-            ['loading', 1500, ['amount' => 1200, 'payment_mode' => 'cash', 'data' => ['labour_count' => 6, 'paid_to' => 'Chennai depot labour']]],
-            ['money_received', 1560, ['amount' => 2000, 'payment_mode' => 'cash', 'data' => ['from' => 'party', 'reference' => 'Unloading charges back']]],
-        ] as [$type, $minutes, $fields]) {
-            $answer = $events->push($driver, ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'trip' => $trip->uuid, 'type' => $type, 'event_at' => $start->addMinutes($minutes)->toIso8601String()] + $fields, [], [$type]);
+            ['fuel', 60, ['amount' => 14250, 'payment_mode' => 'cash', 'odometer' => 154050, 'data' => ['litres' => 150, 'rate' => 95, 'full_tank' => true, 'pump' => 'BPCL Angamaly']], 10.1960, 76.3860],
+            ['toll', 200, ['amount' => 255, 'payment_mode' => 'cash', 'data' => ['plaza' => 'Paliyekkara']], 10.4100, 76.2800],
+            ['toll', 420, ['amount' => 390, 'payment_mode' => 'fastag', 'data' => ['plaza' => 'Walayar']], 10.8470, 76.8390],
+            ['food', 480, ['amount' => 320, 'payment_mode' => 'cash', 'data' => ['what' => 'Lunch, two people']], 11.0168, 76.9558],
+            ['loading', 1500, ['amount' => 1200, 'payment_mode' => 'cash', 'data' => ['labour_count' => 6, 'paid_to' => 'Chennai depot labour']], 13.0827, 80.2707],
+            ['money_received', 1560, ['amount' => 2000, 'payment_mode' => 'cash', 'data' => ['from' => 'party', 'reference' => 'Unloading charges back']], 13.0827, 80.2707],
+        ] as [$type, $minutes, $fields, $lat, $lng]) {
+            $answer = $events->push($driver, ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'trip' => $trip->uuid, 'type' => $type, 'event_at' => $start->addMinutes($minutes)->toIso8601String(), 'lat' => $lat, 'lng' => $lng, 'accuracy_m' => 15] + $fields, [], [$type]);
             $event = \App\Modules\Road\Models\RoadEvent::find($answer['id']);
             if ($approvals->actions($event)) {
                 $approvals->decide($owner, $event, 'approve');
             }
         }
+
+        // The whole track, a point every ten minutes, for the route replay: Kochi, Thrissur, Walayar, Coimbatore, the night at Salem, Vellore, Chennai.
+        $path = [[0, 9.9312, 76.2673], [60, 10.1960, 76.3860], [200, 10.4100, 76.2800], [420, 10.8470, 76.8390], [480, 11.0168, 76.9558],
+            [800, 11.6643, 78.1460], [1100, 11.6643, 78.1460], [1350, 12.9165, 79.1325], [1500, 13.0827, 80.2707], [1600, 13.0827, 80.2707]];
+        $rows = [];
+        for ($i = 0; $i < count($path) - 1; $i++) {
+            [[$m1, $la1, $ln1], [$m2, $la2, $ln2]] = [$path[$i], $path[$i + 1]];
+            for ($m = $m1; $m < $m2; $m += 10) {
+                $f = ($m - $m1) / ($m2 - $m1);
+                $rows[] = ['company_id' => $trip->company_id, 'person_id' => $driver->id, 'trip_id' => $trip->id, 'recorded_at' => $start->addMinutes($m)->utc(),
+                    'lat' => round($la1 + ($la2 - $la1) * $f, 7), 'lng' => round($ln1 + ($ln2 - $ln1) * $f, 7), 'accuracy_m' => 12, 'speed_kmh' => $la1 === $la2 ? 0 : 52, 'received_at' => now()];
+            }
+        }
+        DB::table('gps_points')->insert($rows);
     }
 
     /**

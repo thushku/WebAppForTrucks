@@ -2,6 +2,48 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M12: the dashboard, the live map, route replay, work queues, reports
+
+**Built (in `webapp/`, module `app/Modules/Reports`; blueprint 04 §3.1, §2):**
+- **The dashboard** with real numbers: trucks (on trip, free, in workshop), trips running (sent to crew, to
+  settle), crew entries to check (disputed, questions open), **profit this month** from the book against the same
+  days of last month; the **live map** of running trips; **alerts**, most urgent first — papers expired or expiring
+  within 7 days, a driver at the wheel longer than the company's limit without a break, a crew phone quiet longer than
+  the company allows, crew entries with flags; **spent on the road today** by category; **income and costs for the
+  last six months** from the book (a column chart drawn on the server: thin columns, a legend, a tooltip listing both
+  series per month on hover or keyboard focus, and a table view); the **work queues from LR to cash** — POD pending,
+  ready to bill, billed but not sent, overdue bills with the amount. Money tiles only for those who may see money
+  (`report.view`, `accounts.view` or `ledger.view`).
+- **Live map** (menu → Live map, `map.view`): every running trip where its crew's phone last was (Leaflet, decision
+  D18; tiles from OpenStreetMap), refreshed every minute, a quiet phone in orange, the list beside with the
+  vehicle, driver, route, speed and how long ago. Markers are drawn as circles (no image files); names reach the
+  map as text, never HTML.
+- **Route replay** on the trip page (running, ended, settled, closed): the GPS track, start and last point, the
+  road entries that carry a place (popup with what and how much), and a play / pause slider that runs a truck dot
+  along the track with the time and speed. Tracks over 2,000 points are thinned for the browser, the last point
+  kept.
+- Demo: the finished Kochi → Chennai trip now has its GPS track (with the night at Salem) and its entries on the
+  map.
+- **Reports** (menu → Reports, `report.view`; CSV with `report.export`), for a period: **trip profit** from the
+  book for trips that ended (income, cost, profit, km, profit per km, margin); **road spending** by category and by
+  who paid (crew cash, own UPI, fuel card, FASTag, pump credit…); **payments without receipt** by person, by route
+  and each entry (authority, reason, place, status); **fuel and mileage** per truck (fills, litres, fuel cost, km of
+  the trips that ended, km per litre against the truck's standard — below 95 % marked — and fuel per km);
+  **drivers** (trips, km driven, hours at the wheel, money entries, rejected entries, payments without receipt).
+- Leaflet 1.9.4 added to `package.json` (approved, D18); it loads only on pages with a map (its own file).
+
+**Tests:** 200 passing (new `DashboardTest`, 4 tests: the owner's day with spending, map positions and the quiet-phone and
+long-driving alerts; the route with entries and thinning; income and costs from the book, the work queues and who sees
+money; every report and its CSV, and who may see and download them).
+
+**Notes:** the OpenStreetMap tile servers are for light use; before launch switch the tiles to a provider with a key
+(Mappls or Google, approved in D18). `npm audit` reports advisories in the Vite development server and
+`launch-editor` (development tools only, not in the built app); updating them needs your go-ahead.
+
+**Not yet:** a branch filter on the dashboard and reports, fuel against GPS distance (mismatch flags), a truck's own
+GPS device, route analysis (rates and budgets per route), the outstanding-by-party report (in Accounts → Ageing for
+now), scheduled reports by email.
+
 ## 2026-10-26 — Milestone M11 (part 2): payments, ageing, GST / VAT return data, TDS registers, Tally
 
 **Built (in `webapp/`, `app/Modules/Accounts/Services/{Registers,TaxReturns,TallyExport}`):**

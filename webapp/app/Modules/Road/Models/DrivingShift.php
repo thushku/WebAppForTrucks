@@ -24,6 +24,11 @@ class DrivingShift extends Model
         return $this->belongsTo(Person::class);
     }
 
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Trips\Models\Trip::class);
+    }
+
     public function minutes(): int
     {
         return (int) $this->started_at->diffInMinutes($this->ended_at ?? now());

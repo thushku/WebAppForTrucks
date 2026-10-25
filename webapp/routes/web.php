@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Accounts;
+use App\Http\Controllers\Reports;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
@@ -208,6 +209,15 @@ Route::middleware('auth')->group(function () {
             });
             Route::post('/{receipt}/void', [ReceiptController::class, 'void'])->middleware('permission:payment.void')->name('void');
         });
+
+        // Where the trucks are (M12).
+        Route::middleware('permission:map.view')->group(function () {
+            Route::get('/map', [Reports\MapController::class, 'index'])->name('map.index');
+            Route::get('/map/positions', [Reports\MapController::class, 'positions'])->name('map.positions');
+        });
+        Route::get('/trips/{trip}/route', [Reports\MapController::class, 'route'])->middleware('permission:trip.view,map.view')->name('trips.route');
+
+        Route::get('/reports', [Reports\ReportController::class, 'index'])->middleware('permission:report.view')->name('reports.index');
 
         // The ledgers: clients, suppliers and vendors, crew (M11).
         Route::prefix('ledgers')->name('ledgers.')->group(function () {
