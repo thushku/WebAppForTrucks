@@ -61,6 +61,8 @@ class TruckController extends Controller
     {
         $tab = in_array($request->query('tab'), ['overview', 'complaints', 'service'], true) ? $request->query('tab') : 'overview';
         $truck->load(['owner', 'branch']);
+        $compliance = app(\App\Modules\Documents\Services\Compliance::class);
+        $documents  = \App\Modules\Documents\Models\Document::where('owner_type', 'truck')->where('owner_id', $truck->id)->whereNotNull('expires_on')->orderBy('expires_on')->get();
 
         return view('trucks.show', [
             'truck'      => $truck,
@@ -71,6 +73,10 @@ class TruckController extends Controller
             'complaints' => $truck->complaints()->with('raisedBy')->orderByRaw("status in ('solved','closed')")->orderByDesc('id')->limit($tab === 'complaints' ? 200 : 5)->get(),
             'schedules'  => $truck->serviceSchedules()->where('active', true)->orderBy('name')->get(),
             'jobs'       => $truck->serviceJobs()->with('vendor')->limit($tab === 'service' ? 200 : 5)->get(),
+            'compliance' => $compliance,
+            'documents'  => $documents,
+            'missing'    => $compliance->missing($truck),
+            'health'     => $compliance->health($truck),
         ]);
     }
 

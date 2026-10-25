@@ -21,7 +21,7 @@
     __('Fleet & people') => [
       ['trucks.index', 'truck', __('Trucks'), 'truck.view', 'bg-blue-50 text-blue-700', 'trucks.'],
       ['complaints.index', 'wrench', __('Complaints'), ['complaint.manage'], 'bg-red-50 text-red-700', 'complaints.'],
-      [null, 'folder', __('Documents'), 'document.view', 'bg-yellow-50 text-yellow-700'],
+      ['documents.index', 'folder', __('Documents'), 'document.view', 'bg-yellow-50 text-yellow-700', 'documents.'],
       ['people.index', 'users', __('People'), 'people.view', 'bg-indigo-50 text-indigo-700', 'people.'],
       ['parties.index', 'handshake', __('Parties'), 'party.view', 'bg-lime-50 text-lime-700', 'parties.'],
     ],

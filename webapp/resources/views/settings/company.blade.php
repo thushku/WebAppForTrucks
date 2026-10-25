@@ -98,5 +98,6 @@
   </div>
 </form>
 
-<p class="text-sm text-ink-500">{{ __('Tax registrations (GSTIN, TRN) and bank accounts are set up with invoicing.') }}</p>
+<p class="text-sm text-ink-500">{{ __('Tax registrations (GSTIN, TRN) and bank accounts are set up with invoicing.') }}
+  @can('document.view') <a href="{{ route('documents.owner', 'company') }}" class="font-semibold text-brand-700 hover:underline">{{ __('Company papers (GST certificate, licences…)') }}</a>@endcan</p>
 @endsection

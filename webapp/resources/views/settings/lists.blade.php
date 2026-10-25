@@ -19,7 +19,7 @@
         @csrf @method('PUT')
         <input name="name" value="{{ $item->name }}" class="input max-w-xs flex-1" maxlength="120" aria-label="{{ __('Name') }}" required>
         @foreach ($fields as $field => $label)
-          @if (in_array($field, ['needs_receipt', 'paid'], true))
+          @if (in_array($field, \App\Modules\Settings\Models\MasterItem::BOOLEAN_FIELDS, true))
             <label class="flex items-center gap-1.5 text-xs text-ink-700"><input type="checkbox" name="meta[{{ $field }}]" value="1" class="size-4 rounded border-ink-300" @checked($item->meta[$field] ?? false)> {{ __($label) }}</label>
           @elseif ($field === 'group')
             <select name="meta[group]" class="input w-40" aria-label="{{ __($label) }}">

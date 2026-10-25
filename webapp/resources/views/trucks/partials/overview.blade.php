@@ -18,6 +18,26 @@
   </section>
 
   <div class="space-y-6">
+    @can('document.view')
+    {{-- Important dates (Trucksarthi parity #17): every paper's expiry, "Urgent" within 30 days, and what is missing. --}}
+    <section class="card p-6">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold">{{ __('Important dates') }} <span class="ms-1 inline-block size-2.5 rounded-full {{ ['red' => 'bg-overdue', 'amber' => 'bg-road-500', 'green' => 'bg-paid'][$health] }}" title="{{ __('Document health') }}" aria-hidden="true"></span></h3>
+        <a href="{{ route('documents.owner', ['truck', $truck->id]) }}" class="text-sm font-semibold text-brand-700 hover:underline">{{ __('Documents') }}</a>
+      </div>
+      <ul class="mt-3 space-y-2 text-sm">
+        @if ($truck->registration_date)<li class="flex justify-between gap-3"><span>{{ __('Registered') }}</span><span>{{ $truck->registration_date->format('d M Y') }}</span></li>@endif
+        @foreach ($documents as $d)
+          <li class="flex items-center justify-between gap-3"><a href="{{ route('documents.show', $d) }}" class="hover:text-brand-700">{{ $compliance->typeName($d->document_type) }}</a>@include('documents._state', ['document' => $d])</li>
+        @endforeach
+        @foreach ($missing as $code)
+          <li class="flex items-center justify-between gap-3"><span>{{ $compliance->typeName($code) }}</span><span class="pill bg-rose-50 text-rose-700">{{ __('Missing') }}</span></li>
+        @endforeach
+        @if ($documents->isEmpty() && ! $missing)<li class="text-ink-500">{{ __('No papers yet.') }}</li>@endif
+      </ul>
+    </section>
+    @endcan
+
     <section class="card p-6">
       <div class="flex items-center justify-between">
         <h3 class="font-semibold">{{ __('Open complaints') }}</h3>

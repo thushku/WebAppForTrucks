@@ -22,10 +22,13 @@ class MasterItem extends Model
         'expense_category' => ['Expense categories', ['group' => 'Group (running / maintenance / office)', 'needs_receipt' => 'Receipt photo needed']],
         'truck_type'       => ['Truck types', ['wheels' => 'Wheels', 'payload_mt' => 'Typical payload (MT)']],
         'body_type'        => ['Body types', []],
-        'document_type'    => ['Document types', ['owner' => 'For (truck / person / company / party)', 'remind_days' => 'Remind days before expiry']],
+        'document_type'    => ['Document types', ['owner' => 'For (truck / person / company / party)', 'remind_days' => 'Remind days before expiry', 'blocks_dispatch' => 'Expired stops dispatch', 'sensitive' => 'Personal ID (restricted)']],
         'leave_type'       => ['Leave types', ['paid' => 'Paid', 'days_per_year' => 'Days per year']],
         'complaint_category' => ['Complaint categories', []],
     ];
+
+    /** Meta fields that are yes/no boxes. */
+    public const BOOLEAN_FIELDS = ['needs_receipt', 'paid', 'blocks_dispatch', 'sensitive'];
 
     protected $guarded = ['id', 'company_id'];
 

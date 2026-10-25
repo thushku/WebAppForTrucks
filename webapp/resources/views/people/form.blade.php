@@ -33,10 +33,11 @@
 
   <section class="card p-6">
     <h2 class="text-lg font-semibold">{{ __('Driving licence') }}</h2>
+    @if ($licenceDoc)<p class="mt-1 text-sm text-ink-500">{{ __('The number and expiry come from the licence in Documents.') }} <a href="{{ route('documents.show', $licenceDoc) }}" class="font-semibold text-brand-700 hover:underline">{{ __('Open it to renew') }}</a></p>@endif
     <div class="mt-4 grid gap-4 sm:grid-cols-4">
-      <div class="sm:col-span-2"><label class="label" for="licence_no">{{ __('Licence no.') }}</label><input id="licence_no" name="licence_no" class="input font-mono uppercase" value="{{ old('licence_no', $p->licence_no) }}" maxlength="30">@error('licence_no')<span class="error">{{ $message }}</span>@enderror</div>
+      <div class="sm:col-span-2"><label class="label" for="licence_no">{{ __('Licence no.') }}</label><input id="licence_no" name="licence_no" class="input font-mono uppercase" value="{{ old('licence_no', $p->licence_no) }}" maxlength="30" @disabled($licenceDoc)>@error('licence_no')<span class="error">{{ $message }}</span>@enderror</div>
       <div><label class="label" for="licence_class">{{ __('Class') }}</label><input id="licence_class" name="licence_class" class="input" value="{{ old('licence_class', $p->licence_class) }}" maxlength="40" placeholder="{{ $country === 'AE' ? __('Heavy vehicle') : __('Transport (HGMV)') }}"></div>
-      <div><label class="label" for="licence_expiry">{{ __('Valid until') }}</label><input id="licence_expiry" name="licence_expiry" type="date" class="input" value="{{ old('licence_expiry', $p->licence_expiry?->toDateString()) }}"></div>
+      <div><label class="label" for="licence_expiry">{{ __('Valid until') }}</label><input id="licence_expiry" name="licence_expiry" type="date" class="input" value="{{ old('licence_expiry', $p->licence_expiry?->toDateString()) }}" @disabled($licenceDoc)></div>
       <div><label class="label" for="badge_no">{{ __('Badge no.') }}</label><input id="badge_no" name="badge_no" class="input" value="{{ old('badge_no', $p->badge_no) }}" maxlength="30"></div>
       <label class="flex items-center gap-2 self-end pb-3 text-sm sm:col-span-2"><input type="checkbox" name="hazardous_endorsement" value="1" class="size-4 rounded border-ink-300" @checked(old('hazardous_endorsement', $p->hazardous_endorsement))> {{ __('May carry hazardous goods') }}</label>
     </div>

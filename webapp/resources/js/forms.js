@@ -138,3 +138,13 @@ document.querySelectorAll('[data-share-text]').forEach((box) => {
     });
   });
 });
+
+// A select whose options are links ("Add a paper…").
+document.querySelectorAll('[data-go-select]').forEach((select) => {
+  select.addEventListener('change', () => { if (select.value) window.location.assign(select.value); });
+});
+
+// Read-only boxes holding a link select all on focus, ready to copy.
+document.querySelectorAll('[data-select-on-focus]').forEach((input) => {
+  input.addEventListener('focus', () => input.select());
+});

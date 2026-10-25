@@ -13,3 +13,6 @@ Schedule::call(function () {
 
 // Sanctum tokens past their expiry are removed daily.
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
+
+// Document expiry reminders, early morning in India (07:00 IST) and the UAE (05:30 GST).
+Schedule::command('documents:remind')->dailyAt('01:30')->name('documents-remind')->withoutOverlapping();

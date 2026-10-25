@@ -27,7 +27,8 @@
   </div>
   <nav class="mt-5 flex gap-1 overflow-x-auto border-b border-ink-100" aria-label="{{ __('Person sections') }}">
     <span class="-mb-px whitespace-nowrap border-b-2 border-brand-600 px-3 py-2 text-sm font-medium text-brand-700">{{ __('Profile') }}</span>
-    @foreach ([__('Documents'), __('Trips'), __('Driving hours'), __('Ledger'), __('Leave')] as $soon)
+    @can('document.view')<a href="{{ route('documents.owner', ['person', $person->id]) }}" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Documents') }}</a>@endcan
+    @foreach ([__('Trips'), __('Driving hours'), __('Ledger'), __('Leave')] as $soon)
       <span class="whitespace-nowrap px-3 py-2 text-sm text-ink-300" title="{{ __('Coming in a later milestone') }}">{{ $soon }}</span>
     @endforeach
   </nav>

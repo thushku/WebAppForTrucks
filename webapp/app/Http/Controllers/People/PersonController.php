@@ -134,6 +134,7 @@ class PersonController extends Controller
     {
         return [
             'person'   => $person,
+            'licenceDoc' => $person->exists ? \App\Modules\Documents\Models\Document::where('owner_type', 'person')->where('owner_id', $person->id)->where('document_type', 'licence')->first() : null,
             'country'  => $this->context->company()->country,
             'trucks'   => Truck::inService()->orderBy('reg_no')->pluck('reg_no', 'id'),
             'branches' => Branch::where('active', true)->orderBy('name')->pluck('name', 'id'),
@@ -196,8 +197,15 @@ class PersonController extends Controller
         if (! empty($data['mobile']) && Person::where('mobile', $data['mobile'])->where('id', '!=', $person?->id ?? 0)->exists()) {
             throw ValidationException::withMessages(['mobile' => __('Another person has this mobile number.')]);
         }
+        // With a licence document on file, its number and expiry come from there (renew it in Documents).
+        if ($person && \App\Modules\Documents\Models\Document::where('owner_type', 'person')->where('owner_id', $person->id)->where('document_type', 'licence')->exists()) {
+            unset($data['licence_no'], $data['licence_expiry']);
+        }
+
         $data['hazardous_endorsement'] = $request->boolean('hazardous_endorsement');
-        $data['licence_no'] = isset($data['licence_no']) ? strtoupper(preg_replace('/\s+/', '', $data['licence_no'])) : null;
+        if (array_key_exists('licence_no', $data)) {
+            $data['licence_no'] = isset($data['licence_no']) ? strtoupper(preg_replace('/\s+/', '', $data['licence_no'])) : null;
+        }
         $data['status'] ??= $person->status ?? 'active';
         if ($data['status'] === 'left') {
             $data['leaving_date'] ??= now()->toDateString();

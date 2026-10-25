@@ -2,6 +2,47 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M3 (part 2): Document Manager
+
+**Built (in `webapp/`):**
+- **Documents** (`/documents`): papers of trucks, people, parties and the company. Dashboard tiles **Expired / within 7 /
+  15 / 30 days / Missing**, "needs attention" and "all" lists by owner kind, each row with its expiry chip and a "File
+  missing" chip when only the dates are on file (13 §D #17).
+- Add a paper with number, issuer, issue/valid-from/expiry dates, cost, insurer or agent, where the original is kept,
+  notes, and files. **Photos are re-saved as JPEG ≤ 1600 px and ≤ 500 KB** (turned upright, camera data dropped);
+  PDFs must really be PDFs and ≤ 2 MB; anything else is refused. Files live in the company's private folder and are
+  served only through a checked route.
+- **Renew** makes a new version: the old details and files stay read-only in the history with who replaced them;
+  reminders start again. **Correct** fixes the current version. **Pause reminders** until a date with a reason.
+- **Required papers** per truck (all, or one truck type), per person (all, or drivers…) and for the company; missing
+  ones show as **Missing** tiles on the owner's page, in the dashboard, and in the truck's **Important dates** card
+  (with a green / amber / red document-health dot).
+- **Dispatch check** ready for trips (M5): `Compliance::blockers()` lists expired dispatch-blocking papers (insurance,
+  fitness, permits, PUC, licence; UAE Mulkiya, RTA permit, tracker) and missing required ones; a driver without a valid
+  licence is blocked too.
+- **Personal ID papers** (Aadhaar, PAN, bank proof, address proof; Emirates ID, passport, visa) are hidden from anyone
+  without `people.id_documents`, cannot be shared by link, and every look at their files is logged as sensitive.
+- A driver's **licence document** keeps the person's licence number and expiry in step (the person form then shows
+  them read-only).
+- **Reminders**: `php artisan documents:remind`, scheduled daily at 07:00 India time; a reminder at the type's
+  reminder days, then 15, 7, 1 and the day, then weekly after expiry, each step once; one email per company to the
+  people who may manage documents.
+- **Share links**: tick papers → purpose and 1/3/7/30 days → an expiring link (WhatsApp button); the public page shows
+  the papers with images watermarked "Copy shared on <date> for <purpose>", counts opens, can be ended early, and
+  answers "This link no longer works" afterwards.
+- Document types now carry "Expired stops dispatch" and "Personal ID" flags (Settings → Lists); India and UAE presets
+  extended (AIS-140, speed governor, badge, medical, police verification, Carriage by Road Act, GTA Annexure V,
+  Form 16A, ≤10-truck declaration; UAE RTA/ITC permit, ILOE, visa…).
+- Demo company now has papers for every truck with a spread of expiry dates and required-paper rules.
+
+**Tests:** 118 passing (new `DocumentTest`, 10 tests).
+
+**Later:** OCR auto-fill, Vahan/Sarathi checks (provider approved, D19), push and WhatsApp reminder channels, upload
+from the crew app (M6), cost posting to the truck ledger (M11), insurance claims.
+
+**Next:** M5 — trips with FTL / PTL / mixed loads, stops, several consignments (LR data), own or hired truck, hire
+challan, broker commission, trip number, and the dispatch check.
+
 ## 2026-10-25 — Milestone M4: trucks and people
 
 **Built (in `webapp/`):**

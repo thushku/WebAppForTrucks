@@ -6,6 +6,9 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\QrLoginController;
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Documents\DocumentController;
+use App\Http\Controllers\Documents\DocumentShareController;
+use App\Http\Controllers\Documents\RequiredTypesController;
 use App\Http\Controllers\Fleet\ComplaintController;
 use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
@@ -52,6 +55,10 @@ Route::middleware('guest')->group(function () {
 Route::get('/verify/{token}', [SignupController::class, 'verify'])->name('signup.verify');
 Route::get('/invite/{token}', [InvitationController::class, 'show'])->name('invite.show');
 Route::post('/invite/{token}', [InvitationController::class, 'accept'])->middleware('throttle:login')->name('invite.accept');
+// A shared pack of documents (expiring link; no sign-in).
+Route::get('/share/{token}', [DocumentShareController::class, 'show'])->middleware('throttle:60,1')->name('share.show');
+Route::get('/share/{token}/file/{file}', [DocumentShareController::class, 'file'])->middleware('throttle:120,1')->whereNumber('file')->name('share.file');
+
 // What a phone camera opens when the sign-in QR is scanned outside the app.
 Route::get('/qr/{token}', [QrLoginController::class, 'scan'])->where('token', '[A-Za-z0-9]{40}')->name('login.qr.scan');
 
@@ -99,6 +106,30 @@ Route::middleware('auth')->group(function () {
                 Route::delete('/{party}/banks/{bank}', [PartyDetailsController::class, 'destroyBank'])->name('banks.destroy');
             });
             Route::get('/{party}', [PartyController::class, 'show'])->middleware('permission:party.view')->name('show');
+        });
+
+        // Document Manager: every owner's papers, expiry, renewals, shares (M3).
+        Route::prefix('documents')->name('documents.')->group(function () {
+            Route::middleware('permission:document.view')->group(function () {
+                Route::get('/', [DocumentController::class, 'index'])->name('index');
+                Route::get('/required', [RequiredTypesController::class, 'index'])->name('required');
+                Route::get('/of/{ownerType}/{ownerId?}', [DocumentController::class, 'owner'])->whereIn('ownerType', ['truck', 'person', 'company', 'party'])->whereNumber('ownerId')->name('owner');
+                Route::get('/file/{file}', [DocumentController::class, 'file'])->name('file');
+            });
+            Route::middleware('permission:document.manage')->group(function () {
+                Route::get('/of/{ownerType}/{ownerId}/new', [DocumentController::class, 'create'])->whereIn('ownerType', ['truck', 'person', 'company', 'party'])->whereNumber('ownerId')->name('create');
+                Route::post('/of/{ownerType}/{ownerId}', [DocumentController::class, 'store'])->whereIn('ownerType', ['truck', 'person', 'company', 'party'])->whereNumber('ownerId')->name('store');
+                Route::get('/{document}/edit', [DocumentController::class, 'edit'])->name('edit');
+                Route::put('/{document}', [DocumentController::class, 'update'])->name('update');
+                Route::get('/{document}/renew', [DocumentController::class, 'edit'])->name('renew.form');
+                Route::post('/{document}/renew', [DocumentController::class, 'renew'])->name('renew');
+                Route::post('/{document}/snooze', [DocumentController::class, 'snooze'])->name('snooze');
+                Route::post('/shares', [DocumentShareController::class, 'store'])->name('shares.store');
+                Route::post('/shares/{share}/revoke', [DocumentShareController::class, 'revoke'])->name('shares.revoke');
+                Route::post('/required', [RequiredTypesController::class, 'store'])->name('required.store');
+                Route::delete('/required/{rule}', [RequiredTypesController::class, 'destroy'])->name('required.destroy');
+            });
+            Route::get('/{document}', [DocumentController::class, 'show'])->middleware('permission:document.view')->name('show');
         });
 
         // Trucks, their complaints and service (M4).

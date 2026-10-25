@@ -175,6 +175,25 @@ class FleetDemo extends Command
             ['kind' => 'labour', 'description' => 'Labour', 'qty' => 1, 'rate' => 1200],
         ]);
         $fleet->completeJob($job);
+        // Papers with a spread of expiry dates, and the papers every truck and driver must have.
+        $docs = app(\App\Modules\Documents\Services\DocumentService::class);
+        foreach (['insurance', 'permit_np', 'road_tax'] as $code) {
+            \App\Modules\Documents\Models\DocumentRequiredType::create(['applies_to' => 'truck', 'subtype' => null, 'document_type' => $code]);
+        }
+        \App\Modules\Documents\Models\DocumentRequiredType::create(['applies_to' => 'person', 'subtype' => 'driver', 'document_type' => 'licence']);
+        $offsets = ['KL-07-CU-4521' => [200, 26, 90, 4], 'KL-07-CV-1180' => [-6, 140, 12, 300], 'KL-43-D-7702' => [330, 60, 180, 45], 'MH-04-JK-3345' => [18, 250, null, 9]];
+        foreach ($offsets as $reg => [$insurance, $fitness, $permit, $puc]) {
+            $id = $trucks[$reg]->id;
+            $docs->create('truck', $id, ['document_type' => 'rc', 'number' => 'RC/' . str_replace('-', '', $reg), 'authority' => 'RTO']);
+            $docs->create('truck', $id, ['document_type' => 'insurance', 'number' => 'POL-' . random_int(100000, 999999), 'authority' => 'New India Assurance', 'expires_on' => now()->addDays($insurance)->toDateString(), 'amount' => 48500]);
+            $docs->create('truck', $id, ['document_type' => 'fitness', 'number' => 'FC-' . random_int(1000, 9999), 'expires_on' => now()->addDays($fitness)->toDateString(), 'amount' => 1500]);
+            if ($permit !== null) {
+                $docs->create('truck', $id, ['document_type' => 'permit_np', 'number' => 'NP-' . random_int(10000, 99999), 'expires_on' => now()->addDays($permit)->toDateString(), 'amount' => 16500]);
+            }
+            $docs->create('truck', $id, ['document_type' => 'puc', 'number' => 'PUC-' . random_int(1000, 9999), 'expires_on' => now()->addDays($puc)->toDateString(), 'amount' => 400]);
+        }
+        $docs->create('company', 0, ['document_type' => 'gst_reg', 'number' => '32AAACS1234F1Z' . TaxIds::gstinCheckCharacter('32AAACS1234F1Z')]);
+
         $fleet->raiseComplaint($truck, ['title' => 'Brake noise, front left', 'priority' => 'high', 'category' => 'brakes', 'description' => 'Squeals when braking downhill.']);
         $fleet->raiseComplaint($trucks['KL-07-CV-1180'], ['title' => 'Cabin AC not cooling', 'priority' => 'normal', 'category' => 'ac']);
     }

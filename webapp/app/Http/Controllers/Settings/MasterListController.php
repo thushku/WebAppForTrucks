@@ -78,7 +78,7 @@ class MasterListController extends Controller
             $rules["meta.{$field}"] = match ($field) {
                 'group'         => ['nullable', Rule::in(['running', 'maintenance', 'office'])],
                 'owner'         => ['nullable', Rule::in(['truck', 'person', 'company', 'party'])],
-                'needs_receipt', 'paid' => ['nullable', 'boolean'],
+                'needs_receipt', 'paid', 'blocks_dispatch', 'sensitive' => ['nullable', 'boolean'],
                 'wheels', 'remind_days', 'days_per_year' => ['nullable', 'integer', 'min:0', 'max:400'],
                 default         => ['nullable', 'numeric', 'min:0', 'max:1000'],
             };
@@ -87,7 +87,7 @@ class MasterListController extends Controller
         $data = $request->validate($rules);
         $meta = [];
         foreach ($fields as $field => $label) {
-            $meta[$field] = in_array($field, ['needs_receipt', 'paid'], true)
+            $meta[$field] = in_array($field, MasterItem::BOOLEAN_FIELDS, true)
                 ? $request->boolean("meta.{$field}")
                 : ($data['meta'][$field] ?? null);
         }
