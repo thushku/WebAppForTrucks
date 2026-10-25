@@ -217,6 +217,25 @@ package), QR codes / amount in words / CSV written in-house. See
 - Full payroll (attendance, leave, Labour Codes, PF/ESI, UAE WPS) stays in
   phase 2–3.
 
+### P13. Your data, deleting a company, and what a plan can switch off (added 26 Oct 2026, M17)
+
+- **The whole company downloads as one ZIP** (Settings → Your data, owner by
+  default): a CSV per table of the company's data, bank and ID numbers
+  readable, one-time codes and secret links left out, and every uploaded file.
+  At most three an hour; every download is logged as sensitive.
+- **Deleting a company** needs the company's name typed, the owner's password
+  and a reason; it happens **72 hours later** unless anyone with the right
+  cancels; all owners get an email. Then every row and file of the company is
+  removed, the company's row stays as "deleted" for the console, and **one
+  AES-256-encrypted ZIP is kept for 8 years** (`RETENTION_YEARS`; India's books
+  of account; UAE VAT needs 5) and then removed. The provider's subscription
+  records stay.
+- **A plan's modules switch features off by taking their permissions away**
+  for everybody in the company, so menus, pages and the phone API follow.
+- **Storage**: office uploads stop when the plan's storage is full; the crew's
+  photos from the road are never refused (they are the proof) — the owner is
+  warned from 90 %.
+
 ---
 
 ## 4. Still open

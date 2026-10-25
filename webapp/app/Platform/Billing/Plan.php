@@ -19,7 +19,35 @@ class Plan extends Model
     public const MODULES = [
         'trips' => 'Trips and the crew app', 'invoicing' => 'Invoices and LR', 'ledgers' => 'Ledgers', 'accounts' => 'Accounts and tax',
         'documents' => 'Document Manager', 'fleet' => 'Trucks, service and complaints', 'map' => 'Live map', 'reports' => 'Reports',
+        'payroll' => 'Payroll',
     ];
+
+    /**
+     * The permission codes each module brings (by prefix). A plan that leaves
+     * a module out takes these away from everybody in the company, so the
+     * menu, the pages and the phone API follow by themselves (M17).
+     */
+    public const MODULE_PERMISSIONS = [
+        'trips' => ['trip.', 'event.', 'hire.'],
+        'invoicing' => ['invoice.', 'lr.', 'payment.'],
+        'ledgers' => ['ledger.', 'statement.'],
+        'accounts' => ['accounts.'],
+        'documents' => ['document.'],
+        'fleet' => ['truck.', 'complaint.'],
+        'map' => ['map.'],
+        'reports' => ['report.'],
+        'payroll' => ['payroll.'],
+    ];
+
+    /** Permission codes this plan takes away (none when every module is in). */
+    public function blockedPrefixes(): array
+    {
+        if (empty($this->modules)) {
+            return [];
+        }
+
+        return array_merge([], ...array_values(array_diff_key(self::MODULE_PERMISSIONS, array_flip($this->modules))));
+    }
 
     protected $guarded = ['id'];
 

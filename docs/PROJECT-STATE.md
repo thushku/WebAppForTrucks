@@ -2,6 +2,33 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M17: your data — export, deleting a company, plan limits enforced
+
+**Built (in `webapp/`, `app/Platform/Data`; blueprint 09 §8; decision P13):**
+- **Settings → Your data**: **download everything** as one ZIP — a CSV per table of the company's data (found from the
+  database itself, so a new table is never forgotten), the company and its team, bank and ID numbers readable,
+  one-time codes and secret links left out, cells that would run as spreadsheet formulas made safe, every uploaded
+  file, and a read-me with the row counts. Works while the company is read-only; at most three an hour; logged.
+- **Delete this company**: type its name, your password and why; it happens **72 hours later** (a red banner on every
+  screen until then, all owners emailed) and anyone allowed can cancel. `php artisan fleet:deletions` (hourly) then
+  writes one **AES-256-encrypted copy** for the law (kept 8 years, `RETENTION_YEARS`), removes every row and file of
+  the company (other companies untouched), leaves the company's row as "deleted" for the console, and later removes
+  the copy. The console shows deleted companies and the copies kept.
+- **A plan's modules now switch parts off**: leaving a module out of a plan takes its permissions away for everyone
+  in the company — menu, pages and phone API alike (`Plan::MODULE_PERMISSIONS`; payroll is now a module too).
+- **Storage limit enforced**: office uploads are refused when the plan's storage would be exceeded; the crew's road
+  photos are never refused; the dashboard warns from 90 %.
+- The website FAQ and the draft terms and privacy texts now describe the export and the deletion as built.
+
+**Tests:** 223 passing (new `DataTest`, 4 tests: the ZIP's contents — another company's data left out, bank numbers
+readable, secret columns and tables out, files in — read-only still downloads, who may; the deletion countdown with
+wrong name and password refused, the banner, cancel, nothing at 71 hours, the purge at 73, the other company untouched,
+the law copy opening only with its password, the console, the copy removed after 8 years; a plan without invoicing on
+the web and in `GET /me`; the storage warning and refusal).
+
+**Notes:** the law copy's password comes from the app key and the company (`CompanyDeletion::password`) — keep the
+`APP_KEY` safe and never change it on a live server, or old copies cannot be opened.
+
 ## 2026-10-26 — Milestone M16: the basic driver pay run
 
 **Built (in `webapp/`, module `app/Modules/Payroll`; 13-parity #16, #24; decision P12):**

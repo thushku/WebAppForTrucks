@@ -72,6 +72,14 @@ class PermissionResolver
         unset($this->memo[$member->id]);
     }
 
+    /** @return string[] permission prefixes the company's plan leaves out */
+    private function blockedByPlan(int $companyId): array
+    {
+        $planId = \Illuminate\Support\Facades\DB::table('companies')->where('id', $companyId)->value('plan_id');
+
+        return $planId ? (\App\Platform\Billing\Plan::find($planId)?->blockedPrefixes() ?? []) : [];
+    }
+
     private function resolve(CompanyUser $member): array
     {
         if (isset($this->memo[$member->id])) {
@@ -117,6 +125,12 @@ class PermissionResolver
                     unset($permissions[$rp->permission_code]);
                 }
             }
+        }
+
+        // The company's plan may leave modules out (M17): their permissions go, for everybody.
+        $blocked = $this->blockedByPlan((int) $member->company_id);
+        if ($blocked) {
+            $permissions = array_filter($permissions, fn ($v, $code) => ! array_filter($blocked, fn ($prefix) => str_starts_with($code, $prefix)), ARRAY_FILTER_USE_BOTH);
         }
 
         return $this->memo[$member->id] = [

@@ -34,6 +34,10 @@ founder's laptop) in `phoneapp/`.
   `RequireCompany`, phones via `ResolveApiCompany` → 423 `read_only`); `Limits` refuses one truck or invitation too
   many. Console pages: `Platform/{Company,Plan,System}Controller` (companies, plans and coupons, storage clean-up,
   database export, the announcement); the company side is Settings → Plan and billing (`billing.index`).
+  `app/Platform/Data` (M17): `CompanyExport` (the whole company as a ZIP of CSVs and files; the same ZIP, encrypted, is
+  the law copy), `CompanyDeletion` (the 72-hour countdown and the hourly purge, `fleet:deletions`). A plan's
+  `modules` take their permissions away in `PermissionResolver` (`Plan::MODULE_PERMISSIONS`); `Limits` also guards
+  storage for office uploads.
   `app/Platform/Website` (M14): `Pricing` (the website's price table from the plans, with coupons), `SiteText` (About
   and legal pages: shipped drafts in `resources/site/*.txt`, replaceable in console → Settings), `ContactMessage`.
   Public pages: `Site/{Site,Contact}Controller`, views `resources/views/site` on `layouts/site`; "/" is the website

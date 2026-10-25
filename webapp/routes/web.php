@@ -368,6 +368,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/welcome/done', [Settings\SetupController::class, 'finish'])->name('welcome.finish');
         });
 
+        // Your data (M17): the export and the deletion countdown, both open while the company is read-only.
+        Route::get('/settings/data', [Settings\DataController::class, 'show'])->middleware('permission:data.export,company.delete')->name('settings.data');
+        Route::get('/settings/data/export', [Settings\DataController::class, 'export'])->middleware(['permission:data.export', 'throttle:3,60'])->name('settings.data.export');
+        Route::post('/settings/data/delete', [Settings\DataController::class, 'requestDeletion'])->middleware(['permission:company.delete', 'throttle:5,60'])->name('company.deletion.request');
+        Route::post('/settings/data/delete/cancel', [Settings\DataController::class, 'cancelDeletion'])->middleware('permission:company.delete')->name('company.deletion.cancel');
+
         // Plan and billing sits with the settings but keeps its own name: billing.* stays open while the company is read-only.
         Route::get('/settings/billing', Settings\BillingController::class)->middleware('permission:billing.view')->name('billing.index');
 

@@ -35,6 +35,8 @@ class Company extends Model
         return [
             'trial_ends_at'         => 'datetime',
             'deletion_requested_at' => 'datetime',
+            'deleted_at'            => 'datetime',
+            'retention_until'       => 'date',
             'read_only_since'       => 'datetime',
             'setup_done_at'         => 'datetime',
             'fy_start_month'        => 'integer',

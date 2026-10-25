@@ -2,8 +2,8 @@
 @section('title', 'Companies')
 @section('content')
 @php
-  $labels = ['trial' => __('On trial'), 'active' => __('Paying'), 'lapsed' => __('Read-only'), 'suspended' => __('Suspended')];
-  $tones = ['trial' => 'bg-amber-50 text-amber-800', 'active' => 'bg-emerald-50 text-emerald-800', 'lapsed' => 'bg-ink-100 text-ink-700', 'suspended' => 'bg-red-50 text-overdue'];
+  $labels = ['trial' => __('On trial'), 'active' => __('Paying'), 'lapsed' => __('Read-only'), 'suspended' => __('Suspended'), 'deleted' => __('Deleted')];
+  $tones = ['trial' => 'bg-amber-50 text-amber-800', 'active' => 'bg-emerald-50 text-emerald-800', 'lapsed' => 'bg-ink-100 text-ink-700', 'suspended' => 'bg-red-50 text-overdue', 'deleted' => 'bg-ink-900 text-white'];
 @endphp
 <div class="flex flex-wrap items-end justify-between gap-3">
   <h1 class="font-display text-2xl font-semibold">{{ __('Companies') }}</h1>

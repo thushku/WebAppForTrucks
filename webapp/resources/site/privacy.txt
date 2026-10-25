@@ -30,7 +30,7 @@ All traffic is encrypted. Passwords are stored only as secure hashes. Bank accou
 
 ## 6. How long we keep it
 
-While your company uses :brand, and afterwards only as long as the law requires for financial and tax records. Location points are kept for the trip records your company needs; your company can ask us about shorter periods.
+While your company uses :brand. When the owner deletes the company, its data is removed 72 hours later, except one encrypted copy kept only as long as the law requires for financial and tax records (up to 8 years), then removed. Location points are kept for the trip records your company needs; your company can ask us about shorter periods.
 
 ## 7. Your rights
 

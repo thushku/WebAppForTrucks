@@ -50,6 +50,8 @@ class DocumentFiles
         }
 
         $company = $this->context->company();
+        // The plan's storage (M17): office uploads stop when it is full; nothing already kept goes.
+        app(\App\Platform\Billing\Limits::class)->assertStorage($company, strlen($bytes));
         $path    = "companies/{$company->uuid}/documents/" . now()->format('Y/m') . '/' . Str::random(40) . '.' . $ext;
         Storage::disk('local')->put($path, $bytes);
 

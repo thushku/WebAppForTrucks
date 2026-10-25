@@ -142,7 +142,8 @@ class SiteController extends Controller
             ],
             __('Data and security') => [
                 [__('Who can see our data?'), __('Only the people you invite, each with the permissions you give. Bank details and ID numbers are encrypted, and every change to money, trips and people is logged.')],
-                [__('Can we take our data out?'), __('Yes, at any time: ledgers, reports and documents download as files, and the whole company on request.')],
+                [__('Can we take our data out?'), __('Yes, at any time: Settings → Your data downloads everything as one ZIP — a spreadsheet for each kind of record and every uploaded file. Ledgers and reports also download on their own pages.')],
+                [__('What happens if we leave?'), __('The owner deletes the company from Settings → Your data. It is removed 72 hours later (you can cancel until then); one encrypted copy is kept only as long as tax law requires, then removed too.')],
                 [__('Are finalised bills ever changed?'), __('Never. A mistake is corrected with a credit note or by voiding the bill and issuing a new one, as the tax rules expect.')],
             ],
         ];

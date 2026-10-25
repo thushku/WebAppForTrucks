@@ -23,4 +23,8 @@ return [
     // Free trial length for a new company. The super-admin changes it in the
     // console (decision D20); this is the starting value.
     'trial_days' => (int) env('TRIAL_DAYS', 14),
+
+    // A deleted company's encrypted copy is kept this many years for tax and
+    // company law (India: books of account 8 years; UAE VAT: 5), then removed.
+    'retention_years' => (int) env('RETENTION_YEARS', 8),
 ];

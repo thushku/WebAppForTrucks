@@ -2,7 +2,7 @@
 @section('title', $company->name)
 @section('content')
 @php
-  $labels = ['trial' => __('On trial'), 'active' => __('Paying'), 'lapsed' => __('Read-only'), 'suspended' => __('Suspended')];
+  $labels = ['trial' => __('On trial'), 'active' => __('Paying'), 'lapsed' => __('Read-only'), 'suspended' => __('Suspended'), 'deleted' => __('Deleted')];
   $plan = $company->plan;
   $limit = fn ($used, $max, $unit = '') => $max ? __(':used of :max', ['used' => $used . $unit, 'max' => $max . $unit]) : __(':used (no limit)', ['used' => $used . $unit]);
 @endphp
@@ -14,6 +14,11 @@
   </div>
   <span class="pill bg-ink-100 text-ink-800">{{ $labels[$company->status] ?? $company->status }}</span>
 </div>
+@if ($company->deleted_at)
+  <p class="rounded-xl bg-ink-900 px-4 py-3 text-sm text-white">{{ __('Deleted on :date at the owner’s request (“:reason”). An encrypted copy is kept until :until for the law.', ['date' => $company->deleted_at->format('d M Y'), 'reason' => $company->deletion_reason, 'until' => $company->retention_until?->format('d M Y') ?? '—']) }}</p>
+@elseif ($company->deletion_requested_at)
+  <p class="rounded-xl bg-red-50 px-4 py-3 text-sm text-overdue">{{ __('The owner asked to delete it on :date (“:reason”); it goes 72 hours later unless cancelled.', ['date' => $company->deletion_requested_at->format('d M Y H:i'), 'reason' => $company->deletion_reason]) }}</p>
+@endif
 @if ($company->requestedPlan || $company->requested_coupon)
   <p class="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-900">{{ __('Chose on the website:') }} {{ $company->requestedPlan?->name }}@if ($company->requested_coupon) · {{ __('coupon :code', ['code' => $company->requested_coupon]) }}@endif</p>
 @endif

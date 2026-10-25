@@ -26,7 +26,7 @@ class CompanyController extends Controller
 
     public function index(Request $request): View
     {
-        $f = $request->validate(['status' => ['nullable', Rule::in(['trial', 'active', 'lapsed', 'suspended'])], 'q' => ['nullable', 'string', 'max:60']]);
+        $f = $request->validate(['status' => ['nullable', Rule::in(['trial', 'active', 'lapsed', 'suspended', 'deleted'])], 'q' => ['nullable', 'string', 'max:60']]);
         $companies = Company::with(['owner:id,name,email', 'plan:id,name'])
             ->when($f['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when(filled($f['q'] ?? null), fn ($q) => $q->where('name', 'like', '%' . addcslashes($f['q'], '%_\\') . '%'))

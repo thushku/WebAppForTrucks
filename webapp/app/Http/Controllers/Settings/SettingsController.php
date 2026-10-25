@@ -29,6 +29,7 @@ class SettingsController extends Controller
         'settings.security'  => ['Sign-in security', 'lock', ['security.configure']],
         'settings.activity'  => ['Activity', 'clock', ['audit.view']],
         'billing.index'      => ['Plan and billing', 'credit-card', ['billing.view']],
+        'settings.data'      => ['Your data', 'download', ['data.export', 'company.delete']],
     ];
 
     /** Every permission that opens some settings page. */

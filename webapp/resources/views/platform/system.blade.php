@@ -26,6 +26,17 @@
   </div>
 </div>
 
+@if ($retained->isNotEmpty())
+  <section class="card overflow-x-auto">
+    <h2 class="border-b border-ink-100 px-5 py-4 font-display text-lg font-semibold">{{ __('Copies kept for the law') }}</h2>
+    <p class="px-5 pt-3 text-sm text-ink-500">{{ __('Deleted companies: one encrypted ZIP each in storage/app/retention, removed by itself on the date shown. Its password comes from the app key and the company (CompanyDeletion::password).') }}</p>
+    <table class="table">
+      <thead><tr><th>{{ __('Company') }}</th><th>{{ __('Deleted') }}</th><th>{{ __('Kept until') }}</th></tr></thead>
+      <tbody>@foreach ($retained as $c)<tr><td><a href="{{ route('platform.companies.show', $c) }}" class="text-brand-700 hover:underline">{{ $c->name }}</a></td><td>{{ $c->deleted_at?->format('d M Y') }}</td><td>{{ $c->retention_until?->format('d M Y') }}</td></tr>@endforeach</tbody>
+    </table>
+  </section>
+@endif
+
 <section class="card overflow-x-auto">
   <h2 class="border-b border-ink-100 px-5 py-4 font-display text-lg font-semibold">{{ __('Storage by company') }}</h2>
   <table class="table">

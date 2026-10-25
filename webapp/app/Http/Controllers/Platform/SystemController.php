@@ -30,7 +30,7 @@ class SystemController extends Controller
     {
         $files = DB::table('document_files')->groupBy('company_id')->selectRaw('company_id, count(*) as n, sum(bytes) as bytes')->get()->keyBy('company_id');
         $photos = DB::table('event_photos')->groupBy('company_id')->selectRaw('company_id, count(*) as n, sum(bytes) as bytes')->get()->keyBy('company_id');
-        $companies = Company::with('plan:id,name,storage_mb')->orderBy('name')->get()->map(fn (Company $c) => (object) [
+        $companies = Company::with('plan:id,name,storage_mb')->whereNull('deleted_at')->orderBy('name')->get()->map(fn (Company $c) => (object) [
             'company' => $c, 'files' => (int) ($files[$c->id]->n ?? 0) + (int) ($photos[$c->id]->n ?? 0),
             'mb' => round(((int) ($files[$c->id]->bytes ?? 0) + (int) ($photos[$c->id]->bytes ?? 0)) / 1048576, 1),
         ])->sortByDesc('mb')->values();
@@ -38,6 +38,7 @@ class SystemController extends Controller
         return view('platform.system', [
             'companies' => $companies, 'orphans' => count($this->orphans()), 'announcement' => $this->settings->get('announcement'),
             'database' => DB::connection()->getDatabaseName(), 'dump' => (bool) $this->dumpBinary(),
+            'retained' => Company::whereNotNull('retention_path')->orderBy('retention_until')->get(['id', 'uuid', 'name', 'deleted_at', 'retention_until']),
         ]);
     }
 

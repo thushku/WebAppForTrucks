@@ -99,6 +99,13 @@
           @can('billing.view')<a href="{{ route('billing.index') }}" class="ms-auto shrink-0 font-semibold underline">{{ __('Renew') }}</a>@endcan
         </div>
       @endif
+      @if ($company?->deletion_requested_at && ! $company->deleted_at)
+        <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="alert" data-deletion-banner>
+          <x-icon name="trash" class="size-5 shrink-0" />
+          <p>{{ __('This company will be deleted on :when with all its data.', ['when' => $company->deletion_requested_at->copy()->addHours(\App\Platform\Data\CompanyDeletion::WAIT_HOURS)->timezone($company->timezone ?: 'UTC')->translatedFormat('j F Y, H:i')]) }}</p>
+          @can('company.delete')<a href="{{ route('settings.data') }}" class="ms-auto font-semibold underline">{{ __('Cancel the deletion') }}</a>@endcan
+        </div>
+      @endif
       @if ($notice)
         <div class="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900" role="status" data-announcement>
           <x-icon name="info" class="size-5 shrink-0" />

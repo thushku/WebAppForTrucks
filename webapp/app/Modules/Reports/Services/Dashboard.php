@@ -107,6 +107,11 @@ class Dashboard
             $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count crew entry has a flag to look at|:count crew entries have flags to look at', $flagged), 'url' => route('approvals.index')];
         }
 
+        // The plan's storage nearly or quite full (M17).
+        if ($share = app(\App\Platform\Billing\Limits::class)->storageAlert($this->context->company())) {
+            $alerts[] = ['level' => $share >= 100 ? 'serious' : 'warning', 'text' => __('Storage is :p% full: new documents stop at 100%. Remove old files or move to a bigger plan.', ['p' => $share]), 'url' => route('billing.index')];
+        }
+
         $order = ['critical' => 0, 'serious' => 1, 'warning' => 2];
         usort($alerts, fn ($a, $b) => $order[$a['level']] <=> $order[$b['level']]);
 

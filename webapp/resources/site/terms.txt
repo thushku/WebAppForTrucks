@@ -24,7 +24,7 @@ New companies get a free trial for the number of days shown at sign-up. No card 
 ## 5. Your data
 
 - Everything you enter belongs to you. We use it only to run the service for you, as described in our privacy policy.
-- You can download your data at any time. If you ask us to close your account, we delete your company's data, except records the law requires us to keep.
+- You can download all your data at any time from Settings → Your data. If the owner deletes the company there, its data is removed 72 hours later (until then it can be cancelled); one encrypted copy is kept only for as long as tax and company law require, then removed.
 - Documents you issue (such as invoices) are your documents. You are responsible for their content and for meeting your tax and legal duties; :brand helps you work out tax but does not give tax or legal advice.
 
 ## 6. Your crew
