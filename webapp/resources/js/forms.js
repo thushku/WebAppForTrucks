@@ -148,3 +148,11 @@ document.querySelectorAll('[data-go-select]').forEach((select) => {
 document.querySelectorAll('[data-select-on-focus]').forEach((input) => {
   input.addEventListener('focus', () => input.select());
 });
+
+// "Tick all" for a list of boxes: data-check-all="name" ticks every enabled
+// data-check-item="name" (the approvals inbox: flagged rows stay unticked).
+document.addEventListener('change', (event) => {
+  const all = event.target.closest('[data-check-all]');
+  if (!all) return;
+  document.querySelectorAll(`[data-check-item="${all.dataset.checkAll}"]:not(:disabled)`).forEach((box) => { box.checked = all.checked; });
+});

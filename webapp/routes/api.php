@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\WebLoginController;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 |   auth/*      sign a phone in: activation code (crew) or SMS code (owner)
 |   companies   the companies this login works for; then X-Company on every call
 |   crew/*      the crew app: sync, entries, photos, GPS, commands, papers
+|   approvals/* the owner app: entries waiting for the office
 */
 
 Route::prefix('v1')->middleware('throttle:api')->group(function () {
@@ -51,6 +53,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             // The owner app approves a web sign-in it has scanned (decision P7).
             Route::post('/web-login/inspect', [WebLoginController::class, 'inspect'])->name('api.web-login.inspect');
             Route::post('/web-login/approve', [WebLoginController::class, 'approve'])->name('api.web-login.approve');
+
+            // The owner app: the crew's entries waiting for the office (M7).
+            Route::prefix('approvals')->name('api.approvals.')->middleware('permission:event.verify')->group(function () {
+                Route::get('/', [ApprovalController::class, 'index'])->name('index');
+                Route::post('/{uuid}', [ApprovalController::class, 'decide'])->whereUuid('uuid')->name('decide');
+                Route::get('/{uuid}/photos/{photo}', [ApprovalController::class, 'photo'])->whereUuid('uuid')->name('photo');
+            });
 
             Route::prefix('crew')->name('api.crew.')->group(function () {
                 Route::get('/sync', [CrewController::class, 'sync'])->name('sync');

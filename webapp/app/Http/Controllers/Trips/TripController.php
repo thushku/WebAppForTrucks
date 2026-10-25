@@ -17,7 +17,10 @@ use App\Modules\Settings\Services\CompanySettings;
 use App\Modules\Trips\Models\Consignment;
 use App\Modules\Trips\Models\Trip;
 use App\Modules\Trips\Services\ConsignmentService;
+use App\Modules\Trips\Models\TripOfficeEntry;
 use App\Modules\Trips\Services\LoadPlan;
+use App\Modules\Trips\Services\SettlementService;
+use App\Modules\Trips\Services\TripProfit;
 use App\Modules\Trips\Services\TripService;
 use App\Platform\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
@@ -44,6 +47,7 @@ class TripController extends Controller
         private TripService $trips,
         private ConsignmentService $consignments,
         private LoadPlan $loadPlan,
+        private SettlementService $settlements,
     ) {}
 
     public function index(Request $request): View
@@ -124,8 +128,14 @@ class TripController extends Controller
 
         return view('trips.show', [
             'trip'      => $trip,
-            'events'    => RoadEvent::with(['person:id,name', 'photos:id,road_event_id,slot,duplicate_of'])->where('trip_id', $trip->id)->orderBy('trusted_at')->orderBy('id')->get(),
+            'events'    => RoadEvent::with(['person:id,name', 'photos:id,road_event_id,slot,duplicate_of', 'approvals.account:id,name', 'approvals.person:id,name'])
+                ->where('trip_id', $trip->id)->orderBy('trusted_at')->orderBy('id')->get()->each->setRelation('trip', $trip),
             'driving'   => app(DrivingHours::class)->forTrip($trip),
+            'accounts'  => in_array($trip->status, ['ended', 'settled', 'closed'], true) ? $this->settlements->accounts($trip) : collect(),
+            'blockers'  => $trip->status === 'ended' ? $this->settlements->blockers($trip) : [],
+            'profit'    => app(TripProfit::class)->forTrip($trip),
+            'office'    => TripOfficeEntry::with('party:id,name')->where('trip_id', $trip->id)->orderBy('entry_date')->orderBy('id')->get(),
+            'expenseCategories' => MasterItem::ofList('expense_category')->where('active', true)->pluck('name', 'code'),
             'legs'      => $this->loadPlan->legs($trip),
             'check'     => $trip->isDraft() ? $this->trips->dispatchCheck($trip) : null,
             'materials' => MasterItem::ofList('material')->pluck('name', 'code'),

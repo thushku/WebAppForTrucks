@@ -5,7 +5,6 @@
   $t = $trip;
   $loads = $t->consignments;
   $live  = $loads->where('status', '!=', 'cancelled');
-  $income = $live->sum(fn ($c) => $c->totalCharges()) + (float) $t->other_charges;
   $driver = $t->crew->firstWhere('role', 'driver');
   // Loads without an LR yet are called by their place in the list ("LR #2").
   $loadNo = $live->values()->pluck('id')->flip();
@@ -42,9 +41,30 @@
           </form>
         @endif
       @endcan
+      @if ($t->status === 'settled')
+        @can('trip.settle')
+          <form method="POST" action="{{ route('trips.close', $t) }}" data-confirm="{{ __('Close the trip? The crew’s entries are locked; office entries can still be added.') }}">@csrf
+            <button class="btn-primary"><x-icon name="lock" /> {{ __('Close trip') }}</button>
+          </form>
+        @endcan
+      @endif
+      @if (in_array($t->status, ['settled', 'closed'], true))
+        @can('trip.reopen')
+          <details class="relative">
+            <summary class="btn-ghost cursor-pointer list-none">{{ __('Reopen') }}</summary>
+            <form method="POST" action="{{ route('trips.reopen', $t) }}" class="card absolute end-0 z-10 mt-2 grid w-72 gap-2 p-4">@csrf
+              <label class="label" for="reopen_reason">{{ __('Why is it reopened?') }}</label>
+              <input id="reopen_reason" name="reason" class="input" maxlength="255" required>
+              <p class="text-xs text-ink-500">{{ __('Its settlements are voided (kept) and done again. Logged.') }}</p>
+              <button class="btn-danger">{{ __('Reopen trip') }}</button>
+            </form>
+          </details>
+        @endcan
+      @endif
     </div>
   </div>
-  @foreach (['trip', 'start_odometer', 'end_odometer', 'override_reason'] as $f)@error($f)<p class="error mt-2">{{ $message }}</p>@enderror @endforeach
+  @foreach (['trip', 'start_odometer', 'end_odometer', 'override_reason', 'reason'] as $f)@error($f)<p class="error mt-2">{{ $message }}</p>@enderror @endforeach
+  @if ($t->closed_at)<p class="mt-3 text-sm text-ink-500">{{ __('Closed :date. The crew’s entries are locked; office entries can still be added.', ['date' => $t->closed_at->format('d M Y')]) }}</p>@endif
   @if ($t->status === 'cancelled')<p class="mt-3 text-sm text-ink-500">{{ __('Cancelled :date: :reason', ['date' => $t->cancelled_at->format('d M Y'), 'reason' => $t->cancel_reason]) }}</p>@endif
   @if ($t->dispatch_override_reason)<p class="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-overdue">{{ __('Sent despite an expired paper: :reason', ['reason' => $t->dispatch_override_reason]) }}</p>@endif
 </section>
@@ -165,6 +185,14 @@
     @endif
 
     @include('trips.partials.road')
+
+    @if (in_array($t->status, ['ended', 'settled', 'closed'], true))
+      @include('trips.partials.settlement')
+    @endif
+
+    @if (! in_array($t->status, ['draft', 'cancelled'], true))
+      @include('trips.partials.office')
+    @endif
   </div>
 
   {{-- Side cards: a column on wide screens, two across below the loads otherwise. --}}
@@ -192,19 +220,23 @@
     </section>
 
     @if ($canMoney)
+      @php($p = $profit)
       <section class="card p-6">
         <h3 class="font-semibold">{{ __('Money') }}</h3>
         <dl class="mt-3 space-y-1.5 text-sm">
-          <div class="flex justify-between"><dt class="text-ink-500">{{ __('Freight and charges') }}</dt><dd class="money">{{ \App\Support\Money::company($live->sum(fn ($c) => $c->totalCharges())) }}</dd></div>
-          @if ((float) $t->other_charges > 0)<div class="flex justify-between"><dt class="text-ink-500">{{ __('Other charges (billed)') }}</dt><dd class="money">{{ \App\Support\Money::company($t->other_charges) }}</dd></div>@endif
-          <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold"><dt>{{ __('Trip income') }}</dt><dd class="money">{{ \App\Support\Money::company($income) }}</dd></div>
-          @if ($t->hireChallans->where('status', '!=', 'cancelled')->isNotEmpty())
-            @php($hire = (float) $t->hireChallans->where('status', '!=', 'cancelled')->sum('hire_amount'))
-            <div class="flex justify-between"><dt class="text-ink-500">{{ __('Lorry hire') }}</dt><dd class="money">− {{ \App\Support\Money::company($hire) }}</dd></div>
-            <div class="flex justify-between font-semibold text-paid"><dt>{{ __('Margin on hire') }}</dt><dd class="money">{{ \App\Support\Money::company($income - $hire) }}</dd></div>
-          @endif
+          <div class="flex justify-between"><dt class="text-ink-500">{{ __('Freight and charges') }}</dt><dd class="money">{{ \App\Support\Money::company($p['loads']) }}</dd></div>
+          @if ($p['other_charges'] > 0)<div class="flex justify-between"><dt class="text-ink-500">{{ __('Other charges (billed)') }}</dt><dd class="money">{{ \App\Support\Money::company($p['other_charges']) }}</dd></div>@endif
+          @if ($p['office_income'] > 0)<div class="flex justify-between"><dt class="text-ink-500">{{ __('Office income') }}</dt><dd class="money">{{ \App\Support\Money::company($p['office_income']) }}</dd></div>@endif
+          @if ($p['commission_earned'] > 0)<div class="flex justify-between"><dt class="text-ink-500">{{ __('Commission earned') }}</dt><dd class="money">{{ \App\Support\Money::company($p['commission_earned']) }}</dd></div>@endif
+          <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold"><dt>{{ __('Trip income') }}</dt><dd class="money">{{ \App\Support\Money::company($p['income']) }}</dd></div>
+          @foreach (['road' => __('Road spending (approved)'), 'hire' => __('Lorry hire'), 'commission_paid' => __('Commission paid'), 'office_expense' => __('Office expenses'), 'bata' => __('Bata')] as $key => $label)
+            @if ($p[$key] > 0)<div class="flex justify-between"><dt class="text-ink-500">{{ $label }}</dt><dd class="money">− {{ \App\Support\Money::company($p[$key]) }}</dd></div>@endif
+          @endforeach
+          <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Trip profit (direct)') }}</dt><dd class="money">{{ \App\Support\Money::company($p['profit']) }}</dd></div>
+          @if ($p['per_km'])<div class="flex justify-between text-xs text-ink-500"><dt>{{ __('per km') }}</dt><dd class="money">{{ \App\Support\Money::company($p['per_km']) }}</dd></div>@endif
         </dl>
-        <p class="mt-3 text-xs text-ink-500">{{ __('Fuel, tolls and other crew costs come from the road (crew app) and settlement.') }}</p>
+        @if ($p['waiting'] > 0)<p class="mt-3 text-xs text-partial">{{ __(':amount of crew entries still wait for approval and are not counted yet.', ['amount' => \App\Support\Money::company($p['waiting'])]) }}</p>@endif
+        <p class="mt-3 text-xs text-ink-500">{{ __('Shared costs (salary share, EMI, insurance, tyres) come with accounting.') }}</p>
       </section>
     @endif
 

@@ -64,6 +64,7 @@ class Trip extends Model
             'cancelled_at'         => 'datetime',
             'settled_at'           => 'datetime',
             'closed_at'            => 'datetime',
+            'reopen_count'         => 'integer',
             'budget_fuel'          => 'decimal:2',
             'budget_toll'          => 'decimal:2',
             'budget_bata'          => 'decimal:2',
@@ -138,6 +139,21 @@ class Trip extends Model
     public function commissions(): HasMany
     {
         return $this->hasMany(BrokerCommission::class)->orderBy('id');
+    }
+
+    public function officeEntries(): HasMany
+    {
+        return $this->hasMany(TripOfficeEntry::class)->orderBy('entry_date')->orderBy('id');
+    }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(TripSettlement::class)->orderBy('id');
+    }
+
+    public function roadEvents(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Road\Models\RoadEvent::class);
     }
 
     public function scopeOpen(Builder $query): Builder

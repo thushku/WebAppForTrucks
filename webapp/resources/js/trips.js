@@ -80,3 +80,21 @@ document.querySelectorAll('[data-trip-form]').forEach((form) => {
 
 // Bars whose width comes from the server (set here: no inline styles under the CSP).
 document.querySelectorAll('[data-width]').forEach((el) => { el.style.width = `${Math.max(0, Math.min(100, Number(el.dataset.width)))}%`; });
+
+// Office entries on a trip: the "For" list shows expense or income kinds, as chosen.
+document.querySelectorAll('[data-office-form]').forEach((form) => {
+  const kind = form.querySelector('[data-office-kind]');
+  const select = form.querySelector('[name="category"]');
+  const sync = () => {
+    form.querySelectorAll('[data-office-group]').forEach((group) => {
+      const on = group.dataset.officeGroup === kind.value;
+      group.disabled = !on;
+      group.hidden = !on;
+    });
+    if (select.selectedOptions[0]?.parentElement.disabled) {
+      select.value = form.querySelector(`[data-office-group="${kind.value}"] option`)?.value ?? '';
+    }
+  };
+  kind.addEventListener('change', sync);
+  sync();
+});

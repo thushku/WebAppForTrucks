@@ -67,6 +67,16 @@ class RoadEvent extends Model
         return $this->hasMany(EventPhoto::class);
     }
 
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(EventApproval::class)->orderBy('id');
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Account::class, 'verified_by');
+    }
+
     public function edits(): HasMany
     {
         return $this->hasMany(RoadEventEdit::class)->orderBy('id');

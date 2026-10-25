@@ -9,7 +9,7 @@
     __('Work') => [
       ['dashboard', 'home', __('Dashboard'), 'dashboard.view', 'bg-brand-50 text-brand-700'],
       ['trips.index', 'route', __('Trips'), 'trip.view', 'bg-amber-50 text-amber-700', 'trips.'],
-      [null, 'check', __('Approvals'), 'event.verify', 'bg-emerald-50 text-emerald-700'],
+      ['approvals.index', 'check', __('Approvals'), 'event.verify', 'bg-emerald-50 text-emerald-700', 'approvals.'],
       [null, 'map', __('Live map'), 'map.view', 'bg-sky-50 text-sky-700'],
     ],
     __('Money') => [
@@ -45,6 +45,9 @@
           @if ($route && Route::has($route))
             <a href="{{ route($route) }}" class="nav-link {{ $active ? 'is-active' : '' }}" @if ($active) aria-current="page" @endif>
               <span class="nav-tile {{ $tile }}"><x-icon :name="$icon" class="size-4" /></span>{{ $text }}
+              @if ($route === 'approvals.index' && ($waiting = array_sum(\Illuminate\Support\Arr::only(app(\App\Modules\Road\Services\Approvals::class)->counts(), ['waiting_check', 'disputed']))))
+                <span class="ms-auto rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800" title="{{ __('Entries waiting for the office') }}">{{ $waiting }}</span>
+              @endif
             </a>
           @else
             <span class="nav-link cursor-default opacity-60" title="{{ __('Coming in a later milestone') }}">

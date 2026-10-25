@@ -33,7 +33,7 @@ class SyncService
         'app_lock_minutes', 'stop_prompt_minutes', 'freight_visible_to_crew', 'max_continuous_driving_minutes', 'max_daily_driving_minutes',
     ];
 
-    /** Ended trips stay on the phone this long (late photos, second approvals). */
+    /** Ended trips stay on the phone this long (late photos, second approvals, the settlement). */
     private const KEEP_ENDED_DAYS = 15;
 
     public function __construct(
@@ -80,14 +80,15 @@ class SyncService
         ];
     }
 
-    /** Trips being planned for them, running, or ended recently and not yet settled. */
+    /** Trips sent to them, running, or ended in the last 15 days (settled or not). */
     private function trips(Person $person): Collection
     {
         return Trip::with(['crew.person:id,name,mobile,type', 'truck', 'supplierVehicle', 'from', 'to', 'stops.place',
-            'consignments' => fn ($q) => $q->where('status', '!=', 'cancelled')->with(['consignor:id,name,mobile', 'consignee:id,name,mobile', 'ewaybills'])])
+            'consignments' => fn ($q) => $q->where('status', '!=', 'cancelled')->with(['consignor:id,name,mobile', 'consignee:id,name,mobile', 'ewaybills']),
+            'settlements' => fn ($q) => $q->current()->where('person_id', $person->id)])
             ->whereHas('crew', fn ($q) => $q->where('person_id', $person->id))
             ->where(fn ($q) => $q->whereIn('status', Trip::OPEN_STATUSES)
-                ->orWhere(fn ($q) => $q->where('status', 'ended')->where('ended_at', '>=', now()->subDays(self::KEEP_ENDED_DAYS))))
+                ->orWhere(fn ($q) => $q->whereIn('status', ['ended', 'settled', 'closed'])->where('ended_at', '>=', now()->subDays(self::KEEP_ENDED_DAYS))))
             ->orderBy('trip_date')->limit(20)->get();
     }
 
@@ -105,6 +106,12 @@ class SyncService
             'planned_start_at' => $t->planned_start_at?->toIso8601String(), 'expected_delivery_at' => $t->expected_delivery_at?->toIso8601String(),
             'started_at' => $t->started_at?->toIso8601String(), 'ended_at' => $t->ended_at?->toIso8601String(), 'start_odometer' => $t->start_odometer,
             'instructions' => $t->instructions,
+            // My trip cash, once the office has settled it (blueprint 03 §8 step 4).
+            'settlement' => ($st = $t->settlements->first()) ? [
+                'advances' => (float) $st->advances, 'collected' => (float) $st->collected, 'spent' => (float) $st->spent, 'balance' => (float) $st->balance,
+                'mode' => $st->mode, 'mode_label' => __(\App\Modules\Trips\Models\TripSettlement::MODES[$st->mode]), 'bata' => (float) $st->bata_amount,
+                'settled_at' => $st->settled_at->toIso8601String(),
+            ] : null,
             'budget' => ['fuel' => $t->budget_fuel, 'toll' => $t->budget_toll, 'bata' => $t->budget_bata],
             'crew' => $t->crew->map(fn ($c) => ['person_id' => $c->person_id, 'name' => $c->person?->name, 'role' => $c->role, 'mobile' => $c->person?->mobile])->values()->all(),
             'stops' => $t->stops->map(fn ($s) => [

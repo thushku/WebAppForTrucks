@@ -3,7 +3,7 @@
 @section('content')
 @php
   $f = $filters;
-  $tabs = ['active' => __('Open'), 'draft' => __('Draft'), 'assigned' => __('Sent'), 'running' => __('Running'), 'ended' => __('Ended'), 'closed' => __('Closed'), 'cancelled' => __('Cancelled'), 'all' => __('All')];
+  $tabs = ['active' => __('Open'), 'draft' => __('Draft'), 'assigned' => __('Sent'), 'running' => __('Running'), 'ended' => __('To settle'), 'settled' => __('Settled'), 'closed' => __('Closed'), 'cancelled' => __('Cancelled'), 'all' => __('All')];
 @endphp
 <div class="flex flex-wrap items-center justify-between gap-3">
   <div class="flex flex-wrap gap-1.5" role="tablist" aria-label="{{ __('Status') }}">

@@ -81,7 +81,7 @@ the next `since`.
 | `settings` | `dual_approval_enabled`, `single_driver_approver` (manager / none), `helpers_record_events`, `driver_change_photo`, `fuel_photos_required`, `app_lock_minutes`, `stop_prompt_minutes`, `freight_visible_to_crew`, `max_continuous_driving_minutes`, `max_daily_driving_minutes` |
 | `duty` | `{ "on": true, "since": "…" }` |
 | `driving` | who holds the wheel now: `{ "trip", "person_id", "since" }` or null |
-| `trips[]` | sent, accepted, running, and ended in the last 15 days. Each: `uuid`, `number`, `status`, `date`, `my_role`, `accepted`, `rejected`, `vehicle`, `truck` (reg no, tank, odometer), `from`, `to`, `planned_km`, `instructions`, `budget`, `crew[]`, `stops[]` (`id`, `seq`, `kind`, `place`, `code`, `lat`, `lng`, `arrived_at`, `departed_at`), `loads[]` (`id`, `lr_number`, consignor and consignee with mobile, `pickup_stop_id`, `drop_stop_id`, goods, `seal_no`, `payment_type`, `freight` — null unless the owner allows it or the load is "to pay", `ewaybills[]`) |
+| `trips[]` | sent, accepted, running, and ended in the last 15 days (settled or not). Each: `uuid`, `number`, `status`, `date`, `my_role`, `accepted`, `rejected`, `vehicle`, `truck` (reg no, tank, odometer), `from`, `to`, `planned_km`, `instructions`, `budget`, `crew[]`, `stops[]` (`id`, `seq`, `kind`, `place`, `code`, `lat`, `lng`, `arrived_at`, `departed_at`), `loads[]` (`id`, `lr_number`, consignor and consignee with mobile, `pickup_stop_id`, `drop_stop_id`, goods, `seal_no`, `payment_type`, `freight` — null unless the owner allows it or the load is "to pay", `ewaybills[]`), `settlement` (mine, once the office has settled the trip: `advances`, `collected`, `spent`, `balance` — positive: I return it, negative: the company pays me — `mode`, `mode_label`, `bata`, `settled_at`; null before) |
 | `events[]` | entries on those trips (all crew members'), changed since `since`: `uuid`, `type`, `amount`, `status`, `second_by`, `second_reject_reason`, `office_note` (the office's query or reject reason), `photos` (slots received), `photos_expected` |
 | `waiting_for_me[]` | payments without receipt by the other driver, waiting for my yes or no |
 | `papers[]` | the truck's papers and my own (licence): `name`, `number`, `expires_on`, `state` (valid / due / expired / lifelong), `files[]` |
@@ -226,7 +226,35 @@ photos to `/crew/events/<command uuid>/photos`.
 
 "Recorders" = drivers, and helpers when the owner allows it (`settings.helpers_record_events`).
 
-## 7. Offline rules for the app
+## 7. Owner app: approvals
+
+For office people with the permission `event.verify` (owner, manager).
+
+`GET /approvals?status=waiting_check` (or `waiting_2nd`, `queried`, `disputed`; leave it out
+for all four):
+
+```json
+{ "counts": { "waiting_check": 5, "waiting_2nd": 1 },
+  "events": [ { "uuid": "…", "trip": { "uuid": "…", "number": "261025-ACC-COK-BOM-01" }, "by": "Ravi Kumar",
+                "type": "fuel", "label": "Fuel", "amount": 9500, "payment_mode": "cash", "odometer": 100300,
+                "data": { "litres": 100, "rate": 95 }, "at": "…", "lat": 10.1, "lng": 76.3, "status": "waiting_check",
+                "question": null, "second_reject_reason": null,
+                "flags": [ { "code": "cash_limit", "label": "Cash to one payee in a day above the limit" } ],
+                "photos": [ { "slot": "receipt", "url": "https://…/api/v1/approvals/<uuid>/photos/12", "same_as_before": false } ],
+                "photos_expected": 3, "actions": ["approve", "query", "reject"] } ] }
+```
+
+`POST /approvals/{uuid}` `{ "decision": "approve" | "query" | "reject", "note": "…" }` — a
+note is required to ask or reject; the crew see it (`office_note` in their sync). Only the
+decisions in `actions` are allowed. On a one-driver trip, `approve` on a `waiting_2nd`
+entry is the manager's second approval and check together. Photo URLs need the same
+`Authorization` and `X-Company` headers.
+
+The crew answer a question by editing the entry (`PATCH /crew/events/{uuid}`, the `note`
+is their answer); it goes back to `waiting_check`. Once the trip is settled, the crew's
+entries are locked (422).
+
+## 8. Offline rules for the app
 
 1. Save every tap locally first (with its UUID, phone time, uptime, GPS), then send.
 2. Send in order: commands and entries in one queue, oldest first; photos after their

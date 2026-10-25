@@ -8,6 +8,7 @@
   $tone = ['info' => 'bg-ink-100 text-ink-700', 'waiting_2nd' => 'bg-amber-50 text-partial', 'waiting_check' => 'bg-sky-50 text-sent', 'approved' => 'bg-emerald-50 text-paid',
     'queried' => 'bg-amber-50 text-partial', 'rejected' => 'bg-red-50 text-overdue', 'disputed' => 'bg-red-50 text-overdue', 'cancelled' => 'bg-ink-100 text-ink-400'];
   $money = $events->where('status', '!=', 'cancelled')->filter->isMoney();
+  $approvals = auth()->user()->can('event.verify') ? app(\App\Modules\Road\Services\Approvals::class) : null;
 @endphp
 <section class="card overflow-hidden" id="road">
   <div class="flex flex-wrap items-center justify-between gap-3 p-6 pb-4">
@@ -53,7 +54,17 @@
                 @foreach ($e->flags as $flag)<li class="pill bg-amber-50 text-partial"><x-icon name="alert" /> {{ __(EventChecks::LABELS[$flag] ?? $flag) }}</li>@endforeach
               </ul>
             @endif
+            @if ($e->approvals->isNotEmpty())
+              <ul class="mt-1 space-y-0.5 text-xs text-ink-500">
+                @foreach ($e->approvals as $a)
+                  <li>{{ __(\App\Modules\Road\Models\EventApproval::DECISIONS[$a->decision] ?? $a->decision) }} · {{ $a->who() }} · {{ $a->created_at->setTimezone($tz)->format('d M H:i') }}@if ($a->note) · “{{ $a->note }}”@endif</li>
+                @endforeach
+              </ul>
+            @endif
           </div>
+          @if ($approvals && ($actions = $approvals->actions($e)))
+            <div class="w-full sm:w-auto sm:order-last">@include('approvals._decide', ['event' => $e, 'actions' => $actions])</div>
+          @endif
           @if ($e->photos->isNotEmpty() || $e->photos_expected > 0)
             <div class="flex shrink-0 items-center gap-1.5">
               @foreach ($e->photos as $p)

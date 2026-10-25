@@ -2,6 +2,45 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M7: approvals, settlement, close, office entries
+
+**Built (in `webapp/`):**
+- **Approvals inbox** (`/approvals`, menu badge with what waits for the office): tabs waiting for check / waiting for
+  2nd approval / query open / disputed, kind and trip filters; each row with time, trip, person, amount, payment mode,
+  photos (look-alikes outlined), the automatic flags in words. **Approve**, **Ask** (a question the crew see in their
+  app) or **Reject** (with the reason); **tick and approve together** only rows without flags. The same buttons are on
+  the trip's timeline, which now also shows every decision (who, when, the note).
+- **The crew answer a question** by correcting the entry in their app (the note is the answer); it goes back to the
+  office. **Second approval** history kept too. On a **one-driver trip** the manager gives the second approval and the
+  check in one step (A4, "Approve (2nd + check)"); with a co-driver on the trip the office waits for them (D6).
+- **Settlement (hisaab)** per crew member once the trip has ended and every entry is decided (nothing waiting for the
+  2nd driver or the office, no open query or dispute): advances + money collected on the road − **approved spending
+  from their own pocket** (cash, UPI; fuel card / FASTag / credit is the company's money) = **returns to the office**
+  or **the company owes**; settled as returned / paid to the crew member / carried to the next trip / adjusted in the
+  personal ledger (only the ways that fit the balance), with a reference. **Bata** suggested by the company rule (per
+  day — calendar days in the company's time zone — or per trip), editable, recorded for the personal ledger. When
+  everybody is settled the trip is **settled**; a trip without our crew (hired truck) is marked settled directly.
+- **Close**: crew entries locked for good (also edit and cancel); the **office still adds income and expenses** to a
+  closed trip (D8) — later workshop bills, commission, office charges, claims — each audited, cancelled with a reason.
+  **Reopen** is the owner's (`trip.reopen`), with a written reason: settlements are voided and kept, logged as
+  sensitive.
+- **Trip profit (direct)** on the trip page: freight and charges + other charges + office income + commission earned
+  − approved road spending (every payment mode) − lorry hire − commission paid − office expenses − bata; per km; what
+  still waits for approval is shown apart.
+- **Owner app API**: `GET /api/v1/approvals` (with flags, photo links and the allowed decisions), `POST
+  /api/v1/approvals/{uuid}`; the crew's sync carries their own settlement. Documented in `docs/handover/api-v1.md`.
+- Trip list: "To settle" and "Settled" tabs. Demo: a Kochi → Chennai trip that ended last week, its entries
+  approved, waiting for settlement; the running trip's entries wait in the inbox.
+
+**Tests:** 152 passing (new `ApprovalTest`, 5 tests; the phone helpers moved to `tests/Pest.php`).
+
+**Not yet:** posting settlements, bata and office entries to the books and the personal ledger (M11 accounting);
+"carried to the next trip" as an opening advance on that trip; auto-approve rules beyond small tolls (e.g. matching
+FASTag statements); notifying the crew of a question by push (Firebase, with the push work).
+
+**Next:** M8 — the tax engine (India GST incl. GTA RCM/forward charge, UAE VAT), then M9–M10 invoicing with
+templates and the editor (ported from Clinic Ledger), M11 accounting and the five ledgers.
+
 ## 2026-10-25 — Milestone M6: the phone API
 
 **Built (in `webapp/`, API reference for the phone session in `docs/handover/api-v1.md`):**

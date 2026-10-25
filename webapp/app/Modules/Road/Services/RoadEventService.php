@@ -4,6 +4,7 @@ namespace App\Modules\Road\Services;
 
 use App\Modules\Fleet\Services\FleetService;
 use App\Modules\People\Models\Person;
+use App\Modules\Road\Models\EventApproval;
 use App\Modules\Road\Models\RoadEvent;
 use App\Modules\Road\Models\RoadEventEdit;
 use App\Modules\Settings\Services\CompanySettings;
@@ -139,6 +140,7 @@ class RoadEventService
      */
     public function edit(Person $person, RoadEvent $event, array $input): RoadEvent
     {
+        $this->assertOpenTrip($event);
         if (! $event->isEditableBy($person->id)) {
             throw ValidationException::withMessages(['event' => __('This entry can no longer be changed.')]);
         }
@@ -152,6 +154,10 @@ class RoadEventService
         return DB::transaction(function () use ($person, $event, $data) {
             RoadEventEdit::create(['road_event_id' => $event->id, 'person_id' => $person->id,
                 'before' => $event->only(['amount', 'payment_mode', 'odometer', 'note', 'data'])]);
+            // Changing a queried entry is the crew's answer to the office's question.
+            if ($event->status === 'queried') {
+                EventApproval::create(['road_event_id' => $event->id, 'step' => 'crew', 'decision' => 'answer', 'person_id' => $person->id, 'note' => $data['note'] ?? null]);
+            }
 
             $mode = $data['payment_mode'] ?? $event->payment_mode;
             $event->fill([
@@ -176,6 +182,7 @@ class RoadEventService
 
     public function cancel(Person $person, RoadEvent $event, string $reason): void
     {
+        $this->assertOpenTrip($event);
         if (! $event->isEditableBy($person->id)) {
             throw ValidationException::withMessages(['event' => __('This entry can no longer be cancelled.')]);
         }
@@ -204,9 +211,21 @@ class RoadEventService
             throw ValidationException::withMessages(['reason' => __('Say why you do not agree.')]);
         }
 
-        $event->forceFill($approve
-            ? ['status' => 'waiting_check', 'second_by' => $approver->id, 'second_at' => now()]
-            : ['status' => 'disputed', 'second_by' => $approver->id, 'second_at' => now(), 'second_reject_reason' => $reason])->save();
+        DB::transaction(function () use ($event, $approver, $approve, $reason) {
+            $event->forceFill($approve
+                ? ['status' => 'waiting_check', 'second_by' => $approver->id, 'second_at' => now()]
+                : ['status' => 'disputed', 'second_by' => $approver->id, 'second_at' => now(), 'second_reject_reason' => $reason])->save();
+            EventApproval::create(['road_event_id' => $event->id, 'step' => 'second_driver', 'decision' => $approve ? 'approve' : 'reject', 'person_id' => $approver->id, 'note' => $approve ? null : $reason]);
+        });
+    }
+
+    /** Once a trip is settled, the crew's entries are locked (blueprint 03 §3, D8). */
+    private function assertOpenTrip(RoadEvent $event): void
+    {
+        $event->loadMissing('trip');
+        if (in_array($event->trip->status, ['settled', 'closed'], true)) {
+            throw ValidationException::withMessages(['event' => __('The trip is settled; its entries are locked.')]);
+        }
     }
 
     private function startingStatus(string $type, Person $person, Trip $trip, ?float $amount): string

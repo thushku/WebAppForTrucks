@@ -14,8 +14,10 @@ use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
 use App\Http\Controllers\Parties\PartyController;
 use App\Http\Controllers\People\PersonController;
+use App\Http\Controllers\Trips\ApprovalController;
 use App\Http\Controllers\Trips\ConsignmentController;
 use App\Http\Controllers\Trips\HireChallanController;
+use App\Http\Controllers\Trips\SettlementController;
 use App\Http\Controllers\Trips\TripController;
 use App\Http\Controllers\Trips\TripMoneyController;
 use App\Http\Controllers\Parties\PartyDetailsController;
@@ -138,6 +140,17 @@ Route::middleware('auth')->group(function () {
             });
             Route::post('/{trip}/cancel', [TripController::class, 'cancel'])->middleware('permission:trip.cancel')->name('cancel');
             Route::post('/{trip}/advances', [TripMoneyController::class, 'storeAdvance'])->middleware('permission:trip.settle')->name('advances.store');
+            Route::middleware('permission:trip.settle')->group(function () {
+                Route::post('/{trip}/settle', [SettlementController::class, 'settleWithoutCrew'])->name('settle.all');
+                Route::post('/{trip}/settle/{person}', [SettlementController::class, 'settle'])->name('settle');
+                Route::post('/{trip}/close', [SettlementController::class, 'close'])->name('close');
+            });
+            Route::post('/{trip}/reopen', [SettlementController::class, 'reopen'])->middleware('permission:trip.reopen')->name('reopen');
+            Route::middleware('permission:trip.office_entries')->group(function () {
+                Route::post('/{trip}/office', [TripMoneyController::class, 'storeOffice'])->name('office.store');
+                Route::put('/{trip}/office/{entry}', [TripMoneyController::class, 'updateOffice'])->name('office.update');
+                Route::post('/{trip}/office/{entry}/cancel', [TripMoneyController::class, 'cancelOffice'])->name('office.cancel');
+            });
             Route::middleware('permission:hire.manage')->group(function () {
                 Route::get('/{trip}/hire/new', [HireChallanController::class, 'create'])->name('hire.create');
                 Route::post('/{trip}/hire', [HireChallanController::class, 'store'])->name('hire.store');
@@ -148,6 +161,14 @@ Route::middleware('auth')->group(function () {
             });
             Route::get('/{trip}/photos/{photo}', [TripController::class, 'photo'])->middleware('permission:trip.view')->name('photo');
             Route::get('/{trip}', [TripController::class, 'show'])->middleware('permission:trip.view')->name('show');
+        });
+
+        // The crew's entries waiting for the office (M7).
+        Route::prefix('approvals')->name('approvals.')->middleware('permission:event.verify')->group(function () {
+            Route::get('/', [ApprovalController::class, 'index'])->name('index');
+            Route::post('/many', [ApprovalController::class, 'approveMany'])->name('many');
+            Route::post('/{event}', [ApprovalController::class, 'decide'])->name('decide');
+            Route::get('/{event}/photos/{photo}', [ApprovalController::class, 'photo'])->name('photo');
         });
 
         // Document Manager: every owner's papers, expiry, renewals, shares (M3).

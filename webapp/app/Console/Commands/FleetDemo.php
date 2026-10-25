@@ -199,7 +199,7 @@ class FleetDemo extends Command
         $fleet->raiseComplaint($trucks['KL-07-CV-1180'], ['title' => 'Cabin AC not cooling', 'priority' => 'normal', 'category' => 'ac']);
     }
 
-    /** A running full load, a delivered one, a part-load draft and a hired truck with its challan. */
+    /** A running full load, a part-load draft, a hired truck with its challan, and an ended trip waiting for settlement. */
     private function trips(int $ownerId): void
     {
         auth()->setUser(\App\Models\Account::find($ownerId));
@@ -248,6 +248,44 @@ class FleetDemo extends Command
         $hire->addLine($challan->fresh(), ['kind' => 'advance', 'amount' => 8000, 'line_date' => now()->toDateString(), 'mode' => 'upi', 'paid_to' => 'owner', 'reference' => 'UPI-4471']);
 
         $this->road($t1->fresh());
+
+        // 4. Kochi → Chennai last week: ended, its entries checked, waiting for settlement.
+        $t4 = $trips->create(['trip_date' => now()->subDays(4)->toDateString(), 'truck_source' => 'own', 'truck_id' => $truck['MH-04-JK-3345'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['MAA'], 'planned_km' => 690],
+            [['person_id' => $person['Ravi Kumar'], 'role' => 'driver'], ['person_id' => $person['Shibu P'], 'role' => 'helper']],
+            ['billing_party_id' => $party['UltraTech Cement'], 'consignor_party_id' => $party['UltraTech Cement'], 'material' => 'cement', 'packages' => 340, 'package_type' => 'bags', 'actual_weight_mt' => 17,
+             'freight_basis' => 'trip', 'rate' => 38000, 'freight' => 38000, 'payment_type' => 'to_be_billed']);
+        $trips->assign($t4, 'Demo trip: papers checked at the office');
+        $trips->start($t4, 154000, now()->subDays(4)->setTime(1, 30));
+        \App\Modules\Trips\Models\TripAdvance::create(['trip_id' => $t4->id, 'person_id' => $person['Ravi Kumar'], 'amount' => 15000, 'mode' => 'cash', 'given_on' => now()->subDays(4)->toDateString(), 'created_by' => $ownerId]);
+        $this->finishedRoad($t4->fresh(), $ownerId);
+        $trips->end($t4->fresh(), 154720, false, now()->subDays(3)->setTime(4, 10));
+    }
+
+    /** A finished trip's entries, already checked by the office. */
+    private function finishedRoad(\App\Modules\Trips\Models\Trip $trip, int $ownerId): void
+    {
+        $events    = app(\App\Modules\Road\Services\RoadEventService::class);
+        $approvals = app(\App\Modules\Road\Services\Approvals::class);
+        $owner     = \App\Models\Account::find($ownerId);
+        $driver    = \App\Modules\People\Models\Person::where('name', 'Ravi Kumar')->first();
+        $start     = $trip->started_at->toImmutable();
+
+        \App\Modules\Road\Models\DrivingShift::create(['trip_id' => $trip->id, 'person_id' => $driver->id, 'started_at' => $start, 'ended_at' => $start->addHours(26)->addMinutes(40), 'start_odometer' => 154000, 'end_odometer' => 154720]);
+
+        foreach ([
+            ['fuel', 60, ['amount' => 14250, 'payment_mode' => 'cash', 'odometer' => 154050, 'data' => ['litres' => 150, 'rate' => 95, 'full_tank' => true, 'pump' => 'BPCL Angamaly']]],
+            ['toll', 200, ['amount' => 255, 'payment_mode' => 'cash', 'data' => ['plaza' => 'Paliyekkara']]],
+            ['toll', 420, ['amount' => 390, 'payment_mode' => 'fastag', 'data' => ['plaza' => 'Walayar']]],
+            ['food', 480, ['amount' => 320, 'payment_mode' => 'cash', 'data' => ['what' => 'Lunch, two people']]],
+            ['loading', 1500, ['amount' => 1200, 'payment_mode' => 'cash', 'data' => ['labour_count' => 6, 'paid_to' => 'Chennai depot labour']]],
+            ['money_received', 1560, ['amount' => 2000, 'payment_mode' => 'cash', 'data' => ['from' => 'party', 'reference' => 'Unloading charges back']]],
+        ] as [$type, $minutes, $fields]) {
+            $answer = $events->push($driver, ['uuid' => (string) \Illuminate\Support\Str::uuid(), 'trip' => $trip->uuid, 'type' => $type, 'event_at' => $start->addMinutes($minutes)->toIso8601String()] + $fields, [], [$type]);
+            $event = \App\Modules\Road\Models\RoadEvent::find($answer['id']);
+            if ($approvals->actions($event)) {
+                $approvals->decide($owner, $event, 'approve');
+            }
+        }
     }
 
     /**

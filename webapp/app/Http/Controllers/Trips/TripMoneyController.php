@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Trips;
 use App\Http\Controllers\Controller;
 use App\Modules\Trips\Models\BrokerCommission;
 use App\Modules\Trips\Models\Trip;
+use App\Modules\Settings\Models\MasterItem;
 use App\Modules\Trips\Models\TripAdvance;
+use App\Modules\Trips\Models\TripOfficeEntry;
 use App\Platform\Tenancy\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,9 +16,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Money on a trip page that is not crew entries: cash advances to the crew
- * and broker commissions (load brokers, or our own brokerage). Posted to the
- * books with accounting (M11); settled against crew entries in M7.
+ * Money on a trip page that is not crew entries: cash advances to the crew,
+ * broker commissions (load brokers, or our own brokerage) and the office's
+ * own income and expenses on the trip. Posted to the books with accounting
+ * (M11); advances are settled against crew entries (SettlementService).
  */
 class TripMoneyController extends Controller
 {
@@ -76,5 +79,67 @@ class TripMoneyController extends Controller
         $commission->delete();
 
         return back()->with('status', __('Commission removed.'));
+    }
+
+    /**
+     * Income or an expense the office adds to the trip — also after the trip
+     * is closed (D8). Every change is in the audit log (the model is audited).
+     */
+    public function storeOffice(Request $request, Trip $trip): RedirectResponse
+    {
+        $this->assertOfficeEntriesAllowed($trip);
+        $data = $this->validatedOffice($request);
+
+        DB::transaction(fn () => TripOfficeEntry::create($data + ['trip_id' => $trip->id, 'created_by' => $request->user()->id]));
+
+        return redirect()->to(route('trips.show', $trip) . '#office')->with('status', $data['kind'] === 'income' ? __('Income added.') : __('Expense added.'));
+    }
+
+    public function updateOffice(Request $request, Trip $trip, TripOfficeEntry $entry): RedirectResponse
+    {
+        abort_unless($entry->trip_id === $trip->id, 404);
+        $this->assertOfficeEntriesAllowed($trip);
+        if ($entry->cancelled_at) {
+            throw ValidationException::withMessages(['office' => __('This entry is cancelled.')]);
+        }
+        $data = $this->validatedOffice($request);
+
+        DB::transaction(fn () => $entry->fill($data)->save());
+
+        return redirect()->to(route('trips.show', $trip) . '#office')->with('status', __('Saved.'));
+    }
+
+    public function cancelOffice(Request $request, Trip $trip, TripOfficeEntry $entry): RedirectResponse
+    {
+        abort_unless($entry->trip_id === $trip->id, 404);
+        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:255']], ['reason.required' => __('Write why it is cancelled.')]);
+        if (! $entry->cancelled_at) {
+            DB::transaction(fn () => $entry->forceFill(['cancelled_at' => now(), 'cancel_reason' => $data['reason']])->save());
+        }
+
+        return redirect()->to(route('trips.show', $trip) . '#office')->with('status', __('Cancelled.'));
+    }
+
+    private function assertOfficeEntriesAllowed(Trip $trip): void
+    {
+        if (in_array($trip->status, ['draft', 'cancelled'], true)) {
+            throw ValidationException::withMessages(['office' => __('Office entries are added once the trip is sent.')]);
+        }
+    }
+
+    private function validatedOffice(Request $request): array
+    {
+        $kind = $request->input('kind') === 'income' ? 'income' : 'expense';
+        $categories = $kind === 'income' ? array_keys(TripOfficeEntry::INCOME) : MasterItem::ofList('expense_category')->pluck('code')->all();
+
+        return $request->validate([
+            'kind'       => ['required', Rule::in(array_keys(TripOfficeEntry::KINDS))],
+            'category'   => ['required', Rule::in($categories)],
+            'party_id'   => ['nullable', 'integer', Rule::exists('parties', 'id')->where('company_id', $this->context->id())],
+            'amount'     => ['required', 'numeric', 'min:0.01', 'max:99999999'],
+            'entry_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'reference'  => ['nullable', 'string', 'max:60'],
+            'note'       => ['nullable', 'string', 'max:255'],
+        ], ['category.in' => __('Choose what it is for.')]);
     }
 }
