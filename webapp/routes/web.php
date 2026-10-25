@@ -6,6 +6,9 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\QrLoginController;
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Parties\PartyController;
+use App\Http\Controllers\Parties\PartyDetailsController;
+use App\Http\Controllers\Parties\RateContractController;
 use App\Http\Controllers\Settings;
 use Illuminate\Support\Facades\Route;
 
@@ -55,6 +58,44 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('company')->group(function () {
         Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
+
+        // Parties: clients, consignors, consignees, suppliers, vendors, brokers (M3).
+        Route::prefix('parties')->name('parties.')->group(function () {
+            Route::middleware('permission:party.view')->group(function () {
+                Route::get('/', [PartyController::class, 'index'])->name('index');
+                Route::get('/lookup', [PartyController::class, 'lookup'])->name('lookup');
+            });
+            Route::middleware('permission:party.manage')->group(function () {
+                Route::get('/new', [PartyController::class, 'create'])->name('create');
+                Route::post('/', [PartyController::class, 'store'])->name('store');
+                Route::get('/suggest', [PartyController::class, 'suggest'])->name('suggest');
+                Route::get('/{party}/edit', [PartyController::class, 'edit'])->name('edit');
+                Route::put('/{party}', [PartyController::class, 'update'])->name('update');
+
+                Route::post('/{party}/tax-ids', [PartyDetailsController::class, 'storeTaxId'])->name('tax-ids.store');
+                Route::post('/{party}/tax-ids/{taxId}/default', [PartyDetailsController::class, 'defaultTaxId'])->name('tax-ids.default');
+                Route::post('/{party}/tax-ids/{taxId}/toggle', [PartyDetailsController::class, 'toggleTaxId'])->name('tax-ids.toggle');
+                Route::post('/{party}/contacts', [PartyDetailsController::class, 'storeContact'])->name('contacts.store');
+                Route::put('/{party}/contacts/{contact}', [PartyDetailsController::class, 'updateContact'])->name('contacts.update');
+                Route::delete('/{party}/contacts/{contact}', [PartyDetailsController::class, 'destroyContact'])->name('contacts.destroy');
+                Route::post('/{party}/vehicles', [PartyDetailsController::class, 'storeVehicle'])->name('vehicles.store');
+                Route::put('/{party}/vehicles/{vehicle}', [PartyDetailsController::class, 'updateVehicle'])->name('vehicles.update');
+
+                Route::get('/{party}/rates/new', [RateContractController::class, 'create'])->name('rates.create');
+                Route::post('/{party}/rates', [RateContractController::class, 'store'])->name('rates.store');
+                Route::get('/{party}/rates/{contract}', [RateContractController::class, 'edit'])->name('rates.edit');
+                Route::put('/{party}/rates/{contract}', [RateContractController::class, 'update'])->name('rates.update');
+                Route::post('/{party}/rates/{contract}/approve', [RateContractController::class, 'approve'])->name('rates.approve');
+                Route::post('/{party}/rates/{contract}/version', [RateContractController::class, 'newVersion'])->name('rates.version');
+                Route::post('/{party}/rates/{contract}/cancel', [RateContractController::class, 'cancel'])->name('rates.cancel');
+            });
+            // Bank details: changing where a supplier is paid needs the bank permission (fraud control).
+            Route::middleware('permission:settings.bank')->group(function () {
+                Route::post('/{party}/banks', [PartyDetailsController::class, 'storeBank'])->name('banks.store');
+                Route::delete('/{party}/banks/{bank}', [PartyDetailsController::class, 'destroyBank'])->name('banks.destroy');
+            });
+            Route::get('/{party}', [PartyController::class, 'show'])->middleware('permission:party.view')->name('show');
+        });
 
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/', Settings\SettingsController::class)->name('index');

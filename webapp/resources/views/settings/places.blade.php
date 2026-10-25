@@ -40,19 +40,19 @@
 </section>
 
 @php($p = $editing)
-<form method="POST" action="{{ $p ? route('settings.places.update', $p) : route('settings.places.store') }}" class="card p-6" data-place-form data-suggest="{{ route('settings.places.suggest') }}" novalidate>
+<form method="POST" action="{{ $p ? route('settings.places.update', $p) : route('settings.places.store') }}" class="card p-6" data-code-suggest="{{ route('settings.places.suggest') }}" novalidate>
   @csrf
   @if ($p) @method('PUT') @endif
   <h3 class="text-lg font-semibold">{{ $p ? __('Edit :name', ['name' => $p->name]) : __('Add a place') }}</h3>
   <div class="mt-4 grid gap-4 sm:grid-cols-4">
     <div class="sm:col-span-2">
       <label class="label" for="p_name">{{ __('Name') }}</label>
-      <input id="p_name" name="name" class="input" value="{{ old('name', $p?->name) }}" maxlength="150" required data-place-name>
+      <input id="p_name" name="name" class="input" value="{{ old('name', $p?->name) }}" maxlength="150" required data-suggest-name>
       @error('name')<span class="error">{{ $message }}</span>@enderror
     </div>
     <div>
       <label class="label" for="p_code">{{ __('Short code') }}</label>
-      <input id="p_code" name="short_code" class="input uppercase" value="{{ old('short_code', $p?->short_code) }}" maxlength="6" required data-place-code @if ($p) data-touched="1" @endif>
+      <input id="p_code" name="short_code" class="input uppercase" value="{{ old('short_code', $p?->short_code) }}" maxlength="6" required data-suggest-code @if ($p) data-touched="1" @endif>
       @error('short_code')<span class="error">{{ $message }}</span>@enderror
     </div>
     <div>

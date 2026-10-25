@@ -25,17 +25,40 @@ document.addEventListener('submit', (event) => {
   }
 }, true);
 
-// Places: offer a free short code from the name until the code is typed by hand.
-document.querySelectorAll('[data-place-form]').forEach((form) => {
-  const name = form.querySelector('[data-place-name]');
-  const code = form.querySelector('[data-place-code]');
+// Places and parties: offer a free short code from the name until the code is typed by hand.
+document.querySelectorAll('[data-code-suggest]').forEach((form) => {
+  const name = form.querySelector('[data-suggest-name]');
+  const code = form.querySelector('[data-suggest-code]');
   if (!name || !code) return;
   code.addEventListener('input', () => { code.dataset.touched = '1'; });
   name.addEventListener('input', debounce(() => {
     if (code.dataset.touched || name.value.trim().length < 2) return;
-    fetch(`${form.dataset.suggest}?name=${encodeURIComponent(name.value)}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+    fetch(`${form.dataset.codeSuggest}?name=${encodeURIComponent(name.value)}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
       .then((r) => r.json()).then((d) => { if (!code.dataset.touched) code.value = d.code; }).catch(() => {});
   }, 300));
+});
+
+// Party form: show the sections for the roles that are ticked.
+document.querySelectorAll('[data-party-form]').forEach((form) => {
+  const sync = () => {
+    const roles = [...form.querySelectorAll('[data-role]:checked')].map((el) => el.value);
+    form.querySelectorAll('[data-role-section]').forEach((section) => {
+      const show = section.dataset.roleSection.split(' ').some((r) => roles.includes(r));
+      section.classList.toggle('hidden', !show);
+    });
+  };
+  form.addEventListener('change', (event) => { if (event.target.matches('[data-role]')) sync(); });
+});
+
+// Rate contracts: another row from the template.
+document.querySelectorAll('[data-add-rate-line]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const table = document.querySelector('[data-rate-lines] tbody');
+    const template = document.querySelector('[data-rate-line-template]');
+    if (!table || !template) return;
+    const next = table.querySelectorAll('tr').length + Date.now() % 1000;
+    table.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__N__', String(next)));
+  });
 });
 
 // Numbering: the next number, as the format is typed.

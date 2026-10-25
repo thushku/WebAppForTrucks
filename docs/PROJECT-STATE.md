@@ -2,6 +2,36 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M3 (part 1): parties
+
+**Built (in `webapp/`):**
+- **Parties** (`/parties`): one firm, many roles — client, consignor, consignee, supplier (hired trucks), vendor,
+  broker — with a one-line hint for Supplier vs Vendor (P4). List with role tabs and counts, search by name, code,
+  mobile or GSTIN; switched off, never deleted.
+- Party form by role: identity (trade/legal name, short code for trip numbers offered from the name, group/parent),
+  contact and address, tax (first GSTIN/TRN, PAN, TAN), client credit and billing (limit, days from invoice or
+  submission, action over the limit, billing cycle, POD rule, references needed, vendor code, portal, late interest,
+  TDS they deduct), supplier (kind, rating), vendor (category, Udyam/MSME size with the 45-day hint, pump location),
+  our payment days, opening balance with side and date, blacklist with reason.
+- Party page: details, **GSTIN/TRN registrations** (several per party for plant-wise billing; one main; state taken
+  from the GSTIN; PAN must match), contacts (call buttons), **bank accounts** (encrypted at rest, last 4 digits on
+  screen, adding/removing needs `settings.bank`, logged as sensitive with the numbers redacted), Call and WhatsApp
+  buttons, **Rates** tab, **Trucks** tab for suppliers (hired trucks; one registration number listed once however it is
+  typed).
+- **Rate contracts**: draft → approve → new version from a date (the old version ends the day before); route rows by
+  from/to place, material, truck type, basis (trip / tonne / kg / km / package), rate, minimum guaranteed weight,
+  detention free hours and rate, loading/unloading/extra-drop charges; diesel escalation fields. `RateFinder` picks the
+  most specific approved row valid on the trip date and works out freight with the minimum weight.
+- Tax number checks: GSTIN with GSTN's check character and real state code, PAN with holder type, UAE TRN.
+- Money formatting ported from Clinic Ledger (`App\Support\Money`, ₹ 1,23,456.00), plus amount in words.
+- Demo company now has clients (ACC with two GSTINs and approved cement rates, UltraTech, Kerala Agro), a supplier with
+  a hired truck, a fuel pump and an MSME workshop.
+
+**Tests:** 94 passing (new `PartyTest`, 14 tests).
+
+**Next:** M4 — trucks (profile, documents dates, complaints, service) and people (profiles, activation codes); then
+the Document Manager across trucks, people, company and parties.
+
 ## 2026-10-25 — Milestone M2: company set-up, team, roles, masters, numbering, QR sign-in
 
 **Built (in `webapp/`):**

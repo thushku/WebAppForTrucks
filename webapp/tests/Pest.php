@@ -109,3 +109,18 @@ function signInTo(Company $company, string $role = 'owner', array $attributes = 
 
     return $account;
 }
+
+/** A party with roles, in the company in context (or the one given). */
+function makeParty(array $attributes = [], array $roles = ['client'], ?Company $company = null): \App\Modules\Parties\Models\Party
+{
+    $make = function () use ($attributes, $roles) {
+        $party = \App\Modules\Parties\Models\Party::create(array_merge(['name' => 'ACC Limited'], $attributes));
+        foreach ($roles as $role) {
+            \App\Modules\Parties\Models\PartyRole::create(['party_id' => $party->id, 'role' => $role]);
+        }
+
+        return $party;
+    };
+
+    return $company ? app(CompanyContext::class)->runAs($company, $make) : $make();
+}

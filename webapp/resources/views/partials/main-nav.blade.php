@@ -22,7 +22,7 @@
       [null, 'truck', __('Trucks'), 'truck.view', 'bg-blue-50 text-blue-700'],
       [null, 'folder', __('Documents'), 'document.view', 'bg-yellow-50 text-yellow-700'],
       [null, 'users', __('People'), 'people.view', 'bg-indigo-50 text-indigo-700'],
-      [null, 'handshake', __('Parties'), 'party.view', 'bg-lime-50 text-lime-700'],
+      ['parties.index', 'handshake', __('Parties'), 'party.view', 'bg-lime-50 text-lime-700', 'parties.'],
     ],
     __('Insight') => [
       [null, 'bar-chart', __('Reports'), 'report.view', 'bg-cyan-50 text-cyan-700'],

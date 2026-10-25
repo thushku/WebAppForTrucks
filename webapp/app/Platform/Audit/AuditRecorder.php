@@ -38,6 +38,7 @@ class AuditRecorder
         'role.granted', 'role.revoked', 'security.configured', 'security.unlocked',
         'member.removed', 'data.exported', 'company.deletion_requested', 'device.revoked',
         'bank_account.created', 'bank_account.updated', 'bank_account.deleted',
+        'party_bank_account.created', 'party_bank_account.updated', 'party_bank_account.deleted',
     ];
 
     public function __construct(private CompanyContext $context) {}
