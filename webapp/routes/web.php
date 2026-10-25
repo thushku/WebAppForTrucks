@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Auth\QrLoginController;
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Settings;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,14 +31,22 @@ Route::middleware('guest')->group(function () {
     Route::get('/signup/sent', [SignupController::class, 'sent'])->name('signup.sent');
     Route::post('/signup/resend', [SignupController::class, 'resend'])->middleware('throttle:login')->name('signup.resend');
 
+    // Sign in with the owner app (QR code, decision P7).
+    Route::post('/login/qr', [QrLoginController::class, 'create'])->middleware('throttle:login')->name('login.qr');
+    Route::post('/login/qr/poll', [QrLoginController::class, 'poll'])->middleware('throttle:qr-poll')->name('login.qr.poll');
+
     Route::get('/password/forgot', [PasswordController::class, 'forgot'])->name('password.forgot');
     Route::post('/password/forgot', [PasswordController::class, 'send'])->middleware('throttle:login')->name('password.email');
     Route::get('/password/reset/{token}', [PasswordController::class, 'edit'])->name('password.reset');
     Route::post('/password/reset/{token}', [PasswordController::class, 'update'])->middleware('throttle:login')->name('password.update');
 });
 
-// Verification links work signed in or not.
+// Verification and invitation links work signed in or not.
 Route::get('/verify/{token}', [SignupController::class, 'verify'])->name('signup.verify');
+Route::get('/invite/{token}', [InvitationController::class, 'show'])->name('invite.show');
+Route::post('/invite/{token}', [InvitationController::class, 'accept'])->middleware('throttle:login')->name('invite.accept');
+// What a phone camera opens when the sign-in QR is scanned outside the app.
+Route::get('/qr/{token}', [QrLoginController::class, 'scan'])->where('token', '[A-Za-z0-9]{40}')->name('login.qr.scan');
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
@@ -44,5 +55,64 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('company')->group(function () {
         Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
+
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', Settings\SettingsController::class)->name('index');
+
+            Route::middleware('permission:settings.company')->group(function () {
+                Route::get('/company', [Settings\CompanyProfileController::class, 'edit'])->name('company');
+                Route::put('/company', [Settings\CompanyProfileController::class, 'update'])->name('company.update');
+                Route::get('/branches', [Settings\BranchController::class, 'index'])->name('branches');
+                Route::post('/branches', [Settings\BranchController::class, 'store'])->name('branches.store');
+                Route::get('/branches/{branch}', [Settings\BranchController::class, 'edit'])->name('branches.edit');
+                Route::put('/branches/{branch}', [Settings\BranchController::class, 'update'])->name('branches.update');
+            });
+            // Any member may see the logo (it prints on their documents).
+            Route::get('/company/logo', [Settings\CompanyProfileController::class, 'logo'])->name('company.logo');
+
+            Route::middleware('permission:settings.rules')->group(function () {
+                Route::get('/rules', [Settings\RulesController::class, 'edit'])->name('rules');
+                Route::put('/rules', [Settings\RulesController::class, 'update'])->name('rules.update');
+            });
+
+            Route::get('/team', [Settings\TeamController::class, 'index'])->middleware('permission:user.invite,user.edit,user.remove,role.grant,security.unlock')->name('team');
+            Route::post('/team', [Settings\TeamController::class, 'invite'])->middleware('permission:user.invite')->name('team.invite');
+            Route::get('/team/{member}', [Settings\TeamController::class, 'edit'])->middleware('permission:user.edit,role.grant')->name('team.edit');
+            Route::put('/team/{member}', [Settings\TeamController::class, 'update'])->middleware('permission:user.edit,role.grant')->name('team.update');
+            Route::post('/team/{member}/suspend', [Settings\TeamController::class, 'suspend'])->middleware('permission:user.edit')->name('team.suspend');
+            Route::post('/team/{member}/reactivate', [Settings\TeamController::class, 'reactivate'])->middleware('permission:user.edit')->name('team.reactivate');
+            Route::post('/team/{member}/resend', [Settings\TeamController::class, 'resend'])->middleware('permission:user.invite')->name('team.resend');
+            Route::post('/team/{member}/unlock', [Settings\TeamController::class, 'unlock'])->middleware('permission:security.unlock')->name('team.unlock');
+            Route::delete('/team/{member}', [Settings\TeamController::class, 'remove'])->middleware('permission:user.remove')->name('team.remove');
+
+            Route::get('/roles', [Settings\RoleController::class, 'index'])->middleware('permission:role.define,role.grant')->name('roles');
+            Route::post('/roles', [Settings\RoleController::class, 'store'])->middleware('permission:role.define')->name('roles.store');
+            Route::get('/roles/{role}', [Settings\RoleController::class, 'edit'])->middleware('permission:role.define,role.grant')->name('roles.edit');
+            Route::put('/roles/{role}', [Settings\RoleController::class, 'update'])->middleware('permission:role.define')->name('roles.update');
+
+            Route::middleware('permission:settings.masters')->group(function () {
+                Route::get('/places', [Settings\PlaceController::class, 'index'])->name('places');
+                Route::post('/places', [Settings\PlaceController::class, 'store'])->name('places.store');
+                Route::get('/places/suggest', [Settings\PlaceController::class, 'suggest'])->name('places.suggest');
+                Route::get('/places/{place}', [Settings\PlaceController::class, 'edit'])->name('places.edit');
+                Route::put('/places/{place}', [Settings\PlaceController::class, 'update'])->name('places.update');
+                Route::get('/lists/{list?}', [Settings\MasterListController::class, 'index'])->name('lists');
+                Route::post('/lists/{list}', [Settings\MasterListController::class, 'store'])->name('lists.store');
+                Route::put('/lists/item/{item}', [Settings\MasterListController::class, 'update'])->name('lists.update');
+            });
+
+            Route::middleware('permission:settings.numbering')->group(function () {
+                Route::get('/numbering', [Settings\NumberingController::class, 'index'])->name('numbering');
+                Route::put('/numbering/{sequence}', [Settings\NumberingController::class, 'update'])->name('numbering.update');
+                Route::post('/numbering/{sequence}/preview', [Settings\NumberingController::class, 'preview'])->name('numbering.preview');
+            });
+
+            Route::middleware('permission:security.configure')->group(function () {
+                Route::get('/security', [Settings\SecurityController::class, 'edit'])->name('security');
+                Route::put('/security', [Settings\SecurityController::class, 'update'])->name('security.update');
+            });
+
+            Route::get('/activity', [Settings\ActivityController::class, 'index'])->middleware('permission:audit.view')->name('activity');
+        });
     });
 });

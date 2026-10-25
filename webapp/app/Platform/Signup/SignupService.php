@@ -4,6 +4,7 @@ namespace App\Platform\Signup;
 
 use App\Models\Account;
 use App\Models\CompanyUser;
+use App\Modules\Settings\Services\CountryDefaults;
 use App\Platform\Audit\AuditRecorder;
 use App\Platform\Authorization\RoleProvisioner;
 use App\Platform\Settings\PlatformSettings;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * A new customer signs up: a company on a free trial, its owner's login,
- * the owner's membership and the standard roles — all in one transaction,
+ * the owner's membership, the standard roles and the country's starting
+ * set-up (CountryDefaults) — all in one transaction,
  * so a failure halfway leaves nothing behind.
  *
  * The trial length comes from the super-admin's setting (D20), 14 days by
@@ -31,6 +33,7 @@ class SignupService
         private RoleProvisioner $roles,
         private PlatformSettings $settings,
         private AuditRecorder $audit,
+        private CountryDefaults $defaults,
     ) {}
 
     /**
@@ -57,7 +60,8 @@ class SignupService
                 'timezone'         => $preset['timezone'],
                 'fy_start_month'   => $preset['fy_start_month'],
                 'status'           => 'trial',
-                'trial_ends_at'    => now()->addDays($this->settings->trialDays())->endOfDay(),
+                // The last day ends at midnight where the company is, kept in UTC.
+                'trial_ends_at'    => now($preset['timezone'])->addDays($this->settings->trialDays())->endOfDay()->utc(),
                 'owner_account_id' => $account->id,
             ]);
 
@@ -71,6 +75,8 @@ class SignupService
 
             $this->roles->provision($company);
             $this->roles->grant($member, 'owner');
+            // Head office, master lists and number series for the country.
+            $this->defaults->apply($company);
 
             $this->audit->record('company.signed_up', "{$company->name} signed up ({$data['country']}) with {$account->email}", 'company', (string) $company->id, $company->name, companyId: $company->id);
 

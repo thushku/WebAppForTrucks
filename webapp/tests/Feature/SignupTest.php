@@ -26,6 +26,8 @@ it('creates a company on a free trial with the owner and the standard roles', fu
         ->and($company->currency)->toBe('INR')
         ->and($company->fy_start_month)->toBe(4)
         ->and($company->trial_ends_at->isSameDay(now()->addDays(14)))->toBeTrue()
+        // A 14-day trial reads "14 days left" on the first day, by the company's own clock.
+        ->and($company->trialDaysLeft())->toBe(14)
         ->and($account->mobile)->toBe('+919847012345')
         ->and($account->email_verified_at)->toBeNull();
 

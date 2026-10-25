@@ -199,6 +199,11 @@ class AuditRecorder
     protected function labelFor(Model $model): ?string
     {
         foreach (['label', 'name', 'number', 'reg_no', 'email', 'code', 'title'] as $field) {
+            // Only fields the model has: asking a loaded model for a column it
+            // does not have throws in strict mode, and would stop the save.
+            if (! array_key_exists($field, $model->getAttributes()) && ! $model->hasGetMutator($field) && ! $model->hasAttributeGetMutator($field)) {
+                continue;
+            }
             $value = $model->getAttribute($field);
             if (! empty($value) && is_scalar($value)) {
                 return (string) $value;

@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CompanyContext::class);
         $this->app->singleton(PermissionResolver::class);
         $this->app->singleton(PlatformSettings::class);
+        $this->app->singleton(\App\Modules\Settings\Services\CompanySettings::class);
     }
 
     public function boot(): void
@@ -53,6 +54,9 @@ class AppServiceProvider extends ServiceProvider
 
         // One-time codes: sending and checking.
         RateLimiter::for('otp', fn (Request $request) => Limit::perMinute(10)->by('otp:' . $request->ip()));
+
+        // The sign-in page asking whether its phone code was scanned (every 2 s).
+        RateLimiter::for('qr-poll', fn (Request $request) => Limit::perMinute(60)->by('qr:' . $request->ip()));
 
         // The phone apps: per token, generous enough for a sync after a day offline.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by('api:' . ($request->user()?->id ?: $request->ip())));

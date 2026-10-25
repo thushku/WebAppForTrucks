@@ -15,8 +15,8 @@ Each milestone ends with automated tests passing and a push to the branch.
 
 | # | Milestone | You can see / test |
 |---|---|---|
-| M1 | Project set-up in Clinic Ledger style (Laravel 13, PHP 8.3, Tailwind 4, Vite 8, Pest): base layout, splash + version line, security base (CSP nonce, CSRF, lockout, captcha, hidden admin URL, email OTP) | Log in to an empty web app and the super-admin area |
-| M2 | Companies, branches, users, roles, crew in several companies, QR web login, settings, masters (places with short codes, categories), number series | Create a company, users, places |
+| M1 ✅ | Project set-up in Clinic Ledger style (Laravel 13, PHP 8.3, Tailwind 4, Vite 8, Pest): base layout, splash + version line, security base (CSP nonce, CSRF, lockout, captcha, hidden admin URL, email OTP) | Log in to an empty web app and the super-admin area |
+| M2 ✅ | Companies, branches, users, roles, crew in several companies, QR web login, settings, masters (places with short codes, categories), number series | Create a company, users, places |
 | M3 | **Parties** (clients, suppliers, vendors, brokers — one firm, many roles; tax IDs; credit terms; rate contracts) and **Document Manager** (all owners, versions, expiry alerts, shares) | Party pages; document expiry dashboard |
 | M4 | Trucks (profile, complaints, service) and people (profiles, activation codes); expired documents block dispatch | Truck and person pages |
 | M5 | **Trips with FTL / PTL / mixed**, stops, several consignments (LR data), own or **hired truck**, hire challan, broker commission, trip number | Create and send a part-load trip with a hired truck |

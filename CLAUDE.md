@@ -26,11 +26,22 @@ founder's laptop) in `phoneapp/`.
   whose invoicing/templates are ported here (decision D14).
 - Edit source with the editor tool rather than sed one-liners (they have mangled backslashes in class names before).
 
+## Where things are
+
+- `app/Platform` — tenancy, sign-in (incl. QR web login), roles and permissions, team, audit, signup, console.
+- `app/Modules/<Module>` — business modules (`Settings` so far: branches, places, lists, rules, number series).
+- Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`
+  (`settings/` pages extend `layouts/settings`, whose side list comes from `SettingsController::PAGES`).
+- Test helpers shared by several files live in `tests/Pest.php`; a helper inside one test file needs a name no other
+  file uses (Pest loads them all into one process).
+
 ## Run and test (cloud session or laptop)
 
 - PHP 8.3+, MariaDB/MySQL. In `webapp/`: `cp .env.example .env`, `php artisan key:generate`, set `DB_*`,
   `php artisan migrate`, `npm ci && npm run build`, `php artisan serve --port=8130`.
 - After pulling new PHP classes run `composer dump-autoload` (the optimized class map does not see new files).
+- Demo data: `php artisan fleet:demo --fresh` (sign in `demo@fleet.test` / `Demo-Pass-2026`). With the default
+  captcha "always", set `CAPTCHA_MODE=after_failures` in `.env` for local clicking-through.
 - First console login: `php artisan platform:admin you@example.com`, then open `/<PLATFORM_PATH>/login`
   (default `/ctl/login`). Codes are emailed; with `MAIL_MAILER=log` they are in `storage/logs/laravel.log`.
 - Tests: create database `fleet_test`, run `DB_DATABASE=fleet_test php artisan migrate`, then

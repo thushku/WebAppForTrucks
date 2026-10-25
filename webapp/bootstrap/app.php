@@ -30,6 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
             App\Http\Middleware\ResolveCompany::class,
         ]);
 
+        // The company must be in context before route-model binding loads a
+        // company-owned row (a branch, a place), or its scope has no company.
+        $middleware->prependToPriorityList(
+            Illuminate\Routing\Middleware\SubstituteBindings::class,
+            App\Http\Middleware\ResolveCompany::class,
+        );
+
         // Security headers on every response: pages, API answers and errors alike.
         $middleware->append(App\Http\Middleware\SecurityHeaders::class);
 

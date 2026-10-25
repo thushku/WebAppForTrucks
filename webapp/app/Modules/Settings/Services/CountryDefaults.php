@@ -1,0 +1,173 @@
+<?php
+
+namespace App\Modules\Settings\Services;
+
+use App\Modules\Settings\Models\Branch;
+use App\Modules\Settings\Models\DocumentSequence;
+use App\Modules\Settings\Models\MasterItem;
+use App\Platform\Tenancy\Company;
+use App\Platform\Tenancy\CompanyContext;
+
+/**
+ * What a new company starts with, by country: its head office, the master
+ * lists (materials, expense categories, truck types, document types, leave
+ * types…) and a number series for every document type.
+ *
+ * Everything here can be renamed, hidden or added to by the company; items
+ * that came from the preset are marked `is_system` so they cannot be deleted
+ * (older trips and bills point at them).
+ *
+ * Only India and the UAE can sign up today (SignupService::COUNTRIES); a
+ * new country adds its own lists here as part of its country pack.
+ */
+class CountryDefaults
+{
+    /** Lists every country shares. code => name or [name, meta] */
+    private const SHARED = [
+        'material' => [
+            'general' => 'General goods', 'fmcg' => 'FMCG / packaged goods', 'cement' => 'Cement',
+            'steel' => 'Steel / iron', 'building' => 'Building material', 'agri' => 'Agricultural produce',
+            'food_grains' => 'Food grains', 'fruits_veg' => 'Fruits and vegetables', 'chemicals' => 'Chemicals (non-hazardous)',
+            'hazardous' => 'Hazardous goods', 'machinery' => 'Machinery', 'furniture' => 'Furniture',
+            'electronics' => 'Electronics', 'textiles' => 'Textiles', 'auto_parts' => 'Auto parts',
+            'container' => 'Container', 'household' => 'Household goods (shifting)', 'empty' => 'Empty return',
+        ],
+        'expense_category' => [
+            'fuel'         => ['Fuel (diesel)', ['group' => 'running', 'needs_receipt' => true]],
+            'adblue'       => ['AdBlue / DEF', ['group' => 'running', 'needs_receipt' => true]],
+            'toll'         => ['Toll', ['group' => 'running', 'needs_receipt' => false]],
+            'parking'      => ['Parking', ['group' => 'running', 'needs_receipt' => false]],
+            'loading'      => ['Loading / unloading charges', ['group' => 'running', 'needs_receipt' => false]],
+            'weighbridge'  => ['Weighbridge', ['group' => 'running', 'needs_receipt' => true]],
+            'fine_receipt' => ['Official fine / fee (with receipt)', ['group' => 'running', 'needs_receipt' => true]],
+            'no_receipt'   => ['Payment without receipt', ['group' => 'running', 'needs_receipt' => false]],
+            'food'         => ['Food', ['group' => 'running', 'needs_receipt' => false]],
+            'puncture'     => ['Tyre puncture on road', ['group' => 'running', 'needs_receipt' => false]],
+            'road_repair'  => ['Repair on road', ['group' => 'maintenance', 'needs_receipt' => true]],
+            'service'      => ['Service', ['group' => 'maintenance', 'needs_receipt' => true]],
+            'tyres'        => ['Tyres', ['group' => 'maintenance', 'needs_receipt' => true]],
+            'spares'       => ['Spare parts', ['group' => 'maintenance', 'needs_receipt' => true]],
+            'oil'          => ['Engine oil and lubricants', ['group' => 'maintenance', 'needs_receipt' => true]],
+            'washing'      => ['Washing / greasing', ['group' => 'maintenance', 'needs_receipt' => false]],
+            'insurance'    => ['Insurance', ['group' => 'office', 'needs_receipt' => true]],
+            'permit_tax'   => ['Permit and road tax', ['group' => 'office', 'needs_receipt' => true]],
+            'commission'   => ['Commission / brokerage', ['group' => 'office', 'needs_receipt' => false]],
+            'office'       => ['Office expenses', ['group' => 'office', 'needs_receipt' => false]],
+            'other'        => ['Other', ['group' => 'running', 'needs_receipt' => false]],
+        ],
+        'body_type' => [
+            'open' => 'Open body', 'container' => 'Closed container', 'flatbed' => 'Flatbed trailer',
+            'low_bed' => 'Low-bed trailer', 'tanker' => 'Tanker', 'tipper' => 'Tipper', 'reefer' => 'Refrigerated (reefer)',
+            'car_carrier' => 'Car carrier', 'curtain' => 'Curtain side', 'bulker' => 'Bulker',
+        ],
+        'complaint_category' => [
+            'engine' => 'Engine', 'brakes' => 'Brakes', 'tyres' => 'Tyres', 'electrical' => 'Electrical / lights',
+            'clutch' => 'Clutch / gearbox', 'suspension' => 'Suspension', 'body' => 'Body / tarpaulin', 'ac' => 'Cabin / AC',
+            'accident' => 'Accident damage', 'other' => 'Other',
+        ],
+    ];
+
+    /** Lists that differ by country. */
+    private const BY_COUNTRY = [
+        'IN' => [
+            'truck_type' => [
+                'lcv'      => ['LCV (4 wheels, up to 7.5 T)', ['wheels' => 4, 'payload_mt' => 3]],
+                'w6'       => ['6 wheels (9 T)', ['wheels' => 6, 'payload_mt' => 9]],
+                'w10'      => ['10 wheels (16 T)', ['wheels' => 10, 'payload_mt' => 16]],
+                'w12'      => ['12 wheels (21 T)', ['wheels' => 12, 'payload_mt' => 21]],
+                'w14'      => ['14 wheels (25 T)', ['wheels' => 14, 'payload_mt' => 25]],
+                'w16'      => ['16 wheels (30 T)', ['wheels' => 16, 'payload_mt' => 30]],
+                'trailer'  => ['Trailer (18–22 wheels)', ['wheels' => 18, 'payload_mt' => 35]],
+                'container_20' => ['20 ft container truck', ['wheels' => 10, 'payload_mt' => 20]],
+                'container_32' => ['32 ft container truck (SXL/MXL)', ['wheels' => 10, 'payload_mt' => 15]],
+            ],
+            'document_type' => [
+                'rc'        => ['Registration certificate (RC)', ['owner' => 'truck', 'remind_days' => 30]],
+                'insurance' => ['Insurance', ['owner' => 'truck', 'remind_days' => 30]],
+                'fitness'   => ['Fitness certificate', ['owner' => 'truck', 'remind_days' => 30]],
+                'permit_np' => ['National permit', ['owner' => 'truck', 'remind_days' => 30]],
+                'permit_st' => ['State permit', ['owner' => 'truck', 'remind_days' => 30]],
+                'road_tax'  => ['Road tax', ['owner' => 'truck', 'remind_days' => 15]],
+                'puc'       => ['Pollution certificate (PUC)', ['owner' => 'truck', 'remind_days' => 15]],
+                'fastag'    => ['FASTag', ['owner' => 'truck', 'remind_days' => 0]],
+                'licence'   => ['Driving licence', ['owner' => 'person', 'remind_days' => 30]],
+                'aadhaar'   => ['Aadhaar', ['owner' => 'person', 'remind_days' => 0]],
+                'pan'       => ['PAN card', ['owner' => 'person', 'remind_days' => 0]],
+                'medical'   => ['Medical certificate', ['owner' => 'person', 'remind_days' => 30]],
+                'police'    => ['Police verification', ['owner' => 'person', 'remind_days' => 30]],
+                'gst_reg'   => ['GST registration', ['owner' => 'company', 'remind_days' => 0]],
+                'trade_lic' => ['Trade / shop licence', ['owner' => 'company', 'remind_days' => 30]],
+                'agreement' => ['Agreement / contract', ['owner' => 'party', 'remind_days' => 30]],
+            ],
+            'leave_type' => [
+                'casual' => ['Casual leave', ['paid' => true, 'days_per_year' => 12]],
+                'sick'   => ['Sick leave', ['paid' => true, 'days_per_year' => 12]],
+                'earned' => ['Earned leave', ['paid' => true, 'days_per_year' => 15]],
+                'unpaid' => ['Leave without pay', ['paid' => false, 'days_per_year' => 0]],
+            ],
+        ],
+        'AE' => [
+            'truck_type' => [
+                'pickup'   => ['Pickup (1 T)', ['wheels' => 4, 'payload_mt' => 1]],
+                't3'       => ['3-ton truck', ['wheels' => 4, 'payload_mt' => 3]],
+                't7'       => ['7-ton truck', ['wheels' => 6, 'payload_mt' => 7]],
+                't10'      => ['10-ton truck', ['wheels' => 6, 'payload_mt' => 10]],
+                'flatbed'  => ['Trailer 40 ft flatbed', ['wheels' => 18, 'payload_mt' => 25]],
+                'low_bed'  => ['Low-bed trailer', ['wheels' => 18, 'payload_mt' => 40]],
+                'tanker'   => ['Tanker', ['wheels' => 10, 'payload_mt' => 20]],
+            ],
+            'document_type' => [
+                'mulkiya'   => ['Vehicle registration (Mulkiya)', ['owner' => 'truck', 'remind_days' => 30]],
+                'insurance' => ['Insurance', ['owner' => 'truck', 'remind_days' => 30]],
+                'tracker'   => ['Approved tracking device certificate', ['owner' => 'truck', 'remind_days' => 30]],
+                'salik'     => ['Salik / Darb tag', ['owner' => 'truck', 'remind_days' => 0]],
+                'gcc_permit'=> ['GCC transit permit', ['owner' => 'truck', 'remind_days' => 30]],
+                'licence'   => ['UAE driving licence', ['owner' => 'person', 'remind_days' => 30]],
+                'emirates_id' => ['Emirates ID', ['owner' => 'person', 'remind_days' => 30]],
+                'passport'  => ['Passport', ['owner' => 'person', 'remind_days' => 60]],
+                'visa'      => ['Residence visa', ['owner' => 'person', 'remind_days' => 60]],
+                'labour'    => ['Work permit (labour card)', ['owner' => 'person', 'remind_days' => 60]],
+                'trade_lic' => ['Trade licence', ['owner' => 'company', 'remind_days' => 30]],
+                'trn_cert'  => ['VAT registration (TRN) certificate', ['owner' => 'company', 'remind_days' => 0]],
+                'agreement' => ['Agreement / contract', ['owner' => 'party', 'remind_days' => 30]],
+            ],
+            'leave_type' => [
+                'annual' => ['Annual leave', ['paid' => true, 'days_per_year' => 30]],
+                'sick'   => ['Sick leave', ['paid' => true, 'days_per_year' => 15]],
+                'unpaid' => ['Unpaid leave', ['paid' => false, 'days_per_year' => 0]],
+            ],
+        ],
+    ];
+
+    public function __construct(private CompanyContext $context, private DocumentNumbering $numbering) {}
+
+    /** Give a new company its starting set-up. Safe to run twice: what exists is left alone. */
+    public function apply(Company $company): void
+    {
+        $this->context->runAs($company, function () use ($company) {
+            if (! Branch::exists()) {
+                Branch::create(['name' => 'Head office', 'code' => 'HO', 'is_head_office' => true, 'state_code' => $company->state_code, 'city' => $company->city]);
+            }
+
+            foreach ($this->listsFor($company->country) as $list => $items) {
+                $sort = 0;
+                foreach ($items as $code => $item) {
+                    [$name, $meta] = is_array($item) ? $item : [$item, null];
+                    MasterItem::firstOrCreate(['list' => $list, 'code' => $code], [
+                        'name' => $name, 'meta' => $meta, 'sort' => $sort += 10, 'is_system' => true,
+                    ]);
+                }
+            }
+
+            foreach (array_keys(DocumentSequence::DOC_TYPES) as $docType) {
+                $this->numbering->sequence($docType);
+            }
+        });
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function listsFor(string $country): array
+    {
+        return self::SHARED + (self::BY_COUNTRY[$country] ?? self::BY_COUNTRY['IN']);
+    }
+}

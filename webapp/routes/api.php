@@ -28,5 +28,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 'server_time' => now()->toIso8601String(),
             ]);
         })->name('api.me');
+
+        // The owner app approves a web sign-in it has scanned (decision P7).
+        Route::post('/web-login/inspect', [\App\Http\Controllers\Api\WebLoginController::class, 'inspect'])->name('api.web-login.inspect');
+        Route::post('/web-login/approve', [\App\Http\Controllers\Api\WebLoginController::class, 'approve'])->name('api.web-login.approve');
     });
 });

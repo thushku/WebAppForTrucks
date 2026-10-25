@@ -66,7 +66,7 @@ function makeAccount(array $attributes = [], string $password = 'Secret-pass-123
     return $account->refresh();
 }
 
-/** A company with its standard roles. */
+/** A company with its standard roles and its country's starting set-up. */
 function makeCompany(array $attributes = []): Company
 {
     $company = Company::create(array_merge([
@@ -79,6 +79,7 @@ function makeCompany(array $attributes = []): Company
     ], $attributes));
 
     app(RoleProvisioner::class)->provision($company);
+    app(\App\Modules\Settings\Services\CountryDefaults::class)->apply($company);
 
     return $company;
 }
