@@ -20,6 +20,7 @@ Errors are JSON: `{"message": "…", "code": "…"}` and, for form errors (422),
 `{"message": "…", "errors": {"field": ["…"]}}`. Show `message` to the user as it is.
 `401` means the token is gone (signed out elsewhere, expired): go to the sign-in screen.
 `409` with `code: company_required`: show the company switcher.
+`423` with `code: read_only`: the company's plan has ended; nothing is lost (see §8).
 
 ## 2. Signing in
 
@@ -65,7 +66,7 @@ in an hour: `429`.
 | `POST /auth/refresh` | a new token; the old one stops at once. Call it when `expires_at` is less than 30 days away |
 | `POST /auth/logout` | the token stops; the device is marked signed out |
 | `POST /device` `{ "push_token": "…", "app_version": "1.0.1" }` | after sign-in and whenever Firebase gives a new token |
-| `GET /me` | name, company, permission codes |
+| `GET /me` | name, company (with `status`, `read_only`, `trial_ends_at`), permission codes, and `announcement` (a line from the provider, or null — show it as a banner) |
 | `GET /ping` (no token) | server time, for the clock check before sign-in |
 
 ## 3. Sync (read)
@@ -261,4 +262,7 @@ entries are locked (422).
    entry was answered `saved`/`duplicate`; GPS in its own queue.
 3. On `saved`, `duplicate`, `replayed` or a 4xx answer: the item is done (show 4xx
    messages). On no network, 5xx or 429: keep it and retry with back-off.
+   **Except `423` with `code: read_only`** (the company's plan has ended): keep the
+   whole queue, show the message once, and stop sending until `GET /me` says
+   `read_only: false` (check at app start and every hour). Reads still work.
 4. After a push, run a sync with `since` to pick up statuses and office notes.

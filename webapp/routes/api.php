@@ -44,7 +44,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
 
                 return response()->json([
                     'account' => ['name' => $request->user()->name, 'mobile' => $request->user()->mobile, 'locale' => $request->user()->locale],
-                    'company' => ['id' => $member->company->uuid, 'name' => $member->company->name, 'country' => $member->company->country, 'currency' => $member->company->currency],
+                    'company' => ['id' => $member->company->uuid, 'name' => $member->company->name, 'country' => $member->company->country, 'currency' => $member->company->currency,
+                        'status' => $member->company->status, 'read_only' => $member->company->isReadOnly(), 'trial_ends_at' => $member->company->trial_ends_at?->toDateString()],
+                    'announcement' => app(\App\Platform\Settings\PlatformSettings::class)->get('announcement'),
                     'permissions' => app(\App\Platform\Authorization\PermissionResolver::class)->permissionsFor($member),
                     'server_time' => now()->toIso8601String(),
                 ]);

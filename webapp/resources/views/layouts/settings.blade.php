@@ -5,8 +5,9 @@
 --}}
 @extends('layouts.app')
 @section('content')
-<div class="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-  <nav aria-label="{{ __('Settings') }}" class="lg:sticky lg:top-20 lg:self-start">
+{{-- minmax(0, 1fr) on phones too: the side list scrolls sideways instead of widening the page. --}}
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+  <nav aria-label="{{ __('Settings') }}" class="min-w-0 lg:sticky lg:top-20 lg:self-start">
     <ul class="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
       @foreach (\App\Http\Controllers\Settings\SettingsController::PAGES as $route => [$label, $icon, $permissions])
         @continue(! auth()->user()->canAny($permissions))

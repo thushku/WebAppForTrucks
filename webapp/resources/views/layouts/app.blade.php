@@ -3,6 +3,7 @@
   $company = $context->has() ? $context->company() : null;
   $account = auth()->user();
   $brand   = app(\App\Platform\Settings\PlatformSettings::class)->brandName();
+  $notice  = app(\App\Platform\Settings\PlatformSettings::class)->get('announcement');
   $rtl     = \App\Support\Locales::isRtl(app()->getLocale());
 @endphp
 <!DOCTYPE html>
@@ -53,6 +54,7 @@
           <span class="pill bg-brand-50 text-brand-700">{{ $days }} {{ trans_choice('day|days', $days) }} {{ __('left') }}</span>
         </div>
         <p class="mt-2 text-xs text-ink-500">{{ __('Choose a plan any time before it ends — nothing is lost.') }}</p>
+        @can('billing.view')<a href="{{ route('billing.index') }}" class="mt-2 inline-block text-xs font-medium text-brand-700 hover:underline">{{ __('See the plans') }}</a>@endcan
       </div>
     @endif
 
@@ -94,6 +96,13 @@
         <div class="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
           <x-icon name="lock" class="size-5 shrink-0" />
           <p>{{ __('This company is read-only because its plan has ended. Everything is kept; renew to make changes.') }}</p>
+          @can('billing.view')<a href="{{ route('billing.index') }}" class="ms-auto shrink-0 font-semibold underline">{{ __('Renew') }}</a>@endcan
+        </div>
+      @endif
+      @if ($notice)
+        <div class="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900" role="status" data-announcement>
+          <x-icon name="info" class="size-5 shrink-0" />
+          <p>{{ $notice }}</p>
         </div>
       @endif
       @yield('content')

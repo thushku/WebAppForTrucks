@@ -165,6 +165,25 @@ package), QR codes / amount in words / CSV written in-house. See
   journals `JV/26-27/00001`. Bills, receipts and challans keep their own numbers
   as the voucher's reference.
 
+### P10. Plans, payment and the read-only rule (added 26 Oct 2026, M13)
+
+- **Until a payment gateway is approved, payment is recorded by the console.**
+  The owner pays the provider (bank transfer, UPI) and the super-admin puts the
+  company on the plan from a date, with the reference and any coupon; the price
+  comes from the plan. The billing page gives the provider's WhatsApp and email
+  with the request filled in.
+- **Limits only stop adding.** A plan's truck and user limits refuse one more
+  truck or invitation; nothing already there is taken away or hidden. A company
+  on its trial has no limits.
+- **Read-only covers the phones too.** When the trial or plan ends (checked every
+  night) the web and the phone API read but do not write; the phone keeps what
+  the crew entered in its queue (answer `423 read_only`) and sends it after
+  renewal, so nothing entered on the road is lost. The owner can still approve a
+  web sign-in by QR and reach the billing page.
+- **A plan in use is switched off, never deleted**, so old subscriptions keep
+  their name and price. Moving to another plan ends the running one the day
+  before.
+
 ---
 
 ## 4. Still open

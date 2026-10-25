@@ -52,6 +52,16 @@ class Company extends Model
         return 'uuid';
     }
 
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(\App\Platform\Billing\Plan::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(\App\Platform\Billing\Subscription::class)->orderByDesc('starts_on')->orderByDesc('id');
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'owner_account_id');

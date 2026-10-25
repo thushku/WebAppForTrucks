@@ -52,6 +52,7 @@ class TruckController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        app(\App\Platform\Billing\Limits::class)->assertRoom($this->context->company(), 'trucks');
         $truck = Truck::create($this->validated($request) + ['created_by' => $request->user()->id]);
 
         return redirect()->route('trucks.show', $truck)->with('status', __(':reg added.', ['reg' => $truck->reg_no]));

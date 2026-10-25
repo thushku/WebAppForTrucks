@@ -93,9 +93,34 @@ class FleetDemo extends Command
             }
         });
 
+        $this->plans();
+
         $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test, same password).');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Sample plans and a coupon for the console and the billing page (the
+     * prices are examples; the super-admin sets the real ones, decision D20).
+     * Kept when the demo is rebuilt: plans belong to the platform.
+     */
+    private function plans(): void
+    {
+        foreach ([
+            ['starter', 'Starter', 'For one to five trucks.', 'IN', 'INR', 'flat', 499, 4990, null, 5, 3, 2048, false, 10],
+            ['fleet', 'Fleet', 'Every part of the app, priced per truck.', 'IN', 'INR', 'per_truck', 149, 1490, null, null, null, 20480, false, 20],
+            ['lifetime', 'Lifetime', 'One payment, up to 25 trucks.', 'IN', 'INR', 'lifetime', null, null, 49999, 25, 10, 20480, false, 30],
+            ['student', 'Student', 'Free for logistics students, two trucks.', 'IN', 'INR', 'flat', 0, 0, null, 2, 2, 512, true, 40],
+            ['fleet-ae', 'Fleet', 'Every part of the app, priced per truck.', 'AE', 'AED', 'per_truck', 25, 250, null, null, null, 20480, false, 20],
+        ] as [$code, $name, $about, $country, $currency, $pricing, $monthly, $annual, $lifetime, $trucks, $users, $mb, $student, $order]) {
+            \App\Platform\Billing\Plan::updateOrCreate(['code' => $code], [
+                'name' => $name, 'description' => $about, 'country' => $country, 'currency' => $currency, 'pricing' => $pricing,
+                'price_monthly' => $monthly, 'price_annual' => $annual, 'price_lifetime' => $lifetime, 'max_trucks' => $trucks, 'max_users' => $users,
+                'storage_mb' => $mb, 'is_student' => $student, 'is_public' => true, 'active' => true, 'sort_order' => $order,
+            ]);
+        }
+        \App\Platform\Billing\Coupon::firstOrCreate(['code' => 'LAUNCH25'], ['kind' => 'percent', 'value' => 25, 'valid_until' => now()->addMonths(3)->toDateString(), 'max_uses' => 100]);
     }
 
     /** Clients, a supplier with hired trucks, vendors, and approved rates. */

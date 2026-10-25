@@ -49,6 +49,7 @@ class TeamService
     {
         $company = $this->context->company();
         $roles   = $this->grantableRoles($by, $roleCodes);
+        app(\App\Platform\Billing\Limits::class)->assertRoom($company, 'users');
 
         $member = DB::transaction(function () use ($company, $name, $email, $roles, $title) {
             $account = Account::where('email', $email)->lockForUpdate()->first();

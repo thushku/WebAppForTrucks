@@ -29,6 +29,11 @@ founder's laptop) in `phoneapp/`.
 ## Where things are
 
 - `app/Platform` — tenancy, sign-in (incl. QR web login), roles and permissions, team, audit, signup, console.
+  `app/Platform/Billing` (M13): `Plan`, `Coupon`, `Subscription`; `Billing` subscribes, extends trials, suspends,
+  resumes and runs the nightly sweep (`fleet:subscriptions`) that makes ended trials and plans read-only (web via
+  `RequireCompany`, phones via `ResolveApiCompany` → 423 `read_only`); `Limits` refuses one truck or invitation too
+  many. Console pages: `Platform/{Company,Plan,System}Controller` (companies, plans and coupons, storage clean-up,
+  database export, the announcement); the company side is Settings → Plan and billing (`billing.index`).
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,

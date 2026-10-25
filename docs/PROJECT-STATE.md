@@ -2,6 +2,53 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M13: plans, subscriptions, coupons, limits, storage, database export
+
+**Built (in `webapp/`, `app/Platform/Billing` and the console; blueprint 04 §4, decisions D20 and P10):**
+- **Plans** (console → Plans): name, description, country (or every country), currency (INR, AED, USD), priced
+  per truck, flat or once for life; monthly, annual or lifetime prices; the most trucks, users and storage; the
+  modules included; a student tier; shown on the website and the billing page or hidden; switched off, never
+  deleted, once in use.
+- **Coupons**: a percentage or an amount off, from and until dates, a use limit, for some plans or all; refused in
+  plain words (switched off, not started, ended, used up, not for this plan, another currency).
+- **Companies** (console → Companies): every company with its status (on trial, paying, read-only, suspended),
+  plan, trucks, trial end, last seen and owner, searchable. A company's page shows its plan and use against the
+  limits, and lets the super-admin **put it on a plan** (from a date, trucks billed, coupon, payment reference;
+  the running plan ends the day before), **extend the trial** (with a reason), **suspend** it (nobody can sign in;
+  nothing deleted) and **resume** it; its subscriptions, team and billing history.
+- **The nightly sweep** (`php artisan fleet:subscriptions`, scheduled at 00:20 IST): subscriptions past their end
+  date end; companies whose trial or plan has run out become **read-only** on the web and now also on the phone
+  API (`423 read_only`; the phone keeps its queue and sends it after renewal; QR sign-in approval still works).
+  `GET /me` gives the company's status, `read_only`, trial end and the announcement (api-v1.md updated).
+- **Limits**: adding a truck or inviting a team member beyond the plan is refused with the plan's name and the
+  way out; nothing already there is touched. A company on its trial has no limits.
+- **Settings → Plan and billing** (`billing.view`; open while read-only): the plan or trial with its end date,
+  trucks, team members and storage against the limits (meters), the plans offered in the company's country with
+  the price for its trucks ("Free" for a free plan), buttons that open WhatsApp or email to the provider with the
+  request filled in, and what has been paid. The trial card and the read-only banner link to it.
+- **Console → System**: storage per company against its plan; **files no row points to** (left by a failed upload
+  or a deleted company; files younger than an hour are left alone) counted and removed; the **database export**
+  (mysqldump / mariadb-dump, gzip, streamed, never kept on the server, logged as sensitive, at most 6 an hour);
+  the **announcement** shown at the top of every company's screens and in the apps.
+- Every settings page on a phone: the side list now scrolls sideways instead of making the page wider than the
+  screen (found while checking the billing page at 390 px).
+- Demo: sample plans (Starter, Fleet per truck, Lifetime, Student; Fleet in AED for the UAE) and the coupon
+  LAUNCH25. Console sign-in for local use: `php artisan platform:admin you@example.com`.
+
+**Tests:** 205 passing (new `BillingTest`, 5 tests: plans and coupons in the console, a subscription with the coupon
+taken off, a used-up coupon, a wrong period, moving plans; the nightly sweep making an ended trial read-only on the
+web and the phone and a recorded payment opening it again, then the month running out; truck and invitation limits
+and the billing page; trial extension, suspension and resumption with their reasons in the log; storage clean-up,
+the database export and the announcement on the web and in `/me`).
+
+**Notes:** restoring a database is done with the `mysql` command on the server (`gunzip < file.sql.gz | mysql
+fleet`), deliberately not by uploading through a web page. Online payment (Razorpay or Stripe) needs your go-ahead
+before it is added; until then payments are recorded in the console.
+
+**Not yet:** online payment and automatic renewal reminders by email/WhatsApp, a company's own full-data export
+(`data.export`), modules switched off per plan (the plan records them; the menu does not yet hide them), storage
+limit enforced on upload (shown, not yet refused).
+
 ## 2026-10-26 — Milestone M12: the dashboard, the live map, route replay, work queues, reports
 
 **Built (in `webapp/`, module `app/Modules/Reports`; blueprint 04 §3.1, §2):**

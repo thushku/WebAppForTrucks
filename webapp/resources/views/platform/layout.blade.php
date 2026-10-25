@@ -14,8 +14,9 @@
   <span class="font-display text-lg font-semibold">{{ $brand }} · {{ __('Console') }}</span>
   @auth('platform')
     <nav class="ms-6 hidden gap-1 text-sm sm:flex">
-      <a href="{{ route('platform.home') }}" class="rounded-lg px-3 py-1.5 hover:bg-white/10 {{ request()->routeIs('platform.home') ? 'bg-white/10' : '' }}">{{ __('Overview') }}</a>
-      <a href="{{ route('platform.settings') }}" class="rounded-lg px-3 py-1.5 hover:bg-white/10 {{ request()->routeIs('platform.settings') ? 'bg-white/10' : '' }}">{{ __('Settings') }}</a>
+      @foreach ([['platform.home', 'platform.home', __('Overview')], ['platform.companies', 'platform.companies*', __('Companies')], ['platform.plans', 'platform.plans*', __('Plans')], ['platform.system', 'platform.system*', __('System')], ['platform.settings', 'platform.settings*', __('Settings')]] as [$name, $pattern, $label])
+        <a href="{{ route($name) }}" class="rounded-lg px-3 py-1.5 hover:bg-white/10 {{ request()->routeIs($pattern) ? 'bg-white/10' : '' }}" @if (request()->routeIs($pattern)) aria-current="page" @endif>{{ $label }}</a>
+      @endforeach
     </nav>
     <form method="POST" action="{{ route('platform.logout') }}" class="ms-auto">
       @csrf

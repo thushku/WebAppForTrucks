@@ -332,6 +332,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/{person}', [PersonController::class, 'show'])->middleware('permission:people.view')->name('show');
         });
 
+        // Plan and billing sits with the settings but keeps its own name: billing.* stays open while the company is read-only.
+        Route::get('/settings/billing', Settings\BillingController::class)->middleware('permission:billing.view')->name('billing.index');
+
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/', Settings\SettingsController::class)->name('index');
 

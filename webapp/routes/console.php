@@ -16,3 +16,6 @@ Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 // Document expiry reminders, early morning in India (07:00 IST) and the UAE (05:30 GST).
 Schedule::command('documents:remind')->dailyAt('01:30')->name('documents-remind')->withoutOverlapping();
+
+// Ended trials and plans turn read-only (data kept) — just after midnight, India time.
+Schedule::command('fleet:subscriptions')->dailyAt('00:20')->timezone('Asia/Kolkata')->name('subscriptions-sweep')->withoutOverlapping();

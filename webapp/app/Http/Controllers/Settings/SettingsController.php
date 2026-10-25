@@ -28,6 +28,7 @@ class SettingsController extends Controller
         'settings.templates' => ['Templates', 'palette', ['settings.templates']],
         'settings.security'  => ['Sign-in security', 'lock', ['security.configure']],
         'settings.activity'  => ['Activity', 'clock', ['audit.view']],
+        'billing.index'      => ['Plan and billing', 'credit-card', ['billing.view']],
     ];
 
     /** Every permission that opens some settings page. */
