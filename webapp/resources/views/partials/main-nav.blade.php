@@ -13,7 +13,7 @@
       [null, 'map', __('Live map'), 'map.view', 'bg-sky-50 text-sky-700'],
     ],
     __('Money') => [
-      [null, 'receipt', __('Invoices & LR'), 'invoice.view', 'bg-violet-50 text-violet-700'],
+      ['invoices.index', 'receipt', __('Invoices & LR'), 'invoice.view', 'bg-violet-50 text-violet-700', 'invoices.'],
       [null, 'ledger', __('Ledgers'), 'ledger.view', 'bg-rose-50 text-rose-700'],
       [null, 'wallet', __('Accounts'), 'accounts.view', 'bg-teal-50 text-teal-700'],
       [null, 'payroll', __('Payroll'), 'payroll.view', 'bg-orange-50 text-orange-700'],

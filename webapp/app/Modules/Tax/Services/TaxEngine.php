@@ -127,11 +127,12 @@ class TaxEngine
             $rate = $code->rateOn($ctx->date) ?? throw new TaxException(__(':code has no rate for :date.', ['code' => $code->name, 'date' => $ctx->date->format('d M Y')]), "lines.{$i}.tax_code");
             $parts = in_array($code->category, ['Z', 'E', 'O'], true) ? [] : $rate->partsFor($place['where'] === 'national' ? 'intra' : $place['where']);
 
-            $input[$i] = $line + [
+            // What the engine decided wins over what the line came with (an empty SAC must not hide the rule's).
+            $input[$i] = array_merge($line, [
                 'quantity' => $line['quantity'] ?? 1, 'parts' => $parts, 'reverse_charge' => $code->reverse_charge,
                 'tax_code' => $code->code, 'category' => $code->category, 'tax_code_name' => $code->name, 'rate_id' => $rate->id,
-                'sac_code' => $resolved[$i]['sac'], 'rule_id' => $resolved[$i]['rule_id'], 'legal_text' => $code->legal_text,
-            ];
+                'sac_code' => $resolved[$i]['sac'] ?? ($line['sac_code'] ?? null), 'rule_id' => $resolved[$i]['rule_id'], 'legal_text' => $code->legal_text,
+            ]);
         }
         $computed = TaxCalculator::compute($input, $options);
 

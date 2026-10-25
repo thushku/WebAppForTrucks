@@ -25,6 +25,12 @@ document.addEventListener('submit', (event) => {
   }
 }, true);
 
+// One button of a form that asks first (the builder's "Save and issue").
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-confirm-click]');
+  if (button && !window.confirm(button.dataset.confirmClick)) event.preventDefault();
+});
+
 // Places and parties: offer a free short code from the name until the code is typed by hand.
 document.querySelectorAll('[data-code-suggest]').forEach((form) => {
   const name = form.querySelector('[data-suggest-name]');
@@ -155,4 +161,18 @@ document.addEventListener('change', (event) => {
   const all = event.target.closest('[data-check-all]');
   if (!all) return;
   document.querySelectorAll(`[data-check-item="${all.dataset.checkAll}"]:not(:disabled)`).forEach((box) => { box.checked = all.checked; });
+});
+
+// Another row from a template: data-add-row="<tbody selector>" data-template="<template selector>"
+// (the bill builder). __N__ in the template becomes a fresh index. A row's data-remove-row button removes it.
+document.addEventListener('click', (event) => {
+  const add = event.target.closest('[data-add-row]');
+  if (add) {
+    const body = document.querySelector(add.dataset.addRow);
+    const template = document.querySelector(add.dataset.template);
+    if (body && template) body.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__N__', String(Date.now())));
+    return;
+  }
+  const remove = event.target.closest('[data-remove-row]');
+  if (remove) remove.closest('tr')?.remove();
 });

@@ -170,7 +170,19 @@
                 <td class="text-sm">{{ $materials[$c->material] ?? $c->description ?? '—' }}<div class="text-xs text-ink-500">{{ collect([$c->packages ? $c->packages . ' ' . __($c->package_type ?? 'pcs') : null, $c->weight() ? rtrim(rtrim(number_format($c->weight(), 3), '0'), '.') . ' MT' : null])->filter()->join(' · ') }}</div></td>
                 <td class="text-sm">{{ $c->pickupStop?->place?->name }} → {{ $c->dropStop?->place?->name }}</td>
                 @if ($canMoney)<td class="money text-end">{{ \App\Support\Money::company($c->totalCharges()) }}<div class="text-xs text-ink-500">{{ $c->rate !== null ? \App\Support\Money::company($c->rate) . ' ' . __(\App\Modules\Trips\Models\Consignment::BASES[$c->freight_basis]) : '' }}</div></td>@endif
-                <td><span class="pill bg-ink-100 text-ink-700">{{ __(\App\Modules\Trips\Models\Consignment::STATUSES[$c->status]) }}</span>@if ($c->hazardous)<span class="pill ms-1 bg-red-50 text-overdue">{{ __('Hazardous') }}</span>@endif</td>
+                <td>
+                  <span class="pill bg-ink-100 text-ink-700">{{ __(\App\Modules\Trips\Models\Consignment::STATUSES[$c->status]) }}</span>@if ($c->hazardous)<span class="pill ms-1 bg-red-50 text-overdue">{{ __('Hazardous') }}</span>@endif
+                  @if ($c->lr_number && $c->status !== 'cancelled')
+                    <div class="mt-1 flex flex-wrap gap-2 text-xs">
+                      <a href="{{ route('trips.loads.lr', [$t, $c]) }}" target="_blank" rel="noopener" class="font-medium text-brand-700 hover:underline">{{ __('Print LR') }}</a>
+                      @if ($c->invoice_id)
+                        @can('invoice.view')<a href="{{ route('invoices.show', $c->invoice_id) }}" class="font-medium text-paid hover:underline">{{ __('Billed') }}</a>@endcan
+                      @else
+                        @can('invoice.create')<a href="{{ route('invoices.create', ['party' => $c->billing_party_id, 'loads' => [$c->id]]) }}" class="font-medium text-brand-700 hover:underline">{{ __('Bill it') }}</a>@endcan
+                      @endif
+                    </div>
+                  @endif
+                </td>
               </tr>
             @empty
               <tr><td colspan="6" class="py-8 text-center text-ink-500">{{ $t->trip_kind === 'empty' ? __('Empty run — no load.') : __('No load yet.') }}</td></tr>

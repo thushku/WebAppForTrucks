@@ -260,6 +260,32 @@ class FleetDemo extends Command
         \App\Modules\Trips\Models\TripAdvance::create(['trip_id' => $t4->id, 'person_id' => $person['Ravi Kumar'], 'amount' => 15000, 'mode' => 'cash', 'given_on' => now()->subDays(4)->toDateString(), 'created_by' => $ownerId]);
         $this->finishedRoad($t4->fresh(), $ownerId);
         $trips->end($t4->fresh(), 154720, false, now()->subDays(3)->setTime(4, 10));
+
+        $this->bills($t4->fresh(), $ownerId);
+    }
+
+    /**
+     * Our bank account, and the Chennai trip billed: the bill issued (GTA under
+     * reverse charge, UltraTech registered in Tamil Nadu) and part of it paid
+     * with TDS deducted.
+     */
+    private function bills(\App\Modules\Trips\Models\Trip $trip, int $ownerId): void
+    {
+        $owner = \App\Models\Account::find($ownerId);
+        \App\Modules\Settings\Models\CompanyBankAccount::create(['label' => 'HDFC current', 'bank_name' => 'HDFC Bank', 'holder_name' => 'Sharma Roadlines Private Limited',
+            'account_number' => '50200012345678', 'account_last4' => '5678', 'ifsc' => 'HDFC0001234', 'branch' => 'Vyttila, Kochi', 'upi_id' => 'sharmaroadlines@hdfcbank',
+            'currency' => 'INR', 'is_default' => true, 'show_on_invoice' => true]);
+
+        $load = \App\Modules\Trips\Models\Consignment::where('trip_id', $trip->id)->first();
+        $invoices = app(\App\Modules\Invoicing\Services\InvoiceService::class);
+        $invoice = $invoices->draftFromLoads($load->billingParty, [$load->id], $owner);
+        $invoice->forceFill(['terms' => 'Payment within 30 days. Interest at 18% a year after the due date. Subject to Kochi jurisdiction.'])->save();
+        $invoice = $invoices->finalise($invoice, $owner);
+
+        app(\App\Modules\Invoicing\Services\ReceiptService::class)->record($load->billingParty, [
+            'receipt_date' => now()->toDateString(), 'amount' => 20000, 'tds_amount' => 380, 'tds_section' => '393(1)', 'mode' => 'neft', 'reference' => 'UTIBN26102500412',
+            'narration' => 'Part payment for ' . $invoice->number, 'allocations' => [$invoice->id => 20380],
+        ], $owner);
     }
 
     /** A finished trip's entries, already checked by the office. */

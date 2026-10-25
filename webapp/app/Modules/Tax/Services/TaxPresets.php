@@ -56,13 +56,28 @@ class TaxPresets
                     }
                 }
 
-                if (! TaxRule::where('regime', $regime)->where('is_system', true)->exists()) {
-                    foreach ($preset['rules'] as $rule) {
+                // A preset rule is added when the company has no rule with the same conditions (a later
+                // version of the preset brings its new rules; a rule the company changed stays as it is).
+                $have = TaxRule::where('regime', $regime)->get();
+                foreach ($preset['rules'] as $rule) {
+                    $same = $have->first(fn (TaxRule $r) => collect([...TaxRule::CONDITIONS, 'valid_from', 'valid_to'])
+                        ->every(fn ($c) => $this->sameCondition($r, $c, $rule[$c] ?? null)));
+                    if (! $same) {
                         TaxRule::create($rule + ['regime' => $regime, 'is_system' => true]);
                     }
                 }
             });
         });
+    }
+
+    private function sameCondition(TaxRule $rule, string $condition, mixed $value): bool
+    {
+        $have = $rule->{$condition};
+        if ($have instanceof \Carbon\CarbonInterface) {
+            $have = $have->toDateString();
+        }
+
+        return $have === $value;
     }
 
     /** How a rate splits: India by place of supply, the UAE in one VAT line. */

@@ -69,6 +69,7 @@ class TripService
     public function update(Trip $trip, array $fields, array $crew): void
     {
         $this->assertPlanning($trip);
+        $this->assertNothingBilled($trip);
 
         DB::transaction(function () use ($trip, $fields, $crew) {
             $trip->fill($fields)->save();
@@ -294,6 +295,7 @@ class TripService
 
     public function cancel(Trip $trip, string $reason): void
     {
+        $this->assertNothingBilled($trip);
         if (! $trip->isCancellable()) {
             throw ValidationException::withMessages(['trip' => __('A trip that has started cannot be cancelled. End it early instead.')]);
         }
@@ -304,6 +306,15 @@ class TripService
             Consignment::where('trip_id', $trip->id)->where('status', '!=', 'cancelled')->update(['status' => 'cancelled', 'updated_at' => now()]);
         });
         $this->audit->record('trip.cancelled', "Cancelled {$trip->label}", 'trip', (string) $trip->id, $trip->label, reason: $reason, severity: 'notable');
+    }
+
+    /** A trip with a billed LR keeps its route, date and client (13 §A #6). */
+    private function assertNothingBilled(Trip $trip): void
+    {
+        $billed = Consignment::where('trip_id', $trip->id)->whereNotNull('invoice_id')->first();
+        if ($billed) {
+            ConsignmentService::assertNotBilled($billed);
+        }
     }
 
     private function assertPlanning(Trip $trip): void

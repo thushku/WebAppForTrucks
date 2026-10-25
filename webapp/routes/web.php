@@ -9,6 +9,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Documents\DocumentShareController;
 use App\Http\Controllers\Documents\RequiredTypesController;
+use App\Http\Controllers\Invoicing\InvoiceController;
+use App\Http\Controllers\Invoicing\PublicDocumentController;
+use App\Http\Controllers\Invoicing\ReceiptController;
 use App\Http\Controllers\Fleet\ComplaintController;
 use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
@@ -64,6 +67,10 @@ Route::post('/invite/{token}', [InvitationController::class, 'accept'])->middlew
 // A shared pack of documents (expiring link; no sign-in).
 Route::get('/share/{token}', [DocumentShareController::class, 'show'])->middleware('throttle:60,1')->name('share.show');
 Route::get('/share/{token}/file/{file}', [DocumentShareController::class, 'file'])->middleware('throttle:120,1')->whereNumber('file')->name('share.file');
+
+// A bill or receipt by its secure link, for the client (no sign-in; M9).
+Route::get('/d/{token}', [PublicDocumentController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('documents.public');
+Route::get('/d/{token}/pdf', [PublicDocumentController::class, 'pdf'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:20,1')->name('documents.public.pdf');
 
 // What a phone camera opens when the sign-in QR is scanned outside the app.
 Route::get('/qr/{token}', [QrLoginController::class, 'scan'])->where('token', '[A-Za-z0-9]{40}')->name('login.qr.scan');
@@ -125,7 +132,7 @@ Route::middleware('auth')->group(function () {
                 Route::put('/{trip}', [TripController::class, 'update'])->name('update');
                 Route::get('/{trip}/loads/new', [ConsignmentController::class, 'create'])->name('loads.create');
                 Route::post('/{trip}/loads', [ConsignmentController::class, 'store'])->name('loads.store');
-                Route::get('/{trip}/loads/{consignment}', [ConsignmentController::class, 'edit'])->name('loads.edit');
+                Route::get('/{trip}/loads/{consignment}', [ConsignmentController::class, 'edit'])->whereNumber('consignment')->name('loads.edit');
                 Route::put('/{trip}/loads/{consignment}', [ConsignmentController::class, 'update'])->name('loads.update');
                 Route::post('/{trip}/loads/{consignment}/cancel', [ConsignmentController::class, 'cancel'])->name('loads.cancel');
                 Route::post('/{trip}/stops', [ConsignmentController::class, 'storeStop'])->name('stops.store');
@@ -160,7 +167,45 @@ Route::middleware('auth')->group(function () {
                 Route::post('/{trip}/hire/{challan}/lines', [HireChallanController::class, 'storeLine'])->name('hire.lines.store');
             });
             Route::get('/{trip}/photos/{photo}', [TripController::class, 'photo'])->middleware('permission:trip.view')->name('photo');
+            Route::get('/{trip}/loads/{consignment}/lr', [ConsignmentController::class, 'printLr'])->middleware('permission:lr.view,trip.view')->name('loads.lr');
+            Route::get('/{trip}/loads/{consignment}/lr.pdf', [ConsignmentController::class, 'pdfLr'])->middleware('permission:lr.view,trip.view')->name('loads.lr.pdf');
             Route::get('/{trip}', [TripController::class, 'show'])->middleware('permission:trip.view')->name('show');
+        });
+
+        // Bills: invoices, supplementary bills, credit and debit notes (M9).
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::middleware('permission:invoice.view')->group(function () {
+                Route::get('/', [InvoiceController::class, 'index'])->name('index');
+                Route::get('/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('show');
+                Route::get('/{invoice}/print', [InvoiceController::class, 'print'])->name('print');
+                Route::get('/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('pdf');
+            });
+            Route::middleware('permission:invoice.create')->group(function () {
+                Route::get('/new', [InvoiceController::class, 'create'])->name('create');
+                Route::post('/', [InvoiceController::class, 'store'])->name('store');
+                Route::get('/{invoice}/edit', [InvoiceController::class, 'edit'])->name('edit');
+                Route::put('/{invoice}', [InvoiceController::class, 'update'])->name('update');
+                Route::post('/{invoice}/against', [InvoiceController::class, 'against'])->name('against');
+            });
+            Route::post('/{invoice}/finalise', [InvoiceController::class, 'finalise'])->middleware('permission:invoice.finalise')->name('finalise');
+            Route::post('/{invoice}/void', [InvoiceController::class, 'void'])->middleware('permission:invoice.create,invoice.void')->name('void');
+            Route::post('/{invoice}/submit', [InvoiceController::class, 'submit'])->middleware('permission:invoice.send')->name('submit');
+            Route::post('/{invoice}/shared', [InvoiceController::class, 'shared'])->middleware('permission:invoice.send')->name('shared');
+        });
+
+        // Money received (M9).
+        Route::prefix('receipts')->name('receipts.')->group(function () {
+            Route::middleware('permission:payment.view')->group(function () {
+                Route::get('/', [ReceiptController::class, 'index'])->name('index');
+                Route::get('/{receipt}', [ReceiptController::class, 'show'])->whereNumber('receipt')->name('show');
+                Route::get('/{receipt}/print', [ReceiptController::class, 'print'])->name('print');
+                Route::get('/{receipt}/pdf', [ReceiptController::class, 'pdf'])->name('pdf');
+            });
+            Route::middleware('permission:payment.record')->group(function () {
+                Route::get('/new', [ReceiptController::class, 'create'])->name('create');
+                Route::post('/', [ReceiptController::class, 'store'])->name('store');
+            });
+            Route::post('/{receipt}/void', [ReceiptController::class, 'void'])->middleware('permission:payment.void')->name('void');
         });
 
         // The crew's entries waiting for the office (M7).
@@ -288,6 +333,12 @@ Route::middleware('auth')->group(function () {
                 Route::get('/numbering', [Settings\NumberingController::class, 'index'])->name('numbering');
                 Route::put('/numbering/{sequence}', [Settings\NumberingController::class, 'update'])->name('numbering.update');
                 Route::post('/numbering/{sequence}/preview', [Settings\NumberingController::class, 'preview'])->name('numbering.preview');
+            });
+
+            Route::middleware('permission:settings.bank')->group(function () {
+                Route::get('/banks', [Settings\BankAccountController::class, 'index'])->name('banks');
+                Route::post('/banks', [Settings\BankAccountController::class, 'store'])->name('banks.store');
+                Route::put('/banks/{account}', [Settings\BankAccountController::class, 'update'])->name('banks.update');
             });
 
             Route::middleware('permission:settings.tax')->group(function () {

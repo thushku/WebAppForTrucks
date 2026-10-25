@@ -21,6 +21,7 @@ final class ServiceClasses
         'FUEL_SURCHARGE'              => 'Fuel surcharge',
         'PACKING'                     => 'Packing',
         'TOLL_RECHARGE'               => 'Toll recovered',
+        'OTHER_CHARGES'               => 'Other charges billed with the freight',
         'DISBURSEMENT'                => 'Paid on your behalf (pure agent)',
         'DAMAGE_CLAIM'                => 'Damage claim',
         'PENALTY'                     => 'Penalty',
@@ -35,10 +36,10 @@ final class ServiceClasses
     public const MAIN = ['FREIGHT_ROAD', 'VEHICLE_HIRE_WITH_DRIVER', 'VEHICLE_HIRE_WITHOUT_DRIVER'];
 
     /** Add-ons billed with the freight. */
-    public const ADD_ONS = ['LOADING_UNLOADING', 'DETENTION', 'DEMURRAGE', 'FUEL_SURCHARGE', 'PACKING', 'TOLL_RECHARGE'];
+    public const ADD_ONS = ['LOADING_UNLOADING', 'DETENTION', 'DEMURRAGE', 'FUEL_SURCHARGE', 'PACKING', 'TOLL_RECHARGE', 'OTHER_CHARGES'];
 
     /** Classes where the goods move: place of supply looks at where they were handed over. */
-    public const TRANSPORT = ['FREIGHT_ROAD', 'VEHICLE_HIRE_WITH_DRIVER', 'LOADING_UNLOADING', 'DETENTION', 'DEMURRAGE', 'FUEL_SURCHARGE', 'PACKING', 'TOLL_RECHARGE'];
+    public const TRANSPORT = ['FREIGHT_ROAD', 'VEHICLE_HIRE_WITH_DRIVER', 'LOADING_UNLOADING', 'DETENTION', 'DEMURRAGE', 'FUEL_SURCHARGE', 'PACKING', 'TOLL_RECHARGE', 'OTHER_CHARGES'];
 
     public static function exists(string $class): bool
     {

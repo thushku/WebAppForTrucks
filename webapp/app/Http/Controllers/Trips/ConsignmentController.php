@@ -114,4 +114,22 @@ class ConsignmentController extends Controller
             'materials'   => MasterItem::ofList('material')->where('active', true)->pluck('name', 'code'),
         ];
     }
+
+    /** The LR in its copy set (consignor, consignee, driver, office), printed from the browser. */
+    public function printLr(Trip $trip, Consignment $consignment, \App\Modules\Invoicing\Services\DocumentRenderer $renderer): \Illuminate\Http\Response
+    {
+        abort_unless($consignment->trip_id === $trip->id && $consignment->lr_number, 404);
+
+        return response($renderer->lrHtml($consignment));
+    }
+
+    public function pdfLr(Trip $trip, Consignment $consignment, \App\Modules\Invoicing\Services\DocumentRenderer $renderer): \Symfony\Component\HttpFoundation\Response
+    {
+        abort_unless($consignment->trip_id === $trip->id && $consignment->lr_number, 404);
+        if (! $renderer->canPdf()) {
+            return redirect()->route('trips.loads.lr', [$trip, $consignment]);
+        }
+
+        return \App\Modules\Invoicing\Services\DocumentRenderer::pdfResponse($renderer->pdf($renderer->lrHtml($consignment, true)), 'LR-' . str_replace('/', '-', $consignment->lr_number));
+    }
 }

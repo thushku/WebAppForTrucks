@@ -2,6 +2,56 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M9 (part 1): invoices, notes, receipts, LR print
+
+**Built (in `webapp/`, module `app/Modules/Invoicing`, ported from Clinic Ledger — D14):**
+- **Bills from LRs** (`/invoices`): choose the client, tick their LRs waiting to be billed (one, or several for a
+  **consolidated bill with an LR annexure** — "Total trips / LRs: N", "Subtotal (N LRs)"), or a blank bill. Lines per
+  LR: freight (its basis in the detail, e.g. "18.5 MT × ₹3,400 per tonne"), loading, unloading, other charges; the
+  trip's "other charges billed" once per trip; the party's advance as **"less advance received"** (tax on the full
+  value). Bills domestic and international loads separately.
+- **The builder** of a draft: dates, client reference, our GSTIN / the client's GSTIN billed, loading state (India) or
+  transport type and our role (UAE), papers on file, discount (% or amount, spread before tax), inclusive rates,
+  lines (charge class, description, detail, qty, unit, rate, discount, the tax "by the rules" or chosen by hand with a
+  reason), add more LRs, notes, terms. Every save works the tax out with the **engine** (M8) and shows it with "why";
+  a case the engine cannot decide is shown on the draft and **stops issuing**.
+- **Issue (finalise) in one transaction**: tax again, the number (`INV/26-27/00001`; per GSTIN when the company has
+  several), the seller / buyer / bank **snapshot** (encrypted), the LRs marked **billed** and **locked** (13 §A #6:
+  their trip and LR can no longer change), the secure link, the client's balance, the audit log. A finalised bill is
+  **never edited — enforced in the model** (also against code); it is voided (number kept, reason, sensitive in the
+  log, LRs free again) or corrected by a **credit note** (lines copied with the bill's own tax and rates; never more
+  than is left to credit), a **debit note** or a **supplementary bill** (detention, rate difference — add-ons take the
+  original freight's tax).
+- **Receipts** (`/receipts`): money received + **TDS the client deducted** + other deductions (shortage, damage —
+  with what) settle bills **oldest first or as typed**; TDS spread over the bills (each bill knows its TDS for 26AS
+  matching); money left over is the client's **advance**; numbered at once (`RCT/26-27/00001`); void (cheque
+  bounced) puts the bills back.
+- **Client balances** kept in step (outstanding, overdue, advance, open bills, oldest due) for fast lists.
+- **Printed documents** — one self-contained HTML page each, used for the screen preview, printing, the public link
+  and the PDF: **tax invoice / bill of supply / supplementary / credit / debit note** in the two GST copies (Original
+  for recipient, Duplicate for supplier — Rule 48), GSTIN, state and PAN, place of supply, **"Reverse charge:
+  Yes/No"**, SAC per line, tax summary (reverse charge shown as payable by the recipient), round off, amount in words,
+  less advance / received / balance due, the expected TDS line, bank details, **UPI QR for the balance due**, terms,
+  sign-off, DRAFT / VOID watermarks; **LR** in its four copies (consignor, consignee, driver/lorry — freight hidden,
+  office) with tinted pages, risk banner, goods, weights, e-way bills, GST payable by, POD box; **money receipt** (A5).
+- **PDF by the server's headless Chromium** (no PDF package; falls back to the browser's print), file names
+  `Invoice-INV-26-27-00001.pdf`.
+- **Secure public link** `/d/{token}` (no sign-in, throttled, not indexed; opening marks the bill viewed) and
+  **WhatsApp share** with a ready message; every share and open in the delivery trail. **Bill submission** record
+  (by hand / courier / email / portal, date, docket).
+- **Settings → Bank accounts**: account number, IBAN and UPI id encrypted, shown masked; default / on bills / in use.
+- Trip page: "Print LR" and "Bill it" per LR, "Billed" link once billed. Menu: Invoices & LR.
+- Demo: our HDFC account, the Chennai trip's LR billed (GTA reverse charge, UltraTech in Tamil Nadu → IGST
+  notional) and part-paid with TDS.
+- Fixed on the way: a line's empty SAC hid the rule's SAC in the engine (now the engine's decision wins).
+
+**Tests:** 175 passing (new `InvoiceTest`, 11 tests, including a real PDF).
+
+**Not yet (M9 part 2 / M10):** templates and the template editor (themes, named templates, defaults per
+branch/client, copy sets, custom fields, label renames), email sending, manual LR books, bill of supply/receipt
+voucher for advances, multi-currency bills, quotations, payment vouchers, the client page billing view (13 §A #20–21),
+posting to the books (M11).
+
 ## 2026-10-25 — Milestone M8: the tax engine (India GST, UAE VAT)
 
 **Built (in `webapp/`, module `app/Modules/Tax`):**

@@ -37,7 +37,10 @@ founder's laptop) in `phoneapp/`.
   with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `CrewCommands` are the phone's taps, kept per
   UUID in `api_commands` so a retry never runs twice), `Tax` (registrations, dated codes/rates/rules from the
   country presets, `TaxEngine` → place of supply, rule match, `TaxCalculator`, `Withholding` for TDS; no rule = an
-  error, never 0 %). Phone sign-in tokens and devices: `app/Platform/Devices`.
+  error, never 0 %), `Invoicing` (bills from LRs, notes, receipts with TDS, balances, `DocumentData` snapshot →
+  `resources/views/documents/*` one HTML page per document, PDF by headless Chromium). A finalised invoice is
+  never edited (the model refuses); billed LRs and their trips are locked. Phone sign-in tokens and devices:
+  `app/Platform/Devices`.
 - The phone API is documented for the phone-app session in `docs/handover/api-v1.md`; keep it in step with
   `routes/api.php` and `tests/Feature/PhoneApiTest.php`.
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`

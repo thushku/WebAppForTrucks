@@ -27,6 +27,7 @@ class ConsignmentService
     /** @param array<string, mixed> $data */
     public function save(Trip $trip, ?Consignment $consignment, array $data, array $ewaybills = []): Consignment
     {
+        self::assertNotBilled($consignment);
         if (in_array($trip->status, ['ended', 'settled', 'closed', 'cancelled'], true)) {
             throw ValidationException::withMessages(['consignment' => __('This trip is :status; its loads can no longer change.', ['status' => mb_strtolower(__(Trip::STATUSES[$trip->status]))])]);
         }
@@ -60,6 +61,7 @@ class ConsignmentService
 
     public function cancel(Trip $trip, Consignment $consignment, string $reason): void
     {
+        self::assertNotBilled($consignment);
         if (! $trip->isPlanning()) {
             throw ValidationException::withMessages(['consignment' => __('The trip has started; cancel the LR from the LR screen (M9).')]);
         }
@@ -115,6 +117,19 @@ class ConsignmentService
         }
         if ($drop <= $pick) {
             throw ValidationException::withMessages(['drop_stop_id' => __('The drop must come after the pickup.')]);
+        }
+    }
+
+    /**
+     * An LR on an issued bill is fixed: client, freight, charges, date and
+     * route (13 §A #6). Changes go through a credit or debit note, a
+     * supplementary bill, or voiding the bill.
+     */
+    public static function assertNotBilled(?Consignment $consignment): void
+    {
+        if ($consignment?->invoice_id) {
+            $number = \App\Modules\Invoicing\Models\Invoice::whereKey($consignment->invoice_id)->value('number');
+            throw ValidationException::withMessages(['consignment' => __('LR :lr is on bill :number: it can no longer change. Use a credit or debit note, a supplementary bill, or void the bill.', ['lr' => $consignment->lr_number, 'number' => $number])]);
         }
     }
 }
