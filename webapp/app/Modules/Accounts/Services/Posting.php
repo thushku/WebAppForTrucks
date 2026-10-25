@@ -7,6 +7,7 @@ use App\Modules\Fleet\Models\ServiceJob;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\Receipt;
 use App\Modules\Parties\Models\Party;
+use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Road\Models\RoadEvent;
 use App\Modules\Road\Services\EventTypes;
 use App\Modules\Trips\Models\BrokerCommission;
@@ -194,6 +195,50 @@ class Posting
             'narration' => __('Settlement of :name, :trip (:mode)', ['name' => $settlement->person->name, 'trip' => $trip->trip_number, 'mode' => __(TripSettlement::MODES[$settlement->mode] ?? $settlement->mode)]),
             'source_type' => 'settlement', 'source_id' => $settlement->id, 'created_by' => $settlement->settled_by,
         ], $lines);
+    }
+
+    /**
+     * A payslip in an approved pay run (M16): the pay is owed to the person
+     * (salary expense, their earnings credited); each deduction comes off
+     * what we owe — taking back trip cash they hold or a loan, or recovered
+     * as income (a fine).
+     */
+    public function payslip(Payslip $slip): ?Voucher
+    {
+        $slip->loadMissing(['run', 'person']);
+        $crew = $this->chart->person($slip->person);
+        $gross = round((float) $slip->base_pay + (float) $slip->additions, 2);
+        $lines = [['ledger' => $this->chart->ledger('salaries'), 'debit' => $gross], ['ledger' => $crew, 'credit' => $gross, 'bucket' => 'earnings']];
+        foreach ($slip->lines ?? [] as $line) {
+            if ($line['kind'] !== 'deduction') {
+                continue;
+            }
+            $lines[] = ['ledger' => $crew, 'debit' => (float) $line['amount'], 'bucket' => 'earnings', 'note' => $line['label']];
+            $lines[] = match ($line['type']) {
+                'trip_cash' => ['ledger' => $crew, 'credit' => (float) $line['amount'], 'bucket' => 'trip_cash', 'note' => $line['label']],
+                'loan' => ['ledger' => $crew, 'credit' => (float) $line['amount'], 'bucket' => 'loan', 'note' => $line['label']],
+                default => ['ledger' => $this->chart->ledger('staff_recoveries'), 'credit' => (float) $line['amount'], 'note' => $line['label']],
+            };
+        }
+
+        return $this->books->post([
+            'type' => 'journal', 'date' => $slip->run->period_to, 'reference' => __('Pay :period', ['period' => $slip->run->periodLabel()]),
+            'narration' => __('Pay of :name for :period', ['name' => $slip->person->name, 'period' => $slip->run->periodLabel()]),
+            'source_type' => 'payslip', 'source_id' => $slip->id, 'created_by' => $slip->run->approved_by,
+        ], $lines);
+    }
+
+    /** A payslip paid: what we owed the person goes out of cash or the bank. */
+    public function payslipPayment(Payslip $slip): ?Voucher
+    {
+        $slip->loadMissing(['run', 'person']);
+        $amount = (float) $slip->paid_amount;
+
+        return $this->books->post([
+            'type' => 'payment', 'date' => $slip->paid_at, 'reference' => $slip->paid_reference ?: __('Pay :period', ['period' => $slip->run->periodLabel()]),
+            'narration' => __('Pay paid to :name for :period', ['name' => $slip->person->name, 'period' => $slip->run->periodLabel()]),
+            'source_type' => 'payslip_payment', 'source_id' => $slip->id, 'created_by' => $slip->paid_by,
+        ], [['ledger' => $this->chart->person($slip->person), 'debit' => $amount, 'bucket' => 'earnings'], ['ledger' => $this->chart->money($slip->paid_mode), 'credit' => $amount]]);
     }
 
     /** A cost or income the office added to a trip (also after it closed, D8). */

@@ -199,6 +199,24 @@ package), QR codes / amount in words / CSV written in-house. See
   testimonials until there are real ones; numbers in the drawn mockups are
   examples.
 
+### P12. How the basic pay run works (added 26 Oct 2026, M16)
+
+- **Pay comes from the person's pay basis**: monthly salary for each calendar
+  month the period touches, for the days inside the period and inside their
+  employment (no attendance yet, so every such day counts); per trip — trips
+  they were crew on that ended in the period; per km — kilometres of their
+  driving shifts.
+- **Nobody is paid twice for a day**: a person already in a live run for any
+  day of the period is left out of a new one (and told).
+- **Approval makes the pay owed** (salary expense, the person's earnings
+  credited); deductions take back trip cash or a loan they hold, or are
+  recovered as income (fines). **Payment** clears the earnings; it may also pay
+  the bata already owed from settled trips in the same payment.
+- **A run is cancelled, never edited** once approved: its postings are
+  reversed; a run with a paid payslip cannot be cancelled.
+- Full payroll (attendance, leave, Labour Codes, PF/ESI, UAE WPS) stays in
+  phase 2–3.
+
 ---
 
 ## 4. Still open

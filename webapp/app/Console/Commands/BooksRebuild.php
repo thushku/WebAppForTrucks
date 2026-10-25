@@ -9,6 +9,7 @@ use App\Modules\Accounts\Services\Posting;
 use App\Modules\Fleet\Models\ServiceJob;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\Receipt;
+use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Road\Models\RoadEvent;
 use App\Modules\Trips\Models\BrokerCommission;
 use App\Modules\Trips\Models\HireChallan;
@@ -87,6 +88,14 @@ class BooksRebuild extends Command
             HireChallanLine::whereHas('challan', fn ($q) => $q->whereIn('status', ['issued', 'settled']))->orderBy('line_date')->orderBy('id')->get()->filter($new('hire_line'))->each(fn ($l) => $post($posting->hireLine($l)));
             BrokerCommission::whereNull('hire_challan_id')->orderBy('id')->get()->filter($new('broker_commission'))->each(fn ($c) => $post($posting->brokerCommission($c)));
             ServiceJob::where('status', 'done')->orderBy('job_date')->get()->filter($new('service_job'))->each(fn ($j) => $post($posting->serviceJob($j)));
+            // Payslips of runs that were approved; a run cancelled after approval is posted and reversed.
+            foreach (Payslip::with(['run', 'person'])->whereHas('run', fn ($q) => $q->whereNotNull('approved_at'))->orderBy('id')->get()->filter($new('payslip')) as $slip) {
+                $post($posting->payslip($slip));
+                if ($slip->run->status === 'cancelled') {
+                    $post($books->reverseSource('payslip', $slip->id, $slip->run->cancel_reason ?: 'Pay run cancelled'));
+                }
+            }
+            Payslip::with(['run', 'person'])->where('status', 'paid')->where('paid_amount', '>', 0)->orderBy('paid_at')->get()->filter($new('payslip_payment'))->each(fn ($s) => $post($posting->payslipPayment($s)));
         });
 
         $totals = VoucherLine::selectRaw('coalesce(sum(debit), 0) as d, coalesce(sum(credit), 0) as c')->first();

@@ -30,6 +30,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M13 ✅ | Super-admin: plans, trials, coupons, storage cleanup, DB export/import | Manage the SaaS |
 | M14 ✅ | Marketing website and sign-up (after pricing is decided) | Public site |
 | M15 ✅ | **Handover pack** for the phone-app session: API reference with examples, screen list, rules, sync design, local set-up guide | `docs/handover/` |
+| M16 ✅ | **Basic driver pay run** (13-parity #24): pay per month, trip or km for any period, payslips, approval into the books, payment | Pay the crew from the same ledgers |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

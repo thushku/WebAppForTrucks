@@ -185,6 +185,13 @@ class CrewController extends Controller
                 'given' => round((float) $r->debit, 2), 'credited' => round((float) $r->credit, 2),
                 'balance' => round((float) $r->balance, 2), 'cancelled' => $r->status === 'cancelled',
             ])->values(),
+            // My payslips of approved pay runs (M16).
+            'payslips' => \App\Modules\Payroll\Models\Payslip::with('run')->where('person_id', $person->id)->where('status', '!=', 'cancelled')
+                ->whereHas('run', fn ($q) => $q->whereIn('status', ['approved', 'paid']))->orderByDesc('id')->limit(12)->get()
+                ->map(fn ($p) => ['period' => $p->run->periodLabel(), 'from' => $p->run->period_from->toDateString(), 'to' => $p->run->period_to->toDateString(),
+                    'basis' => $p->pay_basis, 'units' => (float) $p->units, 'base' => (float) $p->base_pay, 'additions' => (float) $p->additions, 'deductions' => (float) $p->deductions,
+                    'lines' => $p->lines ?? [], 'net' => (float) $p->net, 'status' => $p->status, 'paid_amount' => $p->paid_amount !== null ? (float) $p->paid_amount : null,
+                    'paid_on' => $p->paid_at?->toDateString(), 'paid_mode' => $p->paid_mode])->values(),
         ]);
     }
 

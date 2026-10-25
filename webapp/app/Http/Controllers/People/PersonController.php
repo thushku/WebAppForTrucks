@@ -79,6 +79,8 @@ class PersonController extends Controller
             'code'    => session('activation_code'),
             'qr'      => session('activation_code') ? QrCode::encode('fleet-activate:' . $person->mobile . ':' . session('activation_code'))->svg(2, '#0F1A2B', __('Activation code')) : null,
             'revealed' => $revealed,
+            // Pay history (M16), for those who may see salaries.
+            'payslips' => auth()->user()->can('payroll.view') ? \App\Modules\Payroll\Models\Payslip::with('run')->where('person_id', $person->id)->where('status', '!=', 'cancelled')->orderByDesc('id')->limit(12)->get() : collect(),
         ]);
     }
 

@@ -2,6 +2,36 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M16: the basic driver pay run
+
+**Built (in `webapp/`, module `app/Modules/Payroll`; 13-parity #16, #24; decision P12):**
+- **Payroll** in the menu (was "soon"; `payroll.view` to see, `payroll.run` to make, approve and pay — the owner and
+  the accountant by default). A **pay run for any period** (up to three months) for the drivers and helpers, or for
+  everyone with a pay set.
+- **Pay worked out from each person's pay basis**: monthly salary prorated by the days of each month inside the
+  period and their employment (joined on the 10th of October: 22 of 31 days); **per trip** — trips ended in the
+  period; **per km** — kilometres of their driving shifts. People with no pay set are listed with a link to set it.
+  Nobody is paid twice for a day (overlapping runs leave them out, with a message).
+- **Draft**: add bonuses, overtime, allowances, or deductions (trip cash recovered, loan or advance recovered, fine or
+  damage, other) with a description; work everything out again from the latest trips and rates; leave a person out.
+  Deductions above the pay are refused.
+- **Approve**: each payslip's pay is owed — salary expense debited, the person's earnings credited (deductions take
+  back trip cash or a loan, or are recovered as income). **Mark paid** per payslip (cash, UPI or bank, date,
+  reference), optionally **paying all owed** — the pay plus bata already owed from settled trips — in one payment;
+  the run turns paid when everyone is. **Cancel** while nothing is paid reverses every posting. `fleet:books` knows
+  payslips and their payments.
+- **Payslip** to print or save as PDF (base, additions, gross, deductions, net, how and when paid, bata included);
+  the person's page lists their payslips; the crew app's My Khata (`GET /crew/money`) now has `payslips[]`.
+- Demo: last month's pay run, approved, Ravi's payslip with a festival bonus paid by bank.
+
+**Tests:** 219 passing (new `PayrollTest`, 3 tests: monthly prorated, per trip and per km pay, people without pay,
+overlapping runs; bonus and deductions on a draft, refused once approved, approval into the books, payment with the bata
+owed, the run paid, the payslip page, the person's page, the crew app's payslip, the books rebuild finding nothing
+missing; cancelling an approved run by reversal, a new run for the same days, who may see payroll).
+
+**Not yet (phase 2–3, decision P12):** attendance and leave, statutory deductions (PF, ESI, professional tax, TDS on
+salary), Labour Codes, UAE WPS salary file, salary advances as their own entry (today: a loan deduction recovers one).
+
 ## 2026-10-26 — Milestone M15: the handover pack for the phone apps, and the owner app's API
 
 **Built (in `docs/handover/` and `webapp/`; roadmap §2–3, blueprint 05):**

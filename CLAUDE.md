@@ -59,7 +59,9 @@ founder's laptop) in `phoneapp/`.
   truck profit; `Registers` ageing and TDS, `TaxReturns` GSTR-1 / VAT 201 data, `TallyExport` the Tally XML;
   `php artisan fleet:books` posts anything missing), `Reports` (M12: `Dashboard` numbers and alerts, `LiveMap`
   positions and route replay; maps in `resources/js/map.js` with Leaflet, charts as server-drawn SVG in
-  `resources/views/charts` with `resources/js/charts.js`). Phone sign-in tokens and devices:
+  `resources/views/charts` with `resources/js/charts.js`), `Payroll` (M16: `PayCalculator` works out pay per month — prorated by days of
+  employment —, per trip ended or per km driven; `PayRuns` makes, edits, approves, pays and cancels runs; approval
+  posts each payslip to the person's earnings and the payment clears them, via `Posting`/`BookKeeper`). Phone sign-in tokens and devices:
   `app/Platform/Devices`.
 - The phone API is documented for the phone-app session in `docs/handover/api-v1.md`; keep it in step with
   `routes/api.php` and the tests (`PhoneApiTest`, `ApprovalTest`, `OwnerApiTest`). The owner app's screens are

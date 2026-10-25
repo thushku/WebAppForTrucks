@@ -23,6 +23,12 @@ document.addEventListener('click', (event) => {
   const dismiss = event.target.closest('[data-dismiss]');
   if (dismiss) dismiss.closest('[data-flash]')?.remove();
 
+  // A print button (payslips and other printable pages).
+  if (event.target.closest('[data-print]')) {
+    window.print();
+    return;
+  }
+
   // A fresh picture challenge without reloading the form.
   const refresh = event.target.closest('[data-captcha-refresh]');
   if (refresh) {

@@ -27,6 +27,7 @@ use App\Http\Controllers\Trips\TripController;
 use App\Http\Controllers\Trips\TripMoneyController;
 use App\Http\Controllers\Parties\PartyDetailsController;
 use App\Http\Controllers\Parties\RateContractController;
+use App\Http\Controllers\Payroll;
 use App\Http\Controllers\Settings;
 use App\Http\Controllers\Site;
 use Illuminate\Support\Facades\Route;
@@ -341,6 +342,23 @@ Route::middleware('auth')->group(function () {
             });
             Route::post('/{person}/reveal-id', [PersonController::class, 'revealId'])->middleware('permission:people.id_documents')->name('reveal-id');
             Route::get('/{person}', [PersonController::class, 'show'])->middleware('permission:people.view')->name('show');
+        });
+
+        // Payroll (M16): pay runs for any period, payslips, payments.
+        Route::prefix('payroll')->name('payroll.')->group(function () {
+            Route::get('/', [Payroll\PayrollController::class, 'index'])->middleware('permission:payroll.view')->name('index');
+            Route::post('/', [Payroll\PayrollController::class, 'store'])->middleware('permission:payroll.run')->name('store');
+            Route::get('/{run}', [Payroll\PayrollController::class, 'show'])->middleware('permission:payroll.view')->name('show');
+            Route::get('/{run}/slips/{slip}', [Payroll\PayrollController::class, 'slip'])->whereNumber('slip')->middleware('permission:payroll.view')->name('slip');
+            Route::middleware('permission:payroll.run')->group(function () {
+                Route::post('/{run}/recalculate', [Payroll\PayrollController::class, 'recalculate'])->name('recalculate');
+                Route::post('/{run}/approve', [Payroll\PayrollController::class, 'approve'])->name('approve');
+                Route::post('/{run}/cancel', [Payroll\PayrollController::class, 'cancel'])->name('cancel');
+                Route::post('/{run}/slips/{slip}/lines', [Payroll\PayrollController::class, 'addLine'])->whereNumber('slip')->name('lines.store');
+                Route::delete('/{run}/slips/{slip}/lines/{index}', [Payroll\PayrollController::class, 'removeLine'])->whereNumber(['slip', 'index'])->name('lines.destroy');
+                Route::delete('/{run}/slips/{slip}', [Payroll\PayrollController::class, 'removeSlip'])->whereNumber('slip')->name('slips.destroy');
+                Route::post('/{run}/slips/{slip}/pay', [Payroll\PayrollController::class, 'pay'])->whereNumber('slip')->name('pay');
+            });
         });
 
         // Getting started: the first steps of a new company (M14).

@@ -16,7 +16,7 @@
       ['invoices.index', 'receipt', __('Invoices & LR'), 'invoice.view', 'bg-violet-50 text-violet-700', 'invoices.'],
       ['ledgers.index', 'ledger', __('Ledgers'), 'ledger.view', 'bg-rose-50 text-rose-700', 'ledgers.'],
       ['accounts.index', 'wallet', __('Accounts'), 'accounts.view', 'bg-teal-50 text-teal-700', 'accounts.'],
-      [null, 'payroll', __('Payroll'), 'payroll.view', 'bg-orange-50 text-orange-700'],
+      ['payroll.index', 'payroll', __('Payroll'), 'payroll.view', 'bg-orange-50 text-orange-700', 'payroll.'],
     ],
     __('Fleet & people') => [
       ['trucks.index', 'truck', __('Trucks'), 'truck.view', 'bg-blue-50 text-blue-700', 'trucks.'],

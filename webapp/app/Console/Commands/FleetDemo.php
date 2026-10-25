@@ -81,6 +81,7 @@ class FleetDemo extends Command
             $this->tax($company);
             $this->fleet($owner->id);
             $this->trips($owner->id);
+            $this->payroll($owner);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -100,6 +101,22 @@ class FleetDemo extends Command
         $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test, same password).');
 
         return self::SUCCESS;
+    }
+
+    /** Last month's pay run, approved, with Ravi's payslip paid (M16). */
+    private function payroll(Account $owner): void
+    {
+        $runs = app(\App\Modules\Payroll\Services\PayRuns::class);
+        $last = now('Asia/Kolkata')->subMonthNoOverflow();
+        ['run' => $run] = $runs->create(\Carbon\CarbonImmutable::parse($last->startOfMonth()->toDateString()), \Carbon\CarbonImmutable::parse($last->endOfMonth()->toDateString()), 'crew', $owner);
+        $ravi = $run->payslips()->whereHas('person', fn ($q) => $q->where('name', 'Ravi Kumar'))->first();
+        if ($ravi) {
+            $runs->addLine($ravi, 'addition', 'bonus', 'Festival bonus', 2000);
+        }
+        $runs->approve($run->fresh(), $owner);
+        if ($ravi) {
+            $runs->pay($ravi->fresh(), 'bank', \Carbon\CarbonImmutable::parse($last->endOfMonth()->toDateString()), 'UTR 551209', false, $owner);
+        }
     }
 
     /**

@@ -161,7 +161,7 @@ it('shows a crew member their own khata from the books: cash they hold, what is 
     $w = phoneWorld();
     $phones = phoneCrew($w);
     phoneAs($phones['driver'], $w['company']);
-    expect($this->getJson('/api/v1/crew/money')->assertOk()->json())->toMatchArray(['holding' => 0, 'owed_to_me' => 0, 'net' => 0, 'lines' => []]);
+    expect($this->getJson('/api/v1/crew/money')->assertOk()->json())->toMatchArray(['holding' => 0, 'owed_to_me' => 0, 'net' => 0, 'lines' => [], 'payslips' => []]);
 
     // The office gives a ₹20,000 advance; the driver spends ₹12,400 on fuel, approved.
     $owner = makeAccount(['name' => 'Anil Sharma']);

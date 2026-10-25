@@ -101,4 +101,22 @@
     <p class="mt-4 text-xs text-ink-500">{{ __('No SMS is needed: read the code out or show the QR. The app then asks for a PIN or fingerprint each time it opens.') }}</p>
   </section>
 </div>
+@if ($payslips->isNotEmpty())
+  <section class="card overflow-x-auto">
+    <h2 class="border-b border-ink-100 px-5 py-4 text-lg font-semibold">{{ __('Pay') }}</h2>
+    <table class="table">
+      <thead><tr><th>{{ __('Period') }}</th><th class="text-end">{{ __('Net pay') }}</th><th>{{ __('Status') }}</th><th></th></tr></thead>
+      <tbody>
+        @foreach ($payslips as $slip)
+          <tr>
+            <td><a href="{{ route('payroll.show', $slip->run) }}" class="text-brand-700 hover:underline">{{ $slip->run->periodLabel() }}</a></td>
+            <td class="money text-end">{{ \App\Support\Money::company($slip->net) }}</td>
+            <td>{{ $slip->status === 'paid' ? __('Paid :date', ['date' => $slip->paid_at->format('d M Y')]) : __(\App\Modules\Payroll\Models\PayRun::STATUSES[$slip->run->status] ?? $slip->run->status) }}</td>
+            <td class="text-end"><a href="{{ route('payroll.slip', [$slip->run, $slip->id]) }}" class="text-sm text-brand-700 hover:underline" target="_blank">{{ __('Payslip') }}</a></td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+  </section>
+@endif
 @endsection

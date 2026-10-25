@@ -5,6 +5,8 @@ namespace App\Modules\Accounts\Services;
 use App\Modules\Fleet\Models\ServiceJob;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\Receipt;
+use App\Modules\Payroll\Models\PayRun;
+use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Road\Models\RoadEvent;
 use App\Modules\Trips\Models\BrokerCommission;
 use App\Modules\Trips\Models\HireChallan;
@@ -68,6 +70,23 @@ final class BookKeeper
         TripSettlement::updated(function (TripSettlement $settlement) use ($books) {
             if ($settlement->wasChanged('voided_at') && $settlement->voided_at) {
                 $books()->reverseSource('settlement', $settlement->id, $settlement->void_reason ?: __('Settlement undone'));
+            }
+        });
+
+        // Pay runs (M16): approved — every payslip's pay is owed; cancelled after approval — reversed. A paid payslip posts its payment.
+        PayRun::updated(function (PayRun $run) use ($posting, $books) {
+            if (! $run->wasChanged('status')) {
+                return;
+            }
+            if ($run->status === 'approved') {
+                Payslip::with('person')->where('pay_run_id', $run->id)->get()->each(fn (Payslip $slip) => $posting()->payslip($slip->setRelation('run', $run)));
+            } elseif ($run->status === 'cancelled' && $run->getOriginal('status') === 'approved') {
+                Payslip::where('pay_run_id', $run->id)->pluck('id')->each(fn ($id) => $books()->reverseSource('payslip', $id, $run->cancel_reason ?: __('Pay run cancelled')));
+            }
+        });
+        Payslip::updated(function (Payslip $slip) use ($posting) {
+            if ($slip->wasChanged('status') && $slip->status === 'paid' && (float) $slip->paid_amount > 0) {
+                $posting()->payslipPayment($slip);
             }
         });
 

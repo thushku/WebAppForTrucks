@@ -72,6 +72,8 @@ class ChartOfAccounts
         'lorry_hire'         => ['Lorry hire (hired trucks)', 'direct_expenses', 'general'],
         'commission_expense' => ['Brokerage and commission paid', 'direct_expenses', 'general'],
         'bata'               => ['Bata and daily allowance', 'direct_expenses', 'general'],
+        'salaries'           => ['Salaries and wages', 'direct_expenses', 'general'],
+        'staff_recoveries'   => ['Recoveries from staff (fines, damage)', 'indirect_income', 'general'],
         'fuel_card'          => ['Fuel cards', 'loans_advances', 'general'],
         'fastag'             => ['FASTag / Salik / Darb wallet', 'loans_advances', 'general'],
         'vendor_credit'      => ['Pump and vendor credit (vendor not named)', 'sundry_creditors', 'general'],

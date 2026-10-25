@@ -96,8 +96,11 @@ checkpost).
 not yet paid), `net` (positive: I give this back; negative: the company pays me),
 `opening`, `closing`, `lines[]` (`date`, `what`, `reference`, `bucket` — trip_cash /
 earnings, `given` — money handed to me, `credited` — what counts for me: spent for the
-company, earned, returned, `balance`, `cancelled`). From the books, so it moves when the
-office approves entries, settles a trip or pays. Office logins get `403 not_crew`.
+company, earned, returned, `balance`, `cancelled`), and `payslips[]` of approved pay runs
+(`period`, `from`, `to`, `basis`, `units`, `base`, `additions`, `deductions`, `lines[]`, `net`,
+`status` pending / paid, `paid_amount`, `paid_on`, `paid_mode`). From the books, so it moves
+when the office approves entries, settles a trip, approves a pay run or pays. Office logins
+get `403 not_crew`.
 
 ## 4. Entries (push)
 
