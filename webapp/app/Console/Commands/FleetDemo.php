@@ -78,6 +78,7 @@ class FleetDemo extends Command
             }
 
             $this->parties($parties, $owner->id);
+            $this->tax($company);
             $this->fleet($owner->id);
             $this->trips($owner->id);
 
@@ -331,6 +332,18 @@ class FleetDemo extends Command
             }
         }
         DB::table('gps_points')->insert($rows);
+    }
+
+    /** The company's GSTIN in Kerala, with the default GTA option (5% under reverse charge) for this year. */
+    private function tax(Company $company): void
+    {
+        $gstin = '32AAACS1234F1Z' . TaxIds::gstinCheckCharacter('32AAACS1234F1Z');
+        $registration = \App\Modules\Tax\Models\TaxRegistration::create([
+            'country' => 'IN', 'regime' => 'in_gst', 'tax_id' => $gstin, 'state_code' => '32', 'is_default' => true,
+            'legal_name' => 'Sharma Roadlines Private Limited', 'address' => '14/220, Container Road, Vallarpadam, Kochi 682504', 'registered_on' => '2019-04-01',
+        ]);
+        $fy = \App\Support\FiscalYear::containing(now('Asia/Kolkata'), 4)->key;
+        \App\Modules\Tax\Models\TaxRegistrationYear::create(['tax_registration_id' => $registration->id, 'fy_key' => $fy, 'gta_option' => 'rcm_5']);
     }
 
     /**

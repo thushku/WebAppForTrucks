@@ -2,7 +2,6 @@
 
 namespace App\Modules\Trips\Services;
 
-use App\Modules\Documents\Models\Document;
 use App\Modules\Parties\Models\Party;
 use App\Modules\Settings\Services\DocumentNumbering;
 use App\Modules\Trips\Models\BrokerCommission;
@@ -11,7 +10,6 @@ use App\Modules\Trips\Models\HireChallanLine;
 use App\Modules\Trips\Models\Trip;
 use App\Platform\Audit\AuditRecorder;
 use App\Platform\Tenancy\CompanyContext;
-use App\Support\FiscalYear;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,7 +17,8 @@ use Illuminate\Validation\ValidationException;
  * Hired trucks: the lorry hire challan and its money (blueprint 09 §4,
  * 10 §6.1, 12 §5).
  *
- * TDS (India, section 194C) is suggested, never forced: nil when the supplier
+ * TDS (India, section 393(1), old 194C — see Tax\Services\Withholding) is
+ * suggested, never forced: nil when the supplier
  * has given this year's declaration that they own ten trucks or fewer (a
  * party document "≤10-truck declaration" valid today); otherwise 1 % for an
  * individual or HUF (PAN holder type P or H) and 2 % for others. The
@@ -30,25 +29,12 @@ class HireService
 {
     public function __construct(private DocumentNumbering $numbering, private CompanyContext $context, private AuditRecorder $audit) {}
 
-    /** @return array{section: ?string, rate: float, nil_reason: ?string} */
+    /** @return array{section: ?string, rate: float, nil_reason: ?string, label: ?string} */
     public function tdsFor(Party $supplier, ?\Carbon\CarbonInterface $on = null): array
     {
-        if ($this->context->company()->country !== 'IN') {
-            return ['section' => null, 'rate' => 0.0, 'nil_reason' => null];
-        }
+        $tds = app(\App\Modules\Tax\Services\Withholding::class)->onPayment($supplier, $on);
 
-        $on = $on ?? now();
-        $declaration = Document::where('owner_type', 'party')->where('owner_id', $supplier->id)->where('document_type', 'no_tds_decl')
-            ->where(fn ($q) => $q->whereNull('expires_on')->orWhere('expires_on', '>=', $on->toDateString()))->first();
-        if ($declaration) {
-            $fy = FiscalYear::containing($on, (int) $this->context->company()->fy_start_month);
-
-            return ['section' => '194C', 'rate' => 0.0, 'nil_reason' => __('Declaration of 10 trucks or fewer on file for :fy', ['fy' => $fy->key])];
-        }
-
-        $holder = $supplier->pan ? $supplier->pan[3] : null;
-
-        return ['section' => '194C', 'rate' => in_array($holder, ['P', 'H'], true) ? 1.0 : 2.0, 'nil_reason' => null];
+        return ['section' => $tds['section'], 'rate' => $tds['rate'], 'nil_reason' => $tds['nil_reason'], 'label' => $tds['label']];
     }
 
     /** @param array<string, mixed> $data */

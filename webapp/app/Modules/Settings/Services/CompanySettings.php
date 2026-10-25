@@ -38,6 +38,10 @@ class CompanySettings
         'bata_helper_amount'        => [400, 'money', 'Bata per day for a helper'],
         'cost_allocation_method'    => ['freight', 'string', 'Share trip costs between consignments by: freight / weight / tonne_km'],
         'cash_limit_per_payee_day'  => [35000, 'money', 'Warn when cash to one payee in a day is above this (India goods-carriage limit)'],
+        // Tax and invoices (blueprint 11).
+        'invoice_round_total'       => [true, 'bool', 'Round invoice totals to the whole rupee / dirham (a separate round-off line)'],
+        'tax_evidence_policy'       => ['block', 'string', 'Zero-rated lines without their papers: block the invoice, or warn and mark it "pending evidence"'],
+        'tds_declaration_given'     => [false, 'bool', 'We give clients the declaration of 10 trucks or fewer (no TDS on our freight)'],
     ];
 
     /** Where a country's law or custom starts somewhere else. */
@@ -46,6 +50,7 @@ class CompanySettings
             'bata_driver_amount'       => 50,
             'bata_helper_amount'       => 30,
             'cash_limit_per_payee_day' => 0,
+            'invoice_round_total'      => false,
         ],
     ];
 

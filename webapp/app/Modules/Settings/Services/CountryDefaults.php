@@ -165,7 +165,7 @@ class CountryDefaults
         ],
     ];
 
-    public function __construct(private CompanyContext $context, private DocumentNumbering $numbering) {}
+    public function __construct(private CompanyContext $context, private DocumentNumbering $numbering, private \App\Modules\Tax\Services\TaxPresets $tax) {}
 
     /** Give a new company its starting set-up. Safe to run twice: what exists is left alone. */
     public function apply(Company $company): void
@@ -189,6 +189,9 @@ class CountryDefaults
                 $this->numbering->sequence($docType);
             }
         });
+
+        // The country's GST / VAT codes, dated rates and rules (blueprint 11).
+        $this->tax->apply($company);
     }
 
     /** @return array<string, array<string, mixed>> */

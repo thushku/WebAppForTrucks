@@ -22,7 +22,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M5 ✅ | **Trips with FTL / PTL / mixed**, stops, several consignments (LR data), own or **hired truck**, hire challan, broker commission, trip number | Create and send a part-load trip with a hired truck |
 | M6 ✅ | Mobile API: activation, sync pull/push, photos, GPS, commands, stop tasks, e-POD — with a test script that acts like a phone | Trip timeline fills with "phone" entries |
 | M7 ✅ | Approvals (incl. dual approval), settlement, close, office entries after close, audit log | Full trip from start to close |
-| M8 | **Tax engine** (masters, rules, dated rates, withholding, trace) with India preset + UAE preset | Tax worked out correctly in tests for the examples in `11-tax-engine.md` |
+| M8 ✅ | **Tax engine** (masters, rules, dated rates, withholding, trace) with India preset + UAE preset | Tax worked out correctly in tests for the examples in `11-tax-engine.md` |
 | M9 | **Invoicing** ported from Clinic Ledger: LR with copies, invoices (single, consolidated, supplementary), credit/debit notes, receipts with TDS and deductions, payment vouchers, numbering, finalise/void, sharing, public links | Create, print, share an LR and an invoice from a trip |
 | M10 | **Templates and template editor** (themes incl. Classic LR, Compact A5; named templates, defaults per branch/client, copy sets, custom fields, label renames, versions) | Design an LR and an invoice in the editor |
 | M11 | **Accounting core + five ledgers** (driver buckets, client bill-wise outstanding and queues, truck P&L, supplier settlement, vendor bills and fuel slips), statements, GST/TDS data, Tally/Excel export | Ledgers and profit per trip/truck/consignment from the books |

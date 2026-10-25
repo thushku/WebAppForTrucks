@@ -51,7 +51,7 @@
           <div><label class="label" for="h_days">{{ __('Balance within (days after POD)') }}</label><input id="h_days" name="balance_days_after_pod" type="number" min="0" class="input" value="{{ $v('balance_days_after_pod') }}"></div>
           <div class="sm:col-span-4"><label class="label" for="h_terms">{{ __('Terms') }}</label><textarea id="h_terms" name="terms" rows="2" class="input" maxlength="2000" placeholder="{{ __('Shortage and damage are deducted. POD within 7 days of delivery.') }}">{{ $v('terms') }}</textarea></div>
         </div>
-        <p class="hint">{{ __('TDS is a suggestion (section 194C: 1% individuals/HUF, 2% others; nil with the 10-trucks declaration for the year). Confirm with your accountant.') }}</p>
+        <p class="hint">{{ __('TDS is a suggestion (section 393(1) of the Income-tax Act 2025, old 194C: 1% individuals/HUF, 2% others; nil with the 10-trucks declaration for the year). Confirm with your accountant.') }}</p>
       </section>
     </fieldset>
     @if ($editable)

@@ -30,6 +30,9 @@ final class Money
     /** Currencies with no minor unit. */
     private const ZERO_DECIMALS = ['JPY', 'KRW', 'VND', 'CLP'];
 
+    /** Currencies with three decimals (the Gulf's fils and baisa: Bahrain, Kuwait, Oman, and others). */
+    private const THREE_DECIMALS = ['BHD', 'KWD', 'OMR', 'JOD', 'TND', 'LYD', 'IQD'];
+
     /** ICU formatters are costly to build; a list of 200 invoices asks 400 times. */
     private static array $formatters = [];
 
@@ -37,7 +40,7 @@ final class Money
     {
         $amount   = (float) ($amount ?? 0);
         $currency = strtoupper($currency);
-        $decimals = in_array($currency, self::ZERO_DECIMALS, true) ? 0 : 2;
+        $decimals = self::decimals($currency);
 
         if (class_exists(NumberFormatter::class)) {
             $key = ($locale = self::STYLES[$style][0] ?? 'en_US') . ':' . $decimals;
@@ -55,6 +58,14 @@ final class Money
         }
 
         return self::fallback($amount, $currency, $style, $decimals);
+    }
+
+    /** How many decimals amounts in a currency are kept and rounded to. */
+    public static function decimals(string $currency): int
+    {
+        $currency = strtoupper($currency);
+
+        return in_array($currency, self::ZERO_DECIMALS, true) ? 0 : (in_array($currency, self::THREE_DECIMALS, true) ? 3 : 2);
     }
 
     /** An amount in the company's own currency and number style (₹ 1,23,456.00 in India). */

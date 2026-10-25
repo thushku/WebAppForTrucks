@@ -290,6 +290,16 @@ Route::middleware('auth')->group(function () {
                 Route::post('/numbering/{sequence}/preview', [Settings\NumberingController::class, 'preview'])->name('numbering.preview');
             });
 
+            Route::middleware('permission:settings.tax')->group(function () {
+                Route::get('/tax', [Settings\TaxController::class, 'index'])->name('tax');
+                Route::put('/tax/rules', [Settings\TaxController::class, 'saveRules'])->name('tax.rules');
+                Route::post('/tax/registrations', [Settings\TaxController::class, 'storeRegistration'])->name('tax.registrations.store');
+                Route::put('/tax/registrations/{registration}', [Settings\TaxController::class, 'updateRegistration'])->name('tax.registrations.update');
+                Route::post('/tax/registrations/{registration}/years', [Settings\TaxController::class, 'storeYear'])->name('tax.years.store');
+                Route::post('/tax/codes/{code}/rates', [Settings\TaxController::class, 'storeRate'])->name('tax.rates.store');
+                Route::put('/tax/rules/{rule}', [Settings\TaxController::class, 'updateRule'])->name('tax.rule.update');
+            });
+
             Route::middleware('permission:security.configure')->group(function () {
                 Route::get('/security', [Settings\SecurityController::class, 'edit'])->name('security');
                 Route::put('/security', [Settings\SecurityController::class, 'update'])->name('security.update');

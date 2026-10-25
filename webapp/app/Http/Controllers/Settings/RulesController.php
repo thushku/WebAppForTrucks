@@ -44,8 +44,10 @@ class RulesController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+        // Only this page's rules: tax and invoice rules have their own page (Settings → Tax).
+        $keys  = array_merge(...array_values(self::GROUPS));
         $rules = [];
-        foreach (CompanySettings::DEFAULTS as $key => [, $type]) {
+        foreach (array_intersect_key(CompanySettings::DEFAULTS, array_flip($keys)) as $key => [, $type]) {
             $rules[$key] = match ($type) {
                 'bool'  => ['nullable', 'boolean'],
                 'int'   => ['required', 'integer', 'min:0', 'max:100000'],
@@ -59,7 +61,7 @@ class RulesController extends Controller
         $data = $request->validate($rules);
 
         // Unticked boxes are not sent at all.
-        foreach (CompanySettings::DEFAULTS as $key => [, $type]) {
+        foreach (array_intersect_key(CompanySettings::DEFAULTS, array_flip($keys)) as $key => [, $type]) {
             if ($type === 'bool') {
                 $data[$key] = $request->boolean($key);
             }

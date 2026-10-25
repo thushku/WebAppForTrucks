@@ -23,6 +23,7 @@ class SettingsController extends Controller
         'settings.places'    => ['Places', 'map', ['settings.masters']],
         'settings.lists'     => ['Lists', 'tag', ['settings.masters']],
         'settings.numbering' => ['Numbering', 'file-text', ['settings.numbering']],
+        'settings.tax'       => ['Tax', 'receipt', ['settings.tax']],
         'settings.security'  => ['Sign-in security', 'lock', ['security.configure']],
         'settings.activity'  => ['Activity', 'clock', ['audit.view']],
     ];

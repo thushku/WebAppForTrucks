@@ -2,6 +2,55 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-25 — Milestone M8: the tax engine (India GST, UAE VAT)
+
+**Built (in `webapp/`, module `app/Modules/Tax`):**
+- **Rates and rules as data with dates** (blueprint 11, D15): tax types (CGST, SGST, UTGST, IGST, VAT), **tax codes**
+  with the e-invoice category (S standard, Z zero, E exempt, AE reverse charge, O outside scope), printed legal text,
+  law reference and the **papers a zero rate needs**; **dated rates** with their split (same state / other state /
+  union territory, or one VAT line); **rules** from freight facts (charge class, India GTA option, transport type,
+  main carrier or subcontractor, buyer registered, buyer category). The most specific matching rule wins; **no match
+  stops the invoice with a message, never 0 %**. Every company gets its country's preset (`CountryDefaults` → 
+  `TaxPresets`; `php artisan fleet:tax-presets` for existing companies); a preset applied again only adds what is
+  missing.
+- **India GST preset**: GTA **5 % reverse charge** (the default; tax shown as notional, "Tax payable on reverse charge:
+  Yes"), **5 % forward** (no ITC), **18 % forward from 22 Sep 2025** and the **old 12 % before it** (dated rule and
+  rate), exempt for unregistered buyers and for non-GTA transport (no consignment note), zero-rated SEZ supplies (LUT
+  papers), vehicle hire to a GTA exempt, warehousing / customs 18 %, add-ons (loading, detention, demurrage, fuel
+  surcharge, packing, toll recovered) and late-payment interest **follow the freight line**, disbursements as pure
+  agent and damage claims outside scope. SAC 996791 (GTA) / 996511 / 996601…
+- **Place of supply** (IGST Act s.12(8)): the registered buyer's GSTIN state; for an unregistered buyer the state
+  where goods were handed over; never guessed. Same state → CGST + SGST, **CGST + UTGST in union territories without a
+  legislature**, other state → IGST.
+- **UAE VAT preset**: domestic 5 %; export / import / international **0 % as main carrier, only with the transport
+  document and exit/customs papers** (or "pending evidence" when the company chooses warn); **5 % when we are a
+  subcontractor on the UAE leg**; a missing transport type stops the invoice.
+- **Calculator** ported from Clinic Ledger (discount spread pro rata, inclusive or exclusive prices, per-part
+  rounding) plus reverse charge, **3-decimal currencies** (BHD, KWD, OMR…) and a separate round-off line (rupee
+  rounding on in India, off in the UAE).
+- **TDS** (new Income-tax Act 2025 from 1 Apr 2026): section **393(1) (old 194C)** 1 % individual/HUF, 2 % others;
+  **393(4) (old 194C(6))** nil with the ≤10-truck declaration. The expected TDS a client deducts from our invoice, and
+  the TDS we deduct from hired-truck owners (the hire challan now uses the same service).
+- A hand-chosen tax code needs a reason (≥ 10 letters); every result carries a **trace in plain words** ("Buyer
+  registered: …", "Place of supply Maharashtra: …", "Detention follows the freight line", "Reverse charge: ₹2,500 is
+  for the buyer to pay").
+- **Settings → Tax**: our GSTINs / TRN (validated; state from the GSTIN; default; cancelled from), the **GTA option
+  per financial year** (locked once recorded, Annexure V reference), invoice rules (round total, evidence policy, our
+  TDS declaration), **try a case** (the full answer with reasons), codes with their dated rates and **"new rate from a
+  date"** (closes the previous one; old rates are never edited), rules (point at another code, SAC, on/off).
+- Fixed on the way: the Trip rules page saved every company setting (it would have switched the new tax settings off);
+  it now saves only its own.
+- Demo: Sharma Roadlines' Kerala GSTIN with the default GTA option for 2026-27.
+
+**Tests:** 164 passing (new `TaxTest`, 12 tests: the blueprint's worked examples and more).
+
+**Not yet:** e-invoice adapters (UAE ASP before 1 Jan / 1 Jul 2027, India IRN only for non-GTA supplies), return
+exports (GSTR-1/3B, VAT201), registration-threshold monitor, tax on advances, multi-currency tax in local currency
+(exchange rates come with invoicing), purchases and input credit (with accounting), other country presets.
+
+**Next:** M9–M10 — invoices on this engine (from LRs and trips, credit and debit notes, receipts), the document
+templates and editor ported from Clinic Ledger.
+
 ## 2026-10-25 — Milestone M7: approvals, settlement, close, office entries
 
 **Built (in `webapp/`):**
