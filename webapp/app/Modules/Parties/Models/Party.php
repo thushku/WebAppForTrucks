@@ -77,6 +77,7 @@ class Party extends Model
             'required_refs'    => 'array',
             'tds_deducted'     => 'boolean',
             'blacklisted'      => 'boolean',
+            'send_reminders'   => 'boolean',
             'active'           => 'boolean',
             'credit_limit'     => 'decimal:2',
             'opening_balance'  => 'decimal:2',

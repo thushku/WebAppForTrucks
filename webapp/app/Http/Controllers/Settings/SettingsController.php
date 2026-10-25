@@ -26,6 +26,7 @@ class SettingsController extends Controller
         'settings.tax'       => ['Tax', 'receipt', ['settings.tax']],
         'settings.banks'     => ['Bank accounts', 'wallet', ['settings.bank']],
         'settings.templates' => ['Templates', 'palette', ['settings.templates']],
+        'settings.messages'  => ['Messages', 'mail', ['settings.templates']],
         'settings.security'  => ['Sign-in security', 'lock', ['security.configure']],
         'settings.activity'  => ['Activity', 'clock', ['audit.view']],
         'billing.index'      => ['Plan and billing', 'credit-card', ['billing.view']],

@@ -129,9 +129,6 @@ class MoneyController extends Controller
 
     private function shareText(Invoice $invoice): string
     {
-        return __(':doc :number from :company for :amount. View or download: :link', [
-            'doc' => $invoice->kindLabel(), 'number' => $invoice->number, 'company' => $this->context->company()->name,
-            'amount' => \App\Support\Money::company($invoice->balance_due > 0 ? $invoice->balance_due : $invoice->total), 'link' => route('documents.public', $invoice->public_token),
-        ]);
+        return app(\App\Modules\Invoicing\Services\Messages::class)->render('invoice', 'whatsapp', $invoice)['body'];
     }
 }

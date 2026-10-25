@@ -20,6 +20,20 @@
     <a href="{{ route('receipts.print', $receipt) }}" target="_blank" rel="noopener" class="btn-secondary">{{ __('Print') }}</a>
     <a href="{{ route('receipts.pdf', $receipt) }}" class="btn-secondary"><x-icon name="download" /> {{ __('PDF') }}</a>
   </div>
+  @if ($email)
+    @canany(['invoice.send', 'payment.record'])
+      <details class="mt-4 rounded-2xl border border-ink-100 p-4" @if ($errors->hasAny(['to', 'subject', 'body', 'email'])) open @endif>
+        <summary class="cursor-pointer font-medium"><x-icon name="mail" class="inline size-4 text-brand-700" /> {{ __('Send by email') }}</summary>
+        <form method="POST" action="{{ route('receipts.email', $receipt) }}" class="mt-3 grid gap-3">
+          @csrf
+          <div><label class="label" for="rem_to">{{ __('To') }}</label><input id="rem_to" name="to" type="email" class="input" value="{{ old('to', $email['to']) }}" required>@error('to')<span class="error">{{ $message }}</span>@enderror</div>
+          <div><label class="label" for="rem_subject">{{ __('Subject') }}</label><input id="rem_subject" name="subject" class="input" value="{{ old('subject', $email['subject']) }}" maxlength="200" required></div>
+          <div><label class="label" for="rem_body">{{ __('Message') }}</label><textarea id="rem_body" name="body" rows="6" class="input text-sm" maxlength="5000" required>{{ old('body', $email['body']) }}</textarea></div>
+          <div><button class="btn-primary"><x-icon name="send" /> {{ __('Send') }}</button></div>
+        </form>
+      </details>
+    @endcanany
+  @endif
 </section>
 <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
   <section class="card overflow-hidden"><iframe src="{{ route('receipts.print', $receipt) }}" title="{{ __('The printed receipt') }}" class="h-[820px] w-full border-0 bg-ink-50"></iframe></section>

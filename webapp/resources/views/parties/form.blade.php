@@ -154,6 +154,7 @@
     </fieldset>
     <div class="mt-4 grid gap-4 sm:grid-cols-4">
       <label class="flex items-center gap-2 self-end pb-3 text-sm sm:col-span-2"><input type="checkbox" name="tds_deducted" value="1" class="size-4 rounded border-ink-300" @checked(old('tds_deducted', $p->tds_deducted))> {{ __('They deduct TDS from our bills') }}</label>
+      <label class="flex items-center gap-2 self-end pb-3 text-sm sm:col-span-2"><input type="hidden" name="send_reminders_shown" value="1"><input type="checkbox" name="send_reminders" value="1" class="size-4 rounded border-ink-300" @checked(old('send_reminders', $p->send_reminders ?? true))> {{ __('Email them reminders for overdue bills (when reminders are on)') }}</label>
       <div><label class="label" for="tds_section">{{ __('TDS section') }}</label><input id="tds_section" name="tds_section" class="input" value="{{ old('tds_section', $p->tds_section) }}" maxlength="10" placeholder="194C"></div>
       <div><label class="label" for="tds_rate">{{ __('TDS %') }}</label><input id="tds_rate" name="tds_rate" type="number" min="0" max="30" step="0.01" class="input" value="{{ old('tds_rate', $p->tds_rate) }}"></div>
     </div>

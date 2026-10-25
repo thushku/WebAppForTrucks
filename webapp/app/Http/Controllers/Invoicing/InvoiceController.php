@@ -188,6 +188,8 @@ class InvoiceController extends Controller
             'publicUrl' => $invoice->public_token ? route('documents.public', $invoice->public_token) : null,
             'canPdf'    => $this->renderer->canPdf(),
             'deliveries' => \App\Modules\Invoicing\Models\DocumentDelivery::where('document_type', 'invoice')->where('document_id', $invoice->id)->orderByDesc('id')->limit(20)->get(),
+            // The email form, filled in from Settings → Messages (M18).
+            'email' => $invoice->isFinal() && $invoice->public_token ? app(\App\Modules\Invoicing\Services\Messages::class)->render('invoice', 'email', $invoice) + ['to' => $invoice->party->email] : null,
         ]);
     }
 
@@ -207,6 +209,35 @@ class InvoiceController extends Controller
         }
 
         return DocumentRenderer::pdfResponse($this->renderer->pdf($this->renderer->invoiceHtml($invoice, true)), $invoice->fileName());
+    }
+
+    /** Email the bill: the wording from Settings → Messages, the PDF attached (M18). */
+    public function email(Request $request, Invoice $invoice, \App\Modules\Invoicing\Services\DocumentMailer $mailer): RedirectResponse
+    {
+        $data = $request->validate([
+            'to' => ['required', 'string', 'max:500'], 'cc' => ['nullable', 'string', 'max:500'],
+            'subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:5000'],
+        ]);
+        [$to, $cc] = [$this->emails($data['to'], 'to'), $this->emails($data['cc'] ?? '', 'cc')];
+        $sent = $mailer->send($invoice, $to, $cc, $data['subject'], $data['body'], $request->user());
+
+        return back()->with($sent ? 'status' : 'error', $sent ? __('Sent to :to.', ['to' => implode(', ', $to)]) : __('The mail could not be sent. Check the address and try again; it is noted on the bill.'));
+    }
+
+    /** "a@x.com, b@y.com" → checked addresses (at most 5). */
+    private function emails(string $list, string $field): array
+    {
+        $emails = array_values(array_filter(array_map('trim', preg_split('/[,;\s]+/', $list) ?: [])));
+        foreach ($emails as $e) {
+            if (! filter_var($e, FILTER_VALIDATE_EMAIL)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([$field => __(':email is not an email address.', ['email' => $e])]);
+            }
+        }
+        if (count($emails) > 5) {
+            throw \Illuminate\Validation\ValidationException::withMessages([$field => __('At most five addresses.')]);
+        }
+
+        return $emails;
     }
 
     public function void(Request $request, Invoice $invoice): RedirectResponse
@@ -259,10 +290,7 @@ class InvoiceController extends Controller
         $this->invoices->recordDelivery($invoice, $data['channel'], $mobile ?: null, $request->user());
 
         if ($data['channel'] === 'whatsapp') {
-            $text = __(':doc :number from :company for :amount. View or download: :link', [
-                'doc' => $invoice->kindLabel(), 'number' => $invoice->number, 'company' => $this->context->company()->name,
-                'amount' => \App\Support\Money::company($invoice->balance_due > 0 ? $invoice->balance_due : $invoice->total), 'link' => route('documents.public', $invoice->public_token),
-            ]);
+            $text = app(\App\Modules\Invoicing\Services\Messages::class)->render('invoice', 'whatsapp', $invoice)['body'];
 
             return redirect()->away('https://wa.me/' . $mobile . '?text=' . rawurlencode($text));
         }

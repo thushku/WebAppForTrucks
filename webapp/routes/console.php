@@ -19,5 +19,7 @@ Schedule::command('documents:remind')->dailyAt('01:30')->name('documents-remind'
 
 // Ended trials and plans turn read-only (data kept) — just after midnight, India time.
 Schedule::command('fleet:subscriptions')->dailyAt('00:20')->timezone('Asia/Kolkata')->name('subscriptions-sweep')->withoutOverlapping();
+// Overdue reminders by email (M18), each morning in India.
+Schedule::command('fleet:reminders')->dailyAt('09:05')->timezone('Asia/Kolkata')->name('overdue-reminders')->withoutOverlapping();
 // Companies whose 72-hour deletion countdown has ended (M17), every hour.
 Schedule::command('fleet:deletions')->hourlyAt(35)->name('company-deletions')->withoutOverlapping();

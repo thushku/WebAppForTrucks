@@ -42,6 +42,9 @@ class CompanySettings
         'invoice_round_total'       => [true, 'bool', 'Round invoice totals to the whole rupee / dirham (a separate round-off line)'],
         'tax_evidence_policy'       => ['block', 'string', 'Zero-rated lines without their papers: block the invoice, or warn and mark it "pending evidence"'],
         'tds_declaration_given'     => [false, 'bool', 'We give clients the declaration of 10 trucks or fewer (no TDS on our freight)'],
+        // Reminders (M18, blueprint 10).
+        'reminders_enabled'         => [false, 'bool', 'Email clients a reminder when a bill is overdue'],
+        'reminder_days'             => ['3,15,30', 'string', 'Days after the due date to remind (comma-separated)'],
     ];
 
     /** Where a country's law or custom starts somewhere else. */

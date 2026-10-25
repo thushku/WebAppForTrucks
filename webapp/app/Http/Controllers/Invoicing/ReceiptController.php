@@ -83,7 +83,19 @@ class ReceiptController extends Controller
 
     public function show(Receipt $receipt): View
     {
-        return view('receipts.show', ['receipt' => $receipt->load(['party:id,name', 'allocations.invoice:id,number,issue_date,total,balance_due,status']), 'canPdf' => $this->renderer->canPdf()]);
+        $receipt->load(['party:id,name,email', 'allocations.invoice:id,number,issue_date,total,balance_due,status']);
+
+        return view('receipts.show', ['receipt' => $receipt, 'canPdf' => $this->renderer->canPdf(),
+            'email' => ! $receipt->isVoid() && $receipt->public_token ? app(\App\Modules\Invoicing\Services\Messages::class)->render('receipt', 'email', $receipt) + ['to' => $receipt->party->email] : null]);
+    }
+
+    /** Email the receipt to the client (M18). */
+    public function email(Request $request, Receipt $receipt, \App\Modules\Invoicing\Services\DocumentMailer $mailer): RedirectResponse
+    {
+        $data = $request->validate(['to' => ['required', 'email:filter', 'max:255'], 'subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:5000']]);
+        $sent = $mailer->send($receipt, [$data['to']], [], $data['subject'], $data['body'], $request->user());
+
+        return back()->with($sent ? 'status' : 'error', $sent ? __('Sent to :to.', ['to' => $data['to']]) : __('The mail could not be sent. Check the address and try again.'));
     }
 
     public function print(Receipt $receipt): Response

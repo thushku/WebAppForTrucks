@@ -32,6 +32,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M15 ✅ | **Handover pack** for the phone-app session: API reference with examples, screen list, rules, sync design, local set-up guide | `docs/handover/` |
 | M16 ✅ | **Basic driver pay run** (13-parity #24): pay per month, trip or km for any period, payslips, approval into the books, payment | Pay the crew from the same ledgers |
 | M17 ✅ | Your data: full export, company deletion with a 72-hour countdown and a law copy, plan modules and storage enforced | Leave or switch off parts safely |
+| M18 ✅ | Bills and receipts by email (PDF + secure link), message templates for email and WhatsApp, overdue reminders | Get paid without chasing by hand |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

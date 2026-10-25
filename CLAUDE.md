@@ -57,6 +57,9 @@ founder's laptop) in `phoneapp/`.
   DesignSchema` checks every design (anything unknown is dropped and listed), `DocumentTemplates` resolves bill →
   client → branch → default → built-in, saves versions and rollbacks; a bill freezes its design at issue
   (`design_snapshot`); the editor is Settings → Templates with a live preview (`resources/js/templates.js`).
+  Messages (M18): `Messages` (the words sent with bills, receipts and reminders — Settings → Messages, shipped
+  defaults, `{placeholders}`), `DocumentMailer` (email with the PDF and the secure link, every send kept as a
+  delivery), `Reminders` (`fleet:reminders` daily: overdue reminders on the company's days, once per step).
   `Accounts` (M11: `ChartOfAccounts` makes groups and ledgers on first use, `Books` posts balanced vouchers once
   per source and reverses — never edits — them, honouring the lock date; `Posting` holds the automatic entries and
   `BookKeeper` hooks them to the models' saves; `Statements` reads ledgers, trial balance, P&L, balance sheet and

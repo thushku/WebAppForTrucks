@@ -47,6 +47,24 @@
       @endcan
     @endif
   </div>
+  @if ($email && ! $inv->isVoid())
+    @can('invoice.send')
+      <details class="mt-4 rounded-2xl border border-ink-100 p-4" @if ($errors->hasAny(['to', 'cc', 'subject', 'body', 'email'])) open @endif>
+        <summary class="cursor-pointer font-medium"><x-icon name="mail" class="inline size-4 text-brand-700" /> {{ __('Send by email') }}</summary>
+        <form method="POST" action="{{ route('invoices.email', $inv) }}" class="mt-3 grid gap-3">
+          @csrf
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div><label class="label" for="em_to">{{ __('To') }}</label><input id="em_to" name="to" class="input" value="{{ old('to', $email['to']) }}" placeholder="accounts@client.com" required>@error('to')<span class="error">{{ $message }}</span>@enderror</div>
+            <div><label class="label" for="em_cc">{{ __('Copy to') }} <span class="text-ink-400">({{ __('optional') }})</span></label><input id="em_cc" name="cc" class="input" value="{{ old('cc') }}">@error('cc')<span class="error">{{ $message }}</span>@enderror</div>
+          </div>
+          <div><label class="label" for="em_subject">{{ __('Subject') }}</label><input id="em_subject" name="subject" class="input" value="{{ old('subject', $email['subject']) }}" maxlength="200" required></div>
+          <div><label class="label" for="em_body">{{ __('Message') }}</label><textarea id="em_body" name="body" rows="7" class="input text-sm" maxlength="5000" required>{{ old('body', $email['body']) }}</textarea></div>
+          <p class="text-xs text-ink-500">{{ $canPdf ? __('The PDF goes attached, with the secure link in the message.') : __('The secure link is in the message (PDFs are not made on this server).') }} @can('settings.templates')<a href="{{ route('settings.messages') }}" class="text-brand-700 hover:underline">{{ __('Change the usual words') }}</a>@endcan</p>
+          <div><button class="btn-primary"><x-icon name="send" /> {{ __('Send') }}</button></div>
+        </form>
+      </details>
+    @endcan
+  @endif
   @foreach (['invoice', 'reason'] as $f)@error($f)<p class="error mt-2">{{ $message }}</p>@enderror @endforeach
   @if ($publicUrl && ! $inv->isVoid())<p class="mt-3 text-xs text-ink-500">{{ __('Secure link for the client:') }} <a href="{{ $publicUrl }}" target="_blank" rel="noopener" class="break-all font-mono text-brand-700 hover:underline">{{ $publicUrl }}</a></p>@endif
   @if ($inv->isVoid())<p class="mt-3 rounded-xl bg-ink-100 px-3 py-2 text-sm">{{ __('Void since :date: :reason', ['date' => $inv->voided_at->format('d M Y'), 'reason' => $inv->void_reason]) }}</p>@endif

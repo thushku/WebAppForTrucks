@@ -2,6 +2,31 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M18: bills and receipts by email, message templates, overdue reminders
+
+**Built (in `webapp/`, `app/Modules/Invoicing/Services`; blueprint 10 "Email", "Reminders", "Message templates"):**
+- **Send by email** on every issued bill and receipt: to (up to five addresses), copy to, subject and message filled
+  in from the company's wording and the document; the **PDF attached** when the server can make one, the **secure
+  link** in the message, replies going to the company's email. Every send — or failure — is kept with the bill's
+  deliveries; a bill sent by email turns "sent". Laravel's own mailer (set `MAIL_*` in `.env`; nothing new installed).
+- **Settings → Messages**: the words for sending a bill, a receipt and an overdue reminder, by email (subject and
+  message) and WhatsApp, with `{placeholders}` (company, client, document, number, amount, total, dates, days
+  overdue, link) and a live preview with sample values. Left as shipped (or reset), a message follows the shipped
+  words. The WhatsApp share on the web and in the owner app uses the same templates.
+- **Overdue reminders**: switched on in Settings → Messages with the days after the due date (3, 15, 30 by default);
+  `php artisan fleet:reminders` (daily, 09:05 India time) emails the client once per step; a bill found late gets
+  one reminder for the last step reached, not a pile; a client can be kept out ("Email them reminders" on the client's
+  page); read-only companies and credit notes are left out; a client without an email is noted, not retried.
+- Documents are named as printed in messages ("Tax invoice", "Bill of supply", "Credit note").
+
+**Tests:** 226 passing (new `MessagesTest`, 3 tests: a bill by email to two addresses and a copy with the link, the
+delivery and status, the WhatsApp text from the template, a receipt by email, who may send; the company's wording with
+the preview, wrong reminder days refused, the reset; reminders off by default, once per step, a client kept out, a
+bill found late, read-only companies).
+
+**Not yet:** WhatsApp Business API sending (phase 2 — today WhatsApp opens on the phone with the text ready), SMS,
+statements by email (statements as PDF come with M11 part 3), per-language message sets (Q1).
+
 ## 2026-10-26 — Milestone M17: your data — export, deleting a company, plan limits enforced
 
 **Built (in `webapp/`, `app/Platform/Data`; blueprint 09 §8; decision P13):**

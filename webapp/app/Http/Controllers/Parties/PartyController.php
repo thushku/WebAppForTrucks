@@ -185,6 +185,7 @@ class PartyController extends Controller
             'lng'           => ['nullable', 'numeric', 'between:-180,180', 'required_with:lat'],
             'rating'        => ['nullable', 'integer', 'min:1', 'max:5'],
             'blacklisted'   => ['nullable', 'boolean'],
+            'send_reminders' => ['nullable', 'boolean'],
             'blacklist_reason' => ['nullable', 'required_if:blacklisted,1', 'string', 'max:255'],
             'opening_balance' => ['nullable', 'numeric', 'min:0', 'max:999999999999'],
             'opening_side'  => ['nullable', Rule::in(['receivable', 'payable'])],
@@ -227,6 +228,8 @@ class PartyController extends Controller
         $fields['country']      = $country;
         $fields['tds_deducted'] = $request->boolean('tds_deducted');
         $fields['blacklisted']  = $request->boolean('blacklisted');
+        // Unticked (or not on the form): no automatic reminders for this client.
+        $fields['send_reminders'] = $request->has('send_reminders_shown') ? $request->boolean('send_reminders') : true;
         $fields['blacklist_reason'] = $fields['blacklisted'] ? $fields['blacklist_reason'] : null;
         $fields['active']       = $party ? $request->boolean('active') : true;
         $fields['opening_balance'] = (float) ($fields['opening_balance'] ?? 0);

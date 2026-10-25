@@ -205,6 +205,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{invoice}/void', [InvoiceController::class, 'void'])->middleware('permission:invoice.create,invoice.void')->name('void');
             Route::post('/{invoice}/submit', [InvoiceController::class, 'submit'])->middleware('permission:invoice.send')->name('submit');
             Route::post('/{invoice}/shared', [InvoiceController::class, 'shared'])->middleware('permission:invoice.send')->name('shared');
+            Route::post('/{invoice}/email', [InvoiceController::class, 'email'])->middleware(['permission:invoice.send', 'throttle:30,60'])->name('email');
         });
 
         // Money received (M9).
@@ -220,6 +221,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('/', [ReceiptController::class, 'store'])->name('store');
             });
             Route::post('/{receipt}/void', [ReceiptController::class, 'void'])->middleware('permission:payment.void')->name('void');
+            Route::post('/{receipt}/email', [ReceiptController::class, 'email'])->middleware(['permission:invoice.send,payment.record', 'throttle:30,60'])->name('email');
         });
 
         // Where the trucks are (M12).
@@ -390,6 +392,12 @@ Route::middleware('auth')->group(function () {
             });
             // Any member may see the logo (it prints on their documents).
             Route::get('/company/logo', [Settings\CompanyProfileController::class, 'logo'])->name('company.logo');
+
+            // The words sent with bills, receipts and reminders, and the reminder days (M18).
+            Route::middleware('permission:settings.templates')->group(function () {
+                Route::get('/messages', [Settings\MessagesController::class, 'edit'])->name('messages');
+                Route::put('/messages', [Settings\MessagesController::class, 'update'])->name('messages.update');
+            });
 
             Route::middleware('permission:settings.rules')->group(function () {
                 Route::get('/rules', [Settings\RulesController::class, 'edit'])->name('rules');
