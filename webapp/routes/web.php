@@ -341,6 +341,21 @@ Route::middleware('auth')->group(function () {
                 Route::put('/banks/{account}', [Settings\BankAccountController::class, 'update'])->name('banks.update');
             });
 
+            Route::middleware('permission:settings.templates')->group(function () {
+                Route::get('/templates', [Settings\TemplateController::class, 'index'])->name('templates');
+                Route::post('/templates', [Settings\TemplateController::class, 'store'])->name('templates.store');
+                Route::post('/templates/import', [Settings\TemplateController::class, 'import'])->name('templates.import');
+                Route::post('/templates/preview/{family}', [Settings\TemplateController::class, 'preview'])->name('templates.preview');
+                Route::get('/templates/{template}', [Settings\TemplateController::class, 'edit'])->name('templates.edit');
+                Route::put('/templates/{template}', [Settings\TemplateController::class, 'update'])->name('templates.update');
+                Route::put('/templates/{template}/assign', [Settings\TemplateController::class, 'assign'])->name('templates.assign');
+                Route::post('/templates/{template}/duplicate', [Settings\TemplateController::class, 'duplicate'])->name('templates.duplicate');
+                Route::post('/templates/{template}/default', [Settings\TemplateController::class, 'makeDefault'])->name('templates.default');
+                Route::post('/templates/{template}/rollback', [Settings\TemplateController::class, 'rollback'])->name('templates.rollback');
+                Route::get('/templates/{template}/export', [Settings\TemplateController::class, 'export'])->name('templates.export');
+                Route::delete('/templates/{template}', [Settings\TemplateController::class, 'destroy'])->name('templates.destroy');
+            });
+
             Route::middleware('permission:settings.tax')->group(function () {
                 Route::get('/tax', [Settings\TaxController::class, 'index'])->name('tax');
                 Route::put('/tax/rules', [Settings\TaxController::class, 'saveRules'])->name('tax.rules');

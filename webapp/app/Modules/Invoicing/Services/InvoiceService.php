@@ -200,7 +200,7 @@ class InvoiceService
         return DB::transaction(function () use ($invoice, $data) {
             $invoice->fill(array_intersect_key($data, array_flip([
                 'issue_date', 'due_date', 'period_from', 'period_to', 'reference', 'buyer_tax_id', 'tax_registration_id', 'transport_type', 'carrier_role',
-                'loading_state', 'evidence', 'inclusive', 'discount_type', 'discount_value', 'advance_less', 'notes', 'terms', 'reason',
+                'loading_state', 'evidence', 'inclusive', 'discount_type', 'discount_value', 'advance_less', 'notes', 'terms', 'reason', 'document_template_id',
             ])));
             if ($invoice->isCreditNote()) {
                 $invoice->due_date = $invoice->issue_date;
@@ -415,6 +415,7 @@ class InvoiceService
                 'finalized_at'    => now(),
                 'finalized_by'    => $by->id,
                 'snapshot'        => app(DocumentData::class)->snapshot($invoice),
+                'design_snapshot' => app(DocumentTemplates::class)->freeze('invoice', $invoice->party_id, $invoice->branch_id, $invoice->document_template_id),
                 'public_token'    => $this->links->create('invoice', $invoice->id),
             ])->save();
 

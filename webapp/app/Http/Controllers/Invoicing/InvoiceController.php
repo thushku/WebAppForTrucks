@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Invoicing;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Invoicing\Models\DocumentTemplate;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\InvoiceLine;
 use App\Modules\Invoicing\Services\DocumentRenderer;
@@ -111,6 +112,7 @@ class InvoiceController extends Controller
             'classes'       => ServiceClasses::CLASSES,
             'regions'       => Regions::for($company->country),
             'india'         => $company->country === 'IN',
+            'templates'     => DocumentTemplate::family('invoice')->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'is_default']),
             'addable'       => $invoice->doc_type === 'invoice' ? $this->unbilledQuery()->where('billing_party_id', $invoice->party_id)->get(['id', 'lr_number', 'lr_date', 'freight']) : collect(),
         ]);
     }
@@ -133,6 +135,7 @@ class InvoiceController extends Controller
             'notes'        => ['nullable', 'string', 'max:2000'],
             'terms'        => ['nullable', 'string', 'max:2000'],
             'reason'       => ['nullable', 'string', 'max:500'],
+            'document_template_id' => ['nullable', 'integer', Rule::exists('document_templates', 'id')->where('company_id', $this->context->id())->where('family', 'invoice')],
             'lines'        => ['nullable', 'array', 'max:500'],
             'lines.*.id'   => ['nullable', 'integer'],
             'lines.*.service_class' => ['nullable', Rule::in(array_keys(ServiceClasses::CLASSES))],

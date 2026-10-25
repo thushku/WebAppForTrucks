@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Services;
 
+use App\Modules\Invoicing\Design\DesignSchema;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Invoicing\Models\Receipt;
 use App\Modules\Parties\Models\Party;
@@ -21,10 +22,37 @@ use Illuminate\Support\Facades\Storage;
  * bill prints from the snapshot taken when it was issued, so a changed
  * address or bank account never rewrites what was sent. Lines and totals
  * always come from the bill's own rows, which are fixed once issued.
+ *
+ * The design (M10) works the same way: a draft prints with the template it
+ * resolves to today, an issued bill with the design frozen on it at issue.
+ * LRs and receipts print with today's template — their content is fixed,
+ * only the look follows the template.
  */
 class DocumentData
 {
-    public function __construct(private CompanyContext $context) {}
+    public function __construct(private CompanyContext $context, private DocumentTemplates $templates) {}
+
+    /** The design a bill prints with: frozen at issue, else what its template resolves to now. */
+    public function invoiceDesign(Invoice $invoice): array
+    {
+        if (! $invoice->isDraft() && $invoice->design_snapshot) {
+            return DesignSchema::normalize('invoice', $invoice->design_snapshot);
+        }
+
+        return $this->templates->resolve('invoice', $invoice->party_id, $invoice->branch_id, $invoice->document_template_id)['design'];
+    }
+
+    public function lrDesign(Consignment $c): array
+    {
+        $c->loadMissing('trip');
+
+        return $this->templates->resolve('lr', $c->billing_party_id ?: $c->consignor_party_id, $c->trip?->branch_id)['design'];
+    }
+
+    public function receiptDesign(Receipt $receipt): array
+    {
+        return $this->templates->resolve('receipt', $receipt->party_id)['design'];
+    }
 
     /** What is frozen at issue: seller (with our registration), buyer (with the GSTIN billed), bank. */
     public function snapshot(Invoice $invoice): array
@@ -39,8 +67,9 @@ class DocumentData
         ];
     }
 
-    public function forInvoice(Invoice $invoice): array
+    public function forInvoice(Invoice $invoice, ?array $design = null): array
     {
+        $design ??= $this->invoiceDesign($invoice);
         $invoice->loadMissing(['lines.consignment.trip', 'lines.consignment.consignor', 'lines.consignment.consignee', 'lines.consignment.pickupStop.place', 'lines.consignment.dropStop.place',
             'taxes', 'party.taxIds', 'registration', 'related']);
         $frozen  = $invoice->snapshot ?: $this->snapshot($invoice);
@@ -48,15 +77,11 @@ class DocumentData
         $india   = $company->country === 'IN';
         $money   = fn ($v) => Money::format($v, $invoice->currency, $india ? 'in' : 'us');
 
+        // The title as the design words it (a renamed title, or the default in the page's language).
         $title = match ($invoice->doc_type) {
-            'credit_note' => __('Credit note'),
-            'debit_note'  => __('Debit note'),
-            'supplementary' => $invoice->kind === 'bill_of_supply' ? __('Supplementary bill of supply') : __('Supplementary tax invoice'),
-            default       => match ($invoice->kind) {
-                'bill_of_supply' => __('Bill of supply'),
-                'invoice'        => __('Invoice'),
-                default          => __('Tax invoice'),
-            },
+            'credit_note', 'debit_note' => DesignSchema::title($design, $invoice->doc_type),
+            'supplementary' => $invoice->kind === 'bill_of_supply' && ! $design['titles']['supplementary'] ? __('Supplementary bill of supply') : DesignSchema::title($design, 'supplementary'),
+            default         => DesignSchema::title($design, in_array($invoice->kind, ['bill_of_supply', 'invoice'], true) ? $invoice->kind : 'tax_invoice'),
         };
 
         // An LR annexure when the bill carries LRs (consolidated freight bills, blueprint 10 §5).
@@ -124,9 +149,10 @@ class DocumentData
             'qr'          => $invoice->isCreditNote() || $invoice->isVoid() ? null : PaymentQr::for($frozen['bank'] ?? null, $invoice->currency, $balance, $invoice->number, $frozen['seller']['name'] ?? ''),
             'notes'       => $invoice->notes,
             'terms'       => $invoice->terms,
-            // GST Rule 48: a service invoice in two copies (P5).
-            'copies'      => $india && ! $invoice->isDraft() ? [__('Original for recipient'), __('Duplicate for supplier')] : [null],
+            // GST Rule 48: a service invoice in two copies (P5) — the design's copy set; a draft prints once.
+            'copies'      => $invoice->isDraft() ? [null] : array_map(fn ($c) => $c['label'] !== '' ? __($c['label']) : null, $design['copies']),
             'currency'    => $invoice->currency,
+            'design'      => $design,
         ];
     }
 
@@ -135,8 +161,9 @@ class DocumentData
      * consignee, driver / lorry, office (P5). Freight hidden on the copies set
      * to hide it (the driver's, by default).
      */
-    public function forLr(Consignment $c, array $copies = []): array
+    public function forLr(Consignment $c, ?array $design = null): array
     {
+        $design ??= $this->lrDesign($c);
         $c->loadMissing(['trip.truck', 'trip.supplierVehicle', 'trip.crew.person', 'consignor.taxIds', 'consignee.taxIds', 'billingParty.taxIds', 'pickupStop.place', 'dropStop.place', 'ewaybills']);
         $company = $this->context->company();
         $india   = $company->country === 'IN';
@@ -144,12 +171,8 @@ class DocumentData
         $driver  = $c->trip?->crew->firstWhere('role', 'driver')?->person;
         $registration = TaxRegistration::usable()->orderByDesc('is_default')->first();
 
-        $copies = $copies ?: [
-            ['label' => __('Consignor copy'), 'hide_freight' => false, 'tint' => '#ffffff'],
-            ['label' => __('Consignee copy'), 'hide_freight' => false, 'tint' => '#f5faff'],
-            ['label' => __('Driver / lorry copy'), 'hide_freight' => true, 'tint' => '#fffbeb'],
-            ['label' => __('Office copy'), 'hide_freight' => false, 'tint' => '#f0fdf4'],
-        ];
+        // The copy set comes from the design: consignor, consignee, driver / lorry (freight hidden), office by default.
+        $copies = array_map(fn ($copy) => ['label' => $copy['label'] !== '' ? __($copy['label']) : null] + $copy, $design['copies']);
 
         return [
             'seller'    => $this->seller($company, $registration),
@@ -186,11 +209,13 @@ class DocumentData
             'remarks'   => $c->remarks,
             'copies'    => $copies,
             'is_cancelled' => $c->status === 'cancelled',
+            'design'    => $design,
         ];
     }
 
-    public function forReceipt(Receipt $receipt): array
+    public function forReceipt(Receipt $receipt, ?array $design = null): array
     {
+        $design ??= $this->receiptDesign($receipt);
         $receipt->loadMissing(['party.taxIds', 'allocations.invoice']);
         $company = $this->context->company();
         $money   = fn ($v) => Money::format($v, $receipt->currency, $company->country === 'IN' ? 'in' : 'us');
@@ -209,7 +234,16 @@ class DocumentData
             'applied' => $receipt->allocations->map(fn ($a) => ['number' => $a->invoice->number, 'date' => $a->invoice->issue_date->format('d-m-Y'), 'amount' => $money($a->total()),
                 'tds' => (float) $a->tds ? $money($a->tds) : null])->all(),
             'unapplied' => (float) $receipt->unapplied ? $money($receipt->unapplied) : null,
+            'design' => $design,
         ];
+    }
+
+    /** Our side of a document as it would print today — the sample documents of the template editor use it. */
+    public function companyParts(string $currency): array
+    {
+        $company = $this->context->company();
+
+        return ['seller' => $this->seller($company, TaxRegistration::usable()->orderByDesc('is_default')->first()), 'bank' => $this->bank($currency)];
     }
 
     // ---- Parts -----------------------------------------------------------------

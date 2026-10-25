@@ -276,6 +276,8 @@ class FleetDemo extends Command
             'account_number' => '50200012345678', 'account_last4' => '5678', 'ifsc' => 'HDFC0001234', 'branch' => 'Vyttila, Kochi', 'upi_id' => 'sharmaroadlines@hdfcbank',
             'currency' => 'INR', 'is_default' => true, 'show_on_invoice' => true]);
 
+        $this->templates($ownerId);
+
         $load = \App\Modules\Trips\Models\Consignment::where('trip_id', $trip->id)->first();
         $invoices = app(\App\Modules\Invoicing\Services\InvoiceService::class);
         $invoice = $invoices->draftFromLoads($load->billingParty, [$load->id], $owner);
@@ -286,6 +288,39 @@ class FleetDemo extends Command
             'receipt_date' => now()->toDateString(), 'amount' => 20000, 'tds_amount' => 380, 'tds_section' => '393(1)', 'mode' => 'neft', 'reference' => 'UTIBN26102500412',
             'narration' => 'Part payment for ' . $invoice->number, 'allocations' => [$invoice->id => 20380],
         ], $owner);
+    }
+
+    /**
+     * The templates (M10): the classic GST bill as the default with a footer,
+     * a modern blue bill for Kerala Agro Foods, the classic LR, a compact A5
+     * LR for the Mumbai branch and the A5 receipt.
+     */
+    private function templates(int $ownerId): void
+    {
+        $templates = app(\App\Modules\Invoicing\Services\DocumentTemplates::class);
+        // Changes merge into the theme's design; a copy set given replaces the whole set.
+        $design = function (string $family, string $theme, array $changes = []): array {
+            $design = array_replace_recursive(\App\Modules\Invoicing\Design\DesignSchema::defaults($family, $theme), array_diff_key($changes, ['copies' => true]));
+
+            return isset($changes['copies']) ? ['copies' => $changes['copies']] + $design : $design;
+        };
+
+        $templates->create('invoice', 'GST classic', $design('invoice', 'gst_classic', ['footer' => 'Subject to Kochi jurisdiction. E. & O.E.']), $ownerId);
+        $blue = $templates->create('invoice', 'Modern blue', $design('invoice', 'modern', ['labels' => ['bill_to' => 'Billed to'], 'fields' => ['pan' => false]]), $ownerId);
+        $agro = \App\Modules\Parties\Models\Party::where('name', 'Kerala Agro Foods')->value('id');
+        if ($agro) {
+            $templates->assign($blue, [$agro], []);
+        }
+
+        $templates->create('lr', 'Classic LR', $design('lr', 'classic_lr'), $ownerId);
+        $small = $templates->create('lr', 'Compact A5 — Mumbai', $design('lr', 'compact_a5', ['copies' => [
+            ['label' => 'Consignor copy', 'tint' => '#FFFFFF', 'hide_freight' => false],
+            ['label' => 'Consignee copy', 'tint' => '#F5FAFF', 'hide_freight' => false],
+            ['label' => 'Driver / lorry copy', 'tint' => '#FFFBEB', 'hide_freight' => true],
+        ]]), $ownerId);
+        $templates->assign($small, [], [Branch::where('code', 'BOM')->value('id')]);
+
+        $templates->create('receipt', 'A5 receipt', $design('receipt', 'receipt_a5'), $ownerId);
     }
 
     /** A finished trip's entries, already checked by the office. */

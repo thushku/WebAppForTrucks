@@ -77,6 +77,15 @@
       @endif
       <div><label class="label" for="b_notes">{{ __('Note on the bill') }}</label><textarea id="b_notes" name="notes" rows="3" class="input" maxlength="2000">{{ old('notes', $inv->notes) }}</textarea></div>
       <div><label class="label" for="b_terms">{{ __('Terms') }}</label><textarea id="b_terms" name="terms" rows="3" class="input" maxlength="2000" placeholder="{{ __('Payment within :n days. Interest at 18% a year after the due date. Subject to Kochi jurisdiction.', ['n' => $inv->party->credit_days ?? 30]) }}">{{ old('terms', $inv->terms) }}</textarea></div>
+      @if ($templates->count() > 1)
+        <div><label class="label" for="b_template">{{ __('Prints with') }}</label>
+          <select id="b_template" name="document_template_id" class="input">
+            <option value="">{{ __('The client’s template (or the default)') }}</option>
+            @foreach ($templates as $t)<option value="{{ $t->id }}" @selected((string) old('document_template_id', $inv->document_template_id) === (string) $t->id)>{{ $t->name }}{{ $t->is_default ? ' · ' . __('default') : '' }}</option>@endforeach
+          </select>
+          @error('document_template_id')<span class="error">{{ $message }}</span>@enderror
+        </div>
+      @endif
     </section>
   </div>
 

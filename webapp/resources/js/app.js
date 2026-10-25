@@ -3,3 +3,4 @@
 import './ui.js';
 import './forms.js';
 import './trips.js';
+import './templates.js';

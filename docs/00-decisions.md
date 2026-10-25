@@ -136,6 +136,17 @@ package), QR codes / amount in words / CSV written in-house. See
 - Office users can sign in to the web app by **scanning a QR code** with the
   owner app (like WhatsApp Web), as well as with a password.
 
+### P8. Which look a document keeps (added 26 Oct 2026, M10)
+
+- An **issued bill or note keeps the design it was issued with** (frozen on the
+  bill, with the template's name and version): editing or removing a template
+  never changes what a client already received.
+- **LRs and money receipts print with today's template.** Their content is
+  fixed once made; only the look follows the template, so a company that
+  switches to the Compact A5 LR reprints old LRs in the new size.
+- Templates are chosen in this order: the bill's own choice in the builder, the
+  client's, the branch's, the company default, the built-in design.
+
 ---
 
 ## 4. Still open

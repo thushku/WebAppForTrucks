@@ -19,60 +19,6 @@ use App\Platform\Tenancy\CompanyContext;
 // Invoicing (M9): bills from LRs on the tax engine, issue, notes, receipts
 // with TDS, the secure link, the printed documents.
 
-function invGstin(string $state, string $pan): string
-{
-    return $state . $pan . '1Z' . TaxIds::gstinCheckCharacter($state . $pan . '1Z');
-}
-
-/**
- * A Kerala company with its GSTIN (and GTA option), a client registered in
- * $clientState, and $loads delivered LRs to bill, each on its own trip.
- */
-function invWorld(?string $gtaOption = 'fcm_18', ?string $clientState = '32', int $loads = 1, array $client = []): array
-{
-    $company = makeCompany();
-    $owner   = signInTo($company);
-
-    return app(CompanyContext::class)->runAs($company, function () use ($company, $owner, $gtaOption, $clientState, $loads, $client) {
-        $reg = TaxRegistration::create(['country' => 'IN', 'regime' => 'in_gst', 'tax_id' => invGstin('32', 'AABCS1234F'), 'state_code' => '32', 'is_default' => true, 'legal_name' => 'Sharma Roadlines Pvt Ltd']);
-        if ($gtaOption) {
-            TaxRegistrationYear::create(['tax_registration_id' => $reg->id, 'fy_key' => '2026-27', 'gta_option' => $gtaOption]);
-        }
-        $acc = makeParty($client + ['name' => 'ACC Limited', 'short_code' => 'ACC', 'state_code' => $clientState, 'credit_days' => 30], ['client', 'consignor']);
-        if ($clientState) {
-            PartyTaxId::create(['party_id' => $acc->id, 'country' => 'IN', 'tax_id' => invGstin($clientState, 'AAACA1234B'), 'state_code' => $clientState, 'is_default' => true]);
-        }
-        $cok = Place::create(['name' => 'Kochi', 'short_code' => 'COK', 'state_code' => '32']);
-        $bom = Place::create(['name' => 'Mumbai', 'short_code' => 'BOM', 'state_code' => '27']);
-        $trips = app(TripService::class);
-
-        $made = [];
-        for ($n = 1; $n <= $loads; $n++) {
-            $truck  = makeTruck(['reg_no' => "KL-07-AB-12{$n}0", 'odometer_km' => 100000]);
-            $driver = makePerson(['name' => "Driver {$n}", 'mobile' => '+91984701111' . $n, 'licence_no' => "KL07201500{$n}2345", 'licence_expiry' => '2030-01-01']);
-            $trip = $trips->create(['trip_date' => '2026-10-25', 'truck_id' => $truck->id, 'from_place_id' => $cok->id, 'to_place_id' => $bom->id, 'planned_km' => 1380],
-                [['person_id' => $driver->id, 'role' => 'driver']],
-                ['billing_party_id' => $acc->id, 'consignor_party_id' => $acc->id, 'material' => 'cement', 'actual_weight_mt' => 18.5,
-                    'freight_basis' => 'tonne', 'rate' => 3400, 'freight' => 62900, 'loading_charge' => 1100, 'payment_type' => 'to_be_billed']);
-            $trips->assign($trip->fresh());
-            $trips->start($trip->fresh(), 100100);
-            $trips->end($trip->fresh(), 101500);
-            $made[] = Consignment::where('trip_id', $trip->id)->first();
-        }
-
-        return ['company' => $company, 'owner' => $owner, 'registration' => $reg, 'client' => $acc->fresh('taxIds'), 'loads' => $made];
-    });
-}
-
-/** Make the draft from LRs through the screens, and give it back. */
-function invDraft(array $w, ?array $loads = null): Invoice
-{
-    test()->post(route('invoices.store'), ['party_id' => $w['client']->id, 'loads' => $loads ?? collect($w['loads'])->pluck('id')->all()])->assertSessionHasNoErrors();
-    app(CompanyContext::class)->set($w['company']);
-
-    return Invoice::latest('id')->first();
-}
-
 it('bills a delivered LR: tax by the engine, issued with its number, the LR billed and locked', function () {
     $w = invWorld();
     $invoice = invDraft($w);

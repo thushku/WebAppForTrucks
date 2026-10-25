@@ -2,6 +2,55 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M10: templates and the template editor
+
+**Built (in `webapp/`, `app/Modules/Invoicing/Design` + `Services/DocumentTemplates`, ported from Clinic Ledger — D14):**
+- **The design schema** (`DesignSchema`) for each document kind — **bills and notes**, the **LR**, the **money
+  receipt**: theme, accent colour, font (Noto with the Indian-script and Arabic faces, system, serif, typewriter),
+  paper (A4, A4 landscape, A5, Letter, thermal 80 mm), table density, text size, margins, logo height, **what prints**
+  (17 switches on a bill — logo, address, contact, GSTIN, PAN, SAC column, tax summary, amount in words, bank, UPI QR,
+  signature, note, terms, LR annexure and its vehicle column, TDS line, "computer-generated" line; 12 on an LR — trip,
+  driver, e-way bills, consignor invoice, declared value, GST payable by, risk banner, POD box, Carriage by Road Act
+  line…; 6 on a receipt), **renamed titles** (Tax invoice → "Freight bill"…) and **labels** (Bill to, Consignor, Said
+  to contain, Authorised signatory…), **extra lines** under our details (Udyam, transporter ID — up to 6), a **footer
+  line** and the **copy set** (1–6 copies, each with its label and a light tint; on the LR, whether that copy hides
+  the freight). Every value is checked against the lists and ranges; anything else is dropped and **listed in plain
+  words** (an imported file, a tampered form). Text is plain: markup, control and direction-override characters are
+  taken out. The values printed inside the page's style sheet are checked again where they are printed.
+- **Themes** as one style sheet driven by the design (CSS custom properties, sizes in rem so the text size scales the
+  page): bills — **GST classic (boxed)**, **Modern band** (header on the accent colour), **Minimal** (hairlines);
+  LR — **Classic LR (boxed)**, **Compact A5**; receipt — **A5 receipt**, **Thermal 80 mm** (one narrow column for a
+  roll printer). Right-to-left page direction for Arabic / Urdu.
+- **Which design prints** (`DocumentTemplates::resolve`): the template chosen on the bill in the builder ("Prints
+  with"), else the **client's** template, else the **branch's**, else the company **default**, else the built-in
+  design (so a company that never opens the editor still prints the GST invoice and the four-copy LR). A client or
+  branch has one template per kind: giving it to one takes it off the other.
+- **An issued bill keeps its look**: the design (with the template's id, name and version) is **frozen on the bill at
+  issue**; changing or removing the template later never reprints it. LRs and receipts print with today's template
+  (their content is fixed; only the look follows).
+- **Versions**: every save that changes the design is a new version (the same design saved again adds none);
+  **"Bring back"** copies an old version forward as the newest — the history only grows. Duplicate, make default,
+  remove (not the default), **export** as a JSON design file and **import** one (here or in another company; what
+  does not fit is listed).
+- **Settings → Templates** (permission `settings.templates`: owner, accountant): the templates of each kind with
+  their theme, paper, version, clients and branches; **new from a theme**; import. **The editor**: every choice on
+  the left, the **document itself on the right, redrawn from the form as it changes** (the form posts to a preview
+  address and the page that comes back fills a frame that runs no scripts; nothing is saved until Save), scaled to fit
+  the column; the company's **latest real document** with this design, or a **sample** with our own name, address and
+  bank when there is none yet; a warning when the accent is too light to read on paper; who prints with it; versions.
+- Demo: "GST classic" (default, with a jurisdiction footer), "Modern blue" for Kerala Agro Foods, "Classic LR"
+  (default), "Compact A5 — Mumbai" (three copies) for the Mumbai branch, "A5 receipt".
+- Fixed on the way: the template list must not be cached on a service object — Laravel keeps a controller (and what
+  is injected into it) from one request to the next, so a print after a save showed the old design (found by the
+  tests; the cache was removed).
+
+**Tests:** 184 passing (new `TemplateTest`, 9 tests; the invoice test helpers moved to `tests/Pest.php` so both files
+share them). Screens checked in a real browser (list, editor with the preview following the form on all seven themes,
+issued bill keeping its look), no console errors.
+
+**Not yet:** a logo position / signature image upload in the editor, per-language label sets (Q1), a quotation /
+payment-voucher template (with those documents, M9 part 2).
+
 ## 2026-10-26 — Milestone M9 (part 1): invoices, notes, receipts, LR print
 
 **Built (in `webapp/`, module `app/Modules/Invoicing`, ported from Clinic Ledger — D14):**
@@ -47,8 +96,7 @@ Updated at the end of every build round. Newest first.
 
 **Tests:** 175 passing (new `InvoiceTest`, 11 tests, including a real PDF).
 
-**Not yet (M9 part 2 / M10):** templates and the template editor (themes, named templates, defaults per
-branch/client, copy sets, custom fields, label renames), email sending, manual LR books, bill of supply/receipt
+**Not yet (M9 part 2):** ~~templates and the template editor~~ (done in M10), email sending, manual LR books, bill of supply/receipt
 voucher for advances, multi-currency bills, quotations, payment vouchers, the client page billing view (13 §A #20–21),
 posting to the books (M11).
 
