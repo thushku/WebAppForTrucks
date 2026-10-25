@@ -63,8 +63,9 @@ Same style as the founder's Clinic Ledger (decision P6), so code can be reused:
   simple hosting).
 - **Plain JavaScript ES modules** for interactions (no Alpine/Livewire/Vue);
   works with a strict Content Security Policy using a per-response nonce.
-- **Tailwind CSS 4** compiled by **Vite 8** at build time; the built files are
-  committed, so the server does not need Node.js.
+- **Tailwind CSS 4** compiled by **Vite 8** at build time (`npm run build`); the built
+  files are **not** committed (Clinic Ledger rule), so every machine runs the build
+  after pulling.
 - **Leaflet** with OpenStreetMap tiles for the live map and route replay (no
   cost per map load).
 - Dashboard charts drawn as simple SVG in our own code.

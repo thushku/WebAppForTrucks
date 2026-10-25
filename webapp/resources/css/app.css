@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+/*
+ * Design tokens. Same building blocks as the founder's Clinic Ledger (cards,
+ * buttons, tinted menu tiles), with a transport-blue brand and an amber
+ * accent for road and warning moments. Status colours are reserved for
+ * money and document state.
+ */
+@theme {
+  --font-display: "Bricolage Grotesque", "Noto Sans Devanagari", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans", "Noto Sans Devanagari", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50:  #EEF5FF;
+  --color-brand-100: #D9E8FF;
+  --color-brand-200: #B5D2FF;
+  --color-brand-300: #84B3FB;
+  --color-brand-400: #4F8EF2;
+  --color-brand-500: #2B6EDF;
+  --color-brand-600: #1D57C2;
+  --color-brand-700: #19469C;
+  --color-brand-800: #183C7E;
+  --color-brand-900: #162F5E;
+
+  --color-road-400: #FBBF24;
+  --color-road-500: #F59E0B;
+  --color-road-600: #D97706;
+
+  --color-ink-900: #0F1A2B;
+  --color-ink-700: #334155;
+  --color-ink-500: #5B6B80;
+  --color-ink-400: #7C8BA0;
+  --color-ink-300: #A6B3C4;
+  --color-ink-100: #E4E9F0;
+  --color-ink-50:  #F5F7FA;
+
+  --color-paid:    #15803D;
+  --color-partial: #B45309;
+  --color-overdue: #B91C1C;
+  --color-sent:    #0369A1;
+
+  --shadow-card: 0 1px 2px rgb(15 26 43 / 0.04), 0 8px 24px -12px rgb(15 26 43 / 0.14);
+}
+
+@layer base {
+  html { font-family: var(--font-sans); }
+  h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.01em; }
+  body { background: var(--color-ink-50); color: var(--color-ink-900); }
+  /* Money, document numbers and dates never wrap (Clinic Ledger lesson). */
+  .nowrap, .money, .docno { white-space: nowrap; }
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:opacity-60;
+}
+
+@utility nav-link {
+  @apply flex items-center gap-2.5 rounded-xl px-2.5 py-[7px] text-sm font-medium text-ink-700 transition hover:bg-ink-50 hover:text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300;
+}
+
+@layer components {
+  .card { @apply bg-white rounded-2xl border border-ink-100 shadow-[var(--shadow-card)]; }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800; }
+  .btn-secondary { @apply btn bg-white text-ink-900 border border-ink-100 hover:border-brand-300 hover:text-brand-700; }
+  .btn-ghost { @apply btn text-ink-700 hover:bg-ink-100/70; }
+  .btn-danger { @apply btn bg-white text-overdue border border-red-200 hover:bg-red-50; }
+  .btn-lg { @apply px-5 py-3 text-base; }
+  .label { @apply block text-sm font-medium text-ink-700 mb-1.5; }
+  .input { @apply w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-[15px] text-ink-900 placeholder:text-ink-300 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100; }
+  .hint { @apply mt-1.5 block text-xs text-ink-500; }
+  .error { @apply mt-1.5 block text-xs font-medium text-overdue; }
+  .pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .nav-link.is-active { @apply bg-brand-50 font-semibold text-brand-700; }
+  .nav-tile { @apply grid size-7 shrink-0 place-items-center rounded-lg; }
+  .nav-group-label { @apply px-2.5 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[.12em] text-ink-400; }
+  .stat { @apply rounded-2xl border border-ink-100 bg-white p-5 shadow-[var(--shadow-card)]; }
+  .stat-label { @apply text-xs font-semibold uppercase tracking-wide text-ink-500; }
+  .stat-value { @apply mt-2 font-display text-3xl font-semibold; }
+  .table { @apply w-full text-left text-sm; }
+  .table th { @apply border-b border-ink-100 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500; }
+  .table td { @apply border-b border-ink-100 px-4 py-3 align-middle; }
+}
+
+/*
+ * The splash with a real progress bar (guideline: "visible progress while
+ * the app starts"). Shown once after signing in; the bar follows the page's
+ * real loading steps (document, fonts, images) and the splash fades out.
+ */
+.splash { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: var(--color-brand-800); color: white; transition: opacity .35s ease; }
+.splash.is-done { opacity: 0; pointer-events: none; }
+.splash-bar { width: min(280px, 70vw); height: 6px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / .18); }
+.splash-fill { height: 100%; width: 0; border-radius: 999px; background: var(--color-road-400); transition: width .25s ease; }
+
+/* A thin bar at the top while the next page loads. */
+.nav-progress { position: fixed; inset-inline: 0; top: 0; z-index: 70; height: 3px; transform-origin: left; transform: scaleX(0); background: var(--color-road-500); transition: transform .4s ease; }
+.nav-progress.is-running { transform: scaleX(.7); transition-duration: 6s; }
+
+/* Keep the menu and top bar still while pages change (Chromium browsers). */
+@view-transition { navigation: auto; }
+#sidebar { view-transition-name: fl-sidebar; }
+.fl-topbar { view-transition-name: fl-topbar; }
+::view-transition-group(fl-sidebar), ::view-transition-group(fl-topbar) { animation: none; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 140ms; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  .splash, .splash-fill, .nav-progress { transition: none; }
+}
