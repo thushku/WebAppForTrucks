@@ -14,6 +14,9 @@
   </div>
   <span class="pill bg-ink-100 text-ink-800">{{ $labels[$company->status] ?? $company->status }}</span>
 </div>
+@if ($company->requestedPlan || $company->requested_coupon)
+  <p class="rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-900">{{ __('Chose on the website:') }} {{ $company->requestedPlan?->name }}@if ($company->requested_coupon) · {{ __('coupon :code', ['code' => $company->requested_coupon]) }}@endif</p>
+@endif
 @if ($company->suspended_reason)<p class="rounded-xl bg-red-50 px-4 py-3 text-sm text-overdue">{{ __('Suspended: :reason', ['reason' => $company->suspended_reason]) }}</p>@endif
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -32,13 +35,13 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <div><label class="label" for="plan_id">{{ __('Plan') }}</label>
         <select id="plan_id" name="plan_id" class="input" required>
-          @foreach ($plans as $p)<option value="{{ $p->id }}" @selected(old('plan_id', $company->plan_id) == $p->id)>{{ $p->name }} — {{ __(\App\Platform\Billing\Plan::PRICING[$p->pricing]) }}, {{ $p->currency }} {{ $p->pricing === 'lifetime' ? $p->price_lifetime : ($p->price_monthly ?? '—') . ' / ' . ($p->price_annual ?? '—') }}</option>@endforeach
+          @foreach ($plans as $p)<option value="{{ $p->id }}" @selected(old('plan_id', $company->plan_id ?? $company->requested_plan_id) == $p->id)>{{ $p->name }} — {{ __(\App\Platform\Billing\Plan::PRICING[$p->pricing]) }}, {{ $p->currency }} {{ $p->pricing === 'lifetime' ? $p->price_lifetime : ($p->price_monthly ?? '—') . ' / ' . ($p->price_annual ?? '—') }}</option>@endforeach
         </select></div>
       <div><label class="label" for="period">{{ __('Period') }}</label>
         <select id="period" name="period" class="input">@foreach (\App\Platform\Billing\Subscription::PERIODS as $key => $label)<option value="{{ $key }}" @selected(old('period') === $key)>{{ __($label) }}</option>@endforeach</select></div>
       <div><label class="label" for="starts_on">{{ __('From') }}</label><input id="starts_on" name="starts_on" type="date" class="input" value="{{ old('starts_on', now()->toDateString()) }}" required></div>
       <div><label class="label" for="trucks">{{ __('Trucks billed') }}</label><input id="trucks" name="trucks" type="number" min="1" class="input" value="{{ old('trucks', max(1, $usage['trucks'])) }}"><span class="hint">{{ __('For a per-truck plan.') }}</span></div>
-      <div><label class="label" for="coupon">{{ __('Coupon') }}</label><input id="coupon" name="coupon" class="input uppercase" value="{{ old('coupon') }}" maxlength="30"></div>
+      <div><label class="label" for="coupon">{{ __('Coupon') }}</label><input id="coupon" name="coupon" class="input uppercase" value="{{ old('coupon', $company->plan_id ? null : $company->requested_coupon) }}" maxlength="30"></div>
       <div><label class="label" for="reference">{{ __('Payment reference') }}</label><input id="reference" name="reference" class="input" value="{{ old('reference') }}" maxlength="80" placeholder="{{ __('UTR, cheque no.') }}"></div>
       <div class="sm:col-span-2"><label class="label" for="notes">{{ __('Notes') }}</label><input id="notes" name="notes" class="input" value="{{ old('notes') }}" maxlength="255"></div>
     </div>

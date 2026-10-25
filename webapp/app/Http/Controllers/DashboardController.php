@@ -32,6 +32,8 @@ class DashboardController extends Controller
             'spending' => $user->can('trip.view') ? $dashboard->spendingToday() : [],
             'queues' => $user->canAny(['invoice.view', 'lr.view']) ? $dashboard->queues() : null,
             'showMap' => $user->can('map.view'),
+            // A new company's getting-started steps, until the owner says they are done.
+            'setup' => ! $context->company()->setup_done_at && $user->can('settings.company') ? app(\App\Platform\Signup\GettingStarted::class)->progress() : null,
         ]);
     }
 }

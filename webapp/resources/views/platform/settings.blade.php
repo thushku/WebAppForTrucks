@@ -56,4 +56,29 @@
   @endif
   <button type="submit" class="btn-primary">{{ __('Save settings') }}</button>
 </form>
+
+<form method="POST" action="{{ route('platform.settings.website') }}" class="card space-y-6 p-6">
+  @csrf
+  @method('PUT')
+  <div>
+    <h2 class="font-display text-xl font-semibold">{{ __('Website') }}</h2>
+    <p class="text-sm text-ink-500">{{ __('The texts of About us and the legal pages. Plain text: a line starting “## ” is a heading, lines starting “- ” make a list, a blank line starts a paragraph, :brand is the product name. A box left as shipped keeps following the shipped text.') }}</p>
+  </div>
+  <div class="min-w-0">
+    <label class="label" for="crew_app_url">{{ __('Crew app download link') }}</label>
+    <input id="crew_app_url" name="crew_app_url" type="url" class="input" value="{{ old('crew_app_url', $values['crew_app_url']) }}" maxlength="255" placeholder="https://play.google.com/store/apps/details?id=…">
+    <span class="hint">{{ __('Shown as a QR code to new companies and on the people pages.') }}</span>
+  </div>
+  @foreach (\App\Platform\Website\SiteText::PAGES as $page => $label)
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <label class="label" for="site_{{ $page }}">{{ __($label) }} <a href="{{ $page === 'about' ? route('site.about') : route('site.legal', $page) }}" target="_blank" class="text-xs font-normal text-brand-700 hover:underline">{{ __('open') }}</a></label>
+        @if ($texts->isCustom($page))<label class="flex items-center gap-2 text-xs text-ink-600"><input type="checkbox" name="reset_{{ $page }}" value="1" class="size-4"> {{ __('Use the shipped text again') }}</label>@else<span class="text-xs text-ink-400">{{ __('Shipped text') }}</span>@endif
+      </div>
+      <textarea id="site_{{ $page }}" name="site_{{ $page }}" rows="8" class="input font-mono text-sm" maxlength="30000">{{ old('site_' . $page, $texts->raw($page)) }}</textarea>
+    </div>
+  @endforeach
+  @if ($errors->any())<ul class="space-y-1">@foreach ($errors->all() as $e)<li class="error">{{ $e }}</li>@endforeach</ul>@endif
+  <button type="submit" class="btn-primary">{{ __('Save the website') }}</button>
+</form>
 @endsection

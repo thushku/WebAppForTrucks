@@ -34,6 +34,11 @@ founder's laptop) in `phoneapp/`.
   `RequireCompany`, phones via `ResolveApiCompany` → 423 `read_only`); `Limits` refuses one truck or invitation too
   many. Console pages: `Platform/{Company,Plan,System}Controller` (companies, plans and coupons, storage clean-up,
   database export, the announcement); the company side is Settings → Plan and billing (`billing.index`).
+  `app/Platform/Website` (M14): `Pricing` (the website's price table from the plans, with coupons), `SiteText` (About
+  and legal pages: shipped drafts in `resources/site/*.txt`, replaceable in console → Settings), `ContactMessage`.
+  Public pages: `Site/{Site,Contact}Controller`, views `resources/views/site` on `layouts/site`; "/" is the website
+  for visitors and the dashboard for people signed in. Getting started for a new company: `Settings/SetupController`
+  with `Platform/Signup/GettingStarted` (the steps, ticked from the data; `/welcome`, opened by the first sign-in after the email is confirmed; a card on the dashboard until done).
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,

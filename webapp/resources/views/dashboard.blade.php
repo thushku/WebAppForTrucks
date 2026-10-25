@@ -18,6 +18,17 @@
   </div>
 </div>
 
+@if ($setup)
+  <a href="{{ route('welcome') }}" class="card flex flex-wrap items-center gap-4 border-brand-200 bg-brand-50/60 p-5 hover:border-brand-300" data-setup-card>
+    <span class="grid size-11 place-items-center rounded-xl bg-brand-600 text-white"><x-icon name="sparkle" class="size-5" /></span>
+    <span class="min-w-0 flex-1">
+      <span class="block font-semibold">{{ __('Getting started: :done of :total done', $setup) }}</span>
+      <span class="block text-sm text-ink-600">{{ __('Your company details, a truck, a driver, the crew app and the first trip.') }}</span>
+    </span>
+    <span class="btn-primary">{{ __('Continue') }} <x-icon name="arrow-right" /></span>
+  </a>
+@endif
+
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
   <a href="{{ route('trucks.index') }}" class="stat block hover:border-brand-200">
     <div class="flex items-center justify-between"><span class="stat-label">{{ __('Trucks') }}</span><span class="nav-tile bg-blue-50 text-blue-700"><x-icon name="truck" class="size-4" /></span></div>

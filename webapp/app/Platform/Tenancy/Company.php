@@ -36,6 +36,7 @@ class Company extends Model
             'trial_ends_at'         => 'datetime',
             'deletion_requested_at' => 'datetime',
             'read_only_since'       => 'datetime',
+            'setup_done_at'         => 'datetime',
             'fy_start_month'        => 'integer',
         ];
     }
@@ -55,6 +56,12 @@ class Company extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(\App\Platform\Billing\Plan::class);
+    }
+
+    /** The plan chosen on the website before signing up (applied by the console when paid). */
+    public function requestedPlan(): BelongsTo
+    {
+        return $this->belongsTo(\App\Platform\Billing\Plan::class, 'requested_plan_id');
     }
 
     public function subscriptions(): HasMany

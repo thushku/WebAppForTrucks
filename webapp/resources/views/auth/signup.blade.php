@@ -4,9 +4,18 @@
 <div class="card p-6 sm:p-8">
   <h1 class="font-display text-2xl font-semibold">{{ __('Start your free trial') }}</h1>
   <p class="mt-1 text-sm text-ink-500">{{ __(':days days free. No card needed.', ['days' => $trialDays]) }}</p>
+  @if ($plan || $coupon)
+    <div class="mt-4 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-900">
+      @if ($plan){{ __('Your choice: the :plan plan.', ['plan' => $plan->name]) }}@endif
+      @if ($coupon){{ __('Coupon :code is kept for your first payment.', ['code' => $coupon]) }}@endif
+      <span class="block text-xs text-brand-800/80">{{ __('The trial is free either way; you pay only when you decide to stay.') }}</span>
+    </div>
+  @endif
 
   <form method="POST" action="{{ route('signup.store') }}" class="mt-6 space-y-4" novalidate>
     @csrf
+    <input type="hidden" name="plan" value="{{ old('plan', $plan?->code) }}">
+    <input type="hidden" name="coupon" value="{{ old('coupon', $coupon) }}">
     <div>
       <label class="label" for="company">{{ __('Company name') }}</label>
       <input id="company" name="company" class="input" value="{{ old('company') }}" maxlength="150" required autofocus>
@@ -51,7 +60,7 @@
     @include('partials.captcha')
     <label class="flex items-start gap-2 text-sm text-ink-700">
       <input type="checkbox" name="terms" value="1" class="mt-0.5 size-4 rounded border-ink-300" @checked(old('terms'))>
-      <span>{{ __('I agree to the terms of service and the privacy policy.') }}</span>
+      <span>{!! __('I agree to the :terms and the :privacy.', ['terms' => '<a href="' . e(route('site.legal', 'terms')) . '" class="font-medium text-brand-700 underline" target="_blank">' . e(__('terms of service')) . '</a>', 'privacy' => '<a href="' . e(route('site.legal', 'privacy')) . '" class="font-medium text-brand-700 underline" target="_blank">' . e(__('privacy policy')) . '</a>']) !!}</span>
     </label>
     @error('terms')<span class="error">{{ $message }}</span>@enderror
     <button type="submit" class="btn-primary btn-lg w-full"><x-icon name="sparkle" /> {{ __('Create my company') }}</button>

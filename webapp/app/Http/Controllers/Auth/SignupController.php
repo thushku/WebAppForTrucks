@@ -8,6 +8,7 @@ use App\Platform\Audit\AuditRecorder;
 use App\Platform\Auth\Captcha;
 use App\Platform\Auth\Identifier;
 use App\Platform\Auth\PasswordTokens;
+use App\Platform\Billing\Plan;
 use App\Platform\Settings\PlatformSettings;
 use App\Platform\Signup\SignupService;
 use Illuminate\Http\RedirectResponse;
@@ -34,9 +35,13 @@ class SignupController extends Controller
         private AuditRecorder $audit,
     ) {}
 
-    public function show(): View
+    public function show(Request $request): View
     {
-        return view('auth.signup', ['trialDays' => $this->settings->trialDays()]);
+        // Coming from the pricing page: the plan and coupon chosen there ride along.
+        $plan = $request->filled('plan') ? Plan::where('code', (string) $request->query('plan'))->where('active', true)->where('is_public', true)->first() : null;
+        $coupon = preg_match('/^[A-Za-z0-9_-]{1,30}$/', (string) $request->query('coupon')) ? strtoupper((string) $request->query('coupon')) : null;
+
+        return view('auth.signup', ['trialDays' => $this->settings->trialDays(), 'plan' => $plan, 'coupon' => $coupon]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -50,6 +55,8 @@ class SignupController extends Controller
             'password' => ['required', 'string', 'max:1024', 'confirmed', Password::defaults()],
             'terms'    => ['accepted'],
             'captcha'  => ['required', 'string', 'max:12'],
+            'plan'     => ['nullable', 'string', 'max:30'],
+            'coupon'   => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9_-]*$/'],
         ]);
 
         if (! $this->captcha->passes($request->session(), $data['captcha'])) {
@@ -86,6 +93,12 @@ class SignupController extends Controller
             'password' => $data['password'],
         ]);
 
+        // The plan and coupon chosen on the website, for the console to apply at the first payment.
+        $plan = filled($data['plan'] ?? null) ? Plan::where('code', $data['plan'])->where('active', true)->first() : null;
+        if ($plan || filled($data['coupon'] ?? null)) {
+            $result['company']->forceFill(['requested_plan_id' => $plan?->id, 'requested_coupon' => filled($data['coupon'] ?? null) ? strtoupper($data['coupon']) : null])->save();
+        }
+
         $this->sendVerification($result['account']);
 
         return redirect()->route('signup.sent')->with('signup.email', $email);
@@ -109,6 +122,9 @@ class SignupController extends Controller
             $account->forceFill(['email_verified_at' => now()])->save();
             $this->audit->record('account.verified', "{$account->name} confirmed {$account->email}", 'account', (string) $account->id, $account->name);
         }
+
+        // The first sign-in after this opens the getting-started steps.
+        session()->put('url.intended', route('welcome'));
 
         return redirect()->route('login')->with('status', __('Your email is confirmed. Sign in to start.'));
     }

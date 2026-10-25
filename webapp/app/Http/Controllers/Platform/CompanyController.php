@@ -41,7 +41,7 @@ class CompanyController extends Controller
 
     public function show(Company $company): View
     {
-        $company->load(['owner:id,name,email,mobile', 'plan']);
+        $company->load(['owner:id,name,email,mobile', 'plan', 'requestedPlan']);
 
         return view('platform.companies.show', [
             'company' => $company, 'usage' => $this->limits->usage($company), 'current' => $this->billing->current($company),

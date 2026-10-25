@@ -28,14 +28,25 @@ use App\Http\Controllers\Trips\TripMoneyController;
 use App\Http\Controllers\Parties\PartyDetailsController;
 use App\Http\Controllers\Parties\RateContractController;
 use App\Http\Controllers\Settings;
+use App\Http\Controllers\Site;
 use Illuminate\Support\Facades\Route;
 
 /*
-| The web app for office users. The public marketing website arrives with
-| milestone M14; until then "/" goes to sign-in or the dashboard.
+| The web app for office users, and the public website (M14): "/" is the
+| website's home for visitors and the dashboard for people signed in.
 */
 
-Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : redirect()->route('login'))->name('home');
+Route::get('/', [Site\SiteController::class, 'home'])->name('home');
+Route::name('site.')->group(function () {
+    Route::get('/features', [Site\SiteController::class, 'features'])->name('features');
+    Route::get('/pricing', [Site\SiteController::class, 'pricing'])->name('pricing');
+    Route::get('/faq', [Site\SiteController::class, 'faq'])->name('faq');
+    Route::get('/about', [Site\SiteController::class, 'about'])->name('about');
+    Route::get('/contact', [Site\ContactController::class, 'show'])->name('contact');
+    Route::post('/contact', [Site\ContactController::class, 'send'])->middleware('throttle:login')->name('contact.send');
+    Route::get('/legal/{page}', [Site\SiteController::class, 'legal'])->whereIn('page', ['terms', 'privacy', 'refund'])->name('legal');
+    Route::get('/sitemap.xml', [Site\SiteController::class, 'sitemap'])->name('sitemap');
+});
 
 // The picture challenge (sign-in, sign-up and the console all use it).
 Route::get('/captcha', [LoginController::class, 'captcha'])->name('captcha');
@@ -330,6 +341,13 @@ Route::middleware('auth')->group(function () {
             });
             Route::post('/{person}/reveal-id', [PersonController::class, 'revealId'])->middleware('permission:people.id_documents')->name('reveal-id');
             Route::get('/{person}', [PersonController::class, 'show'])->middleware('permission:people.view')->name('show');
+        });
+
+        // Getting started: the first steps of a new company (M14).
+        Route::middleware('permission:settings.company')->group(function () {
+            Route::get('/welcome', [Settings\SetupController::class, 'show'])->name('welcome');
+            Route::post('/welcome/company', [Settings\SetupController::class, 'company'])->name('welcome.company');
+            Route::post('/welcome/done', [Settings\SetupController::class, 'finish'])->name('welcome.finish');
         });
 
         // Plan and billing sits with the settings but keeps its own name: billing.* stays open while the company is read-only.

@@ -23,6 +23,11 @@ final class PlatformSettings
         'support_whatsapp'  => null,
         'enabled_languages' => ['en', 'hi'],
         'announcement'      => null,           // shown on every company's screens and in the apps (console → System)
+        'crew_app_url'      => null,           // where the crew app is downloaded (Play Store link), shown as a QR code
+        'site_about'        => null,           // the website's long texts; null = the shipped text (resources/site)
+        'site_terms'        => null,
+        'site_privacy'      => null,
+        'site_refund'       => null,
     ];
 
     private ?array $values = null;

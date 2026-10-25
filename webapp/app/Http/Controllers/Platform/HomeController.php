@@ -7,6 +7,8 @@ use App\Models\Account;
 use App\Platform\Audit\AuditRecorder;
 use App\Platform\Settings\PlatformSettings;
 use App\Platform\Tenancy\Company;
+use App\Platform\Website\ContactMessage;
+use App\Platform\Website\SiteText;
 use App\Support\Locales;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,9 +17,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * The console's first screens: companies, locked logins, platform settings.
- * Plans, prices, coupons, storage clean-up and database export/import come
- * with milestone M13 (blueprint 08).
+ * The console's first screens: the overview (companies, locked logins,
+ * messages from the website's Contact page) and the platform settings.
+ * Plans, companies' subscriptions and the system pages have their own
+ * controllers (M13).
  */
 class HomeController extends Controller
 {
@@ -37,7 +40,16 @@ class HomeController extends Controller
                 ->orWhere('locked_until', '>', now())->orderByDesc('updated_at')->limit(50)->get(),
             'failures'  => DB::table('login_attempts')->where('succeeded', false)
                 ->where('attempted_at', '>', now()->subDay())->count(),
+            'messages'  => ContactMessage::whereNull('handled_at')->orderByDesc('id')->limit(50)->get(),
         ]);
+    }
+
+    /** A website message answered. */
+    public function handled(Request $request, ContactMessage $message): RedirectResponse
+    {
+        $message->forceFill(['handled_at' => now(), 'handled_by_admin' => $request->user('platform')->id])->save();
+
+        return back()->with('status', __('Marked as answered.'));
     }
 
     /** Super-admin intervention: open a locked login (website guideline §4). */
@@ -54,7 +66,31 @@ class HomeController extends Controller
         return view('platform.settings', [
             'values'    => collect(array_keys(PlatformSettings::DEFAULTS))->mapWithKeys(fn ($k) => [$k => $this->settings->get($k)]),
             'languages' => Locales::NATIVE,
+            'texts'     => app(SiteText::class),
         ]);
+    }
+
+    /** The website's texts and the app download link (decision D20: set here, not in code). */
+    public function saveWebsite(Request $request): RedirectResponse
+    {
+        $rules = ['crew_app_url' => ['nullable', 'url:https', 'max:255']];
+        foreach (array_keys(SiteText::PAGES) as $page) {
+            $rules['site_' . $page] = ['nullable', 'string', 'max:30000'];
+        }
+        $data = $request->validate($rules);
+
+        $texts = app(SiteText::class);
+        DB::transaction(function () use ($data, $request, $texts) {
+            foreach ($data as $key => $value) {
+                // A page left as shipped (or reset to it) keeps following the shipped text.
+                $page = str_starts_with($key, 'site_') ? substr($key, 5) : null;
+                $shipped = $page && ($request->boolean('reset_' . $page) || $texts->isShipped($page, (string) $value));
+                $this->settings->set($key, $shipped || blank($value) ? null : trim(strip_tags((string) $value)));
+            }
+        });
+        $this->audit->record('platform.website_saved', 'Website texts or app link changed', severity: 'notable');
+
+        return back()->with('status', __('Website saved.'));
     }
 
     public function saveSettings(Request $request): RedirectResponse

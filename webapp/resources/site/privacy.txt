@@ -1,0 +1,45 @@
+This policy explains what personal data :brand collects, why, and the choices you have. We follow India's Digital Personal Data Protection Act, 2023 and, for companies in the United Arab Emirates, the UAE Personal Data Protection Law.
+
+## 1. Who is responsible
+
+Your company decides what is entered about its people, clients and suppliers; for that data we act on your company's behalf (as a processor). For the details of the people who sign up and use the website, we are responsible ourselves.
+
+## 2. What we collect
+
+- Sign-up and sign-in: name, email, mobile number, company name and country; sign-in times, the device and the internet address used, to keep accounts safe.
+- What your company enters: trips, parties, trucks, documents, invoices, payments and the details of its people.
+- From the crew app: the entries the crew makes, the photos they take of bills and meters, and the phone's location while they are on duty or on a trip, so the office can see where an entry was made and where the truck is.
+- From the contact form: what you write to us and how to reach you.
+
+## 3. Why we use it
+
+- To run the service your company signed up for, and to keep it secure.
+- To send messages you need: sign-in codes, confirmations, reminders and notices about your plan.
+- To answer your questions and give support.
+- To meet our legal duties, such as keeping invoices and tax records.
+
+We do not sell personal data and we do not use it for advertising.
+
+## 4. Who we share it with
+
+Only the providers that help us run the service — hosting, email and text-message delivery, and payment processing when you pay online — each bound to use it only for that purpose. We share data with authorities only when the law requires it.
+
+## 5. How we protect it
+
+All traffic is encrypted. Passwords are stored only as secure hashes. Bank account numbers, UPI IDs and identity numbers are encrypted in the database. Sign-ins are protected with lockouts, picture checks and codes, and every change to money, trips and people is recorded in an audit log.
+
+## 6. How long we keep it
+
+While your company uses :brand, and afterwards only as long as the law requires for financial and tax records. Location points are kept for the trip records your company needs; your company can ask us about shorter periods.
+
+## 7. Your rights
+
+You may ask to see the personal data we hold about you, to correct it, to have it deleted where the law allows, and to withdraw a consent you gave. If you are a crew member or staff of a company that uses :brand, please ask that company first — it decides about the data it entered; we will help it answer you.
+
+## 8. Contact and complaints
+
+Write to us at the support email shown on this website. We answer within 30 days. If you are not satisfied, you may complain to the Data Protection Board of India or, in the UAE, to the UAE Data Office.
+
+## 9. Changes
+
+When we change this policy we update the date at the top and, for important changes, tell you in the app.

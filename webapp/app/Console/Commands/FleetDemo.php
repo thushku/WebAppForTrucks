@@ -94,6 +94,8 @@ class FleetDemo extends Command
         });
 
         $this->plans();
+        // The demo is set up already: no getting-started card.
+        $company->forceFill(['setup_done_at' => now()])->save();
 
         $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test, same password).');
 

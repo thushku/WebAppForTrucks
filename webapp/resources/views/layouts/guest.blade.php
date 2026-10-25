@@ -17,10 +17,10 @@
     <div class="pointer-events-none absolute -end-24 -top-24 size-[420px] rounded-full bg-brand-500/40 blur-3xl"></div>
     <div class="pointer-events-none absolute -bottom-32 -start-16 size-[360px] rounded-full bg-road-500/25 blur-3xl"></div>
 
-    <div class="relative flex items-center gap-3">
+    <a href="{{ route('home', ['site' => 1]) }}" class="relative flex items-center gap-3" aria-label="{{ __(':brand website', ['brand' => $brand]) }}">
       <span class="grid size-10 place-items-center rounded-xl bg-white/15"><x-icon name="truck" class="size-6" /></span>
       <span class="font-display text-xl font-semibold">{{ $brand }}</span>
-    </div>
+    </a>
 
     <div class="relative max-w-md">
       <h2 class="font-display text-4xl font-semibold leading-tight">{{ __('Every trip, every rupee, proved from the road.') }}</h2>
@@ -43,10 +43,10 @@
 
   <main class="flex items-center justify-center px-5 py-10 sm:px-8">
     <div class="w-full max-w-[440px] space-y-5">
-      <div class="flex items-center gap-2 lg:hidden">
+      <a href="{{ route('home', ['site' => 1]) }}" class="flex items-center gap-2 lg:hidden">
         <span class="grid size-9 place-items-center rounded-xl bg-brand-600 text-white"><x-icon name="truck" class="size-5" /></span>
         <span class="font-display text-lg font-semibold">{{ $brand }}</span>
-      </div>
+      </a>
       @include('partials.flash')
       @yield('content')
       <p class="text-center text-[11px] text-ink-400 lg:hidden">{{ __('Version') }} {{ config('app.version') }} ({{ config('app.build') }})</p>

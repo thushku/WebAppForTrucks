@@ -2,6 +2,51 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M14: the marketing website, sign-up from the pricing page, getting started
+
+**Built (in `webapp/`; blueprint 04 §5, the website guideline, decisions D20 and P11):**
+- **The public website** on its own layout: a splash with a real progress bar on the first page of a visit (it
+  leaves by itself even without scripts), the version line in the footer, slanted sections and the product drawn
+  as an office screen and a crew phone in HTML/CSS (no images to wait for), small reveal animations where the
+  browser supports scroll timelines and none for people who ask for less motion, page titles, descriptions, Open
+  Graph tags, `sitemap.xml`. "/" is the website for visitors and the dashboard for people signed in.
+- **Home** (promise, trial button with the console's trial days, the three money leaks and their fixes, how a trip
+  runs, the features, India/UAE specifics, data ownership), **Features** (trips, crew app, fuel control, invoices
+  and LR, accounts and tax, trucks and documents, live map and reports, driver pay marked "coming soon"),
+  **Pricing**, **FAQ** (grouped, searchable as you type, every answer in the page without scripts), **About us**,
+  **Contact**, **Terms**, **Privacy** (DPDP Act 2023 and UAE PDPL) and **Refund policy**.
+- **Pricing from the console's plans** (only those offered and shown on the website), per country (India / UAE),
+  a monthly / yearly switch that works without scripts, the yearly saving, per-truck prices, "Free" for a free
+  plan, and a **coupon box**: the price with the coupon and the full price struck through, or why the coupon does
+  not apply (unknown, ended, not for these plans). "Start free trial" carries the plan and coupon into sign-up.
+- **Sign-up** shows the chosen plan and coupon and keeps them on the company; the console's company page shows
+  "Chose on the website" and fills them in for the first payment. The terms and privacy links open the pages.
+- **Contact form**: checked fields, the picture challenge, a hidden field that catches robots, rate-limited; each
+  message is kept (console → Overview, "Answered" clears it) and mailed to the support address with reply-to.
+- **Console → Settings → Website**: replace About us, Terms, Privacy and Refund (plain text with `## ` headings
+  and `- ` lists; HTML is stripped and everything escaped), go back to the shipped text, and set the crew app's
+  download link (shown as a QR code).
+- **Getting started** (`/welcome`): the first sign-in after confirming the email opens it; five steps that tick
+  themselves from the data — company address, GSTIN/TRN and the financial year's first month (fixed once the
+  books have an entry), the first truck, the first driver (with where to make the activation code), the crew app
+  (QR of the download link), the first trip. A dashboard card shows "Getting started: n of 5 done" until the owner
+  finishes or skips. Adding the company's tax registration now goes through one service (`Tax/Services/
+  Registrations`) for Settings → Tax and these steps.
+- The theme gained the ink shades 200, 600 and 800 (some screens used them and showed no colour).
+
+**Tests:** 211 passing (new `WebsiteTest`, 6 tests: every public page, the splash once per visit, signed-in people
+sent to the dashboard; pricing per country, the yearly saving, hidden and switched-off plans left out, coupons
+applied or refused with the reason; the plan and coupon carried through sign-up to the console; the contact form's
+checks, the robot trap, the message in the console and the mail; the console's website texts, escaped, and the reset;
+getting started from the first sign-in to finishing, the financial year locked by the books).
+
+**Notes:** the shipped Terms, Privacy and Refund texts are drafts written for this product — please have them
+reviewed (refund period, governing law, grievance contact) and edit them in console → Settings → Website before
+launch. The site shows no customer counts or testimonials until there are real ones (P11).
+
+**Not yet:** online payment on the pricing page (needs a gateway, your approval), languages on the website (it is
+English; the app has Hindi), blog / help articles, a company's own data export (`data.export`).
+
 ## 2026-10-26 — Milestone M13: plans, subscriptions, coupons, limits, storage, database export
 
 **Built (in `webapp/`, `app/Platform/Billing` and the console; blueprint 04 §4, decisions D20 and P10):**

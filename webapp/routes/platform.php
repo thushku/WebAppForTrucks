@@ -22,8 +22,10 @@ Route::middleware('guest:platform')->group(function () {
 Route::middleware('auth:platform')->group(function () {
     Route::get('/', [HomeController::class, 'home'])->name('home');
     Route::post('/accounts/{account}/unlock', [HomeController::class, 'unlock'])->name('accounts.unlock');
+    Route::post('/messages/{message}/handled', [HomeController::class, 'handled'])->name('messages.handled');
     Route::get('/settings', [HomeController::class, 'settings'])->name('settings');
     Route::put('/settings', [HomeController::class, 'saveSettings'])->name('settings.save');
+    Route::put('/settings/website', [HomeController::class, 'saveWebsite'])->name('settings.website');
 
     // M13: companies and their plans, plans and coupons, storage and the database export.
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies');

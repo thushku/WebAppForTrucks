@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Parties\Models\Party;
-use App\Modules\Parties\Services\TaxIds;
 use App\Modules\Settings\Services\CompanySettings;
 use App\Modules\Tax\Models\TaxCode;
 use App\Modules\Tax\Models\TaxRate;
@@ -83,25 +82,7 @@ class TaxController extends Controller
             'state_code'    => ['nullable', Rule::in(array_keys(Regions::for($company->country)))],
             'registered_on' => ['nullable', 'date_format:Y-m-d'],
         ]);
-        $taxId = TaxIds::normalise($data['tax_id']);
-
-        if (! TaxIds::isValid($company->country, $taxId)) {
-            throw ValidationException::withMessages(['tax_id' => __('That is not a valid :label.', ['label' => TaxIds::label($company->country)])]);
-        }
-        if (TaxRegistration::where('tax_id', $taxId)->exists()) {
-            throw ValidationException::withMessages(['tax_id' => __('This registration is already here.')]);
-        }
-
-        DB::transaction(function () use ($company, $data, $taxId) {
-            $first = ! TaxRegistration::exists();
-            TaxRegistration::create([
-                'country' => $company->country, 'regime' => TaxPresets::REGIME_FOR[$company->country] ?? 'in_gst', 'tax_id' => $taxId,
-                // India: the state is the GSTIN's first two digits; the UAE: the emirate chosen.
-                'state_code' => $company->country === 'IN' ? TaxIds::gstinState($taxId) : ($data['state_code'] ?? null),
-                'legal_name' => $data['legal_name'] ?? $company->legal_name, 'address' => $data['address'] ?? null,
-                'registered_on' => $data['registered_on'] ?? null, 'is_default' => $first,
-            ]);
-        });
+        app(\App\Modules\Tax\Services\Registrations::class)->add($company, $data);
 
         return redirect()->route('settings.tax')->with('status', __('Registration added.'));
     }

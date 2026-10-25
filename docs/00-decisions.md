@@ -184,6 +184,21 @@ package), QR codes / amount in words / CSV written in-house. See
   their name and price. Moving to another plan ends the running one the day
   before.
 
+### P11. The website (added 26 Oct 2026, M14)
+
+- **The website's prices are the console's plans**: only plans switched on and
+  marked "shown on the website" appear, per country; a coupon typed on the
+  pricing page shows its effect (or why it does not apply) and rides into
+  sign-up, where the plan and coupon chosen are kept on the company for the
+  console to apply at the first payment.
+- **About us and the legal pages ship as drafts the super-admin can replace**
+  in the console (plain text, nothing that runs). The shipped terms, privacy
+  and refund texts are a starting point and need the owner's (and a lawyer's)
+  review before launch.
+- **No invented facts on the site**: no customer counts, ratings or
+  testimonials until there are real ones; numbers in the drawn mockups are
+  examples.
+
 ---
 
 ## 4. Still open

@@ -6,3 +6,4 @@ import './trips.js';
 import './templates.js';
 import './map.js';
 import './charts.js';
+import './site.js';

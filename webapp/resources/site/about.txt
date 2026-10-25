@@ -1,0 +1,22 @@
+:brand is software for truck owners and transport companies: the trips, the crew on the road, the money they spend and receive, the bills to clients and the books — in one place, from the first loading point to the bank.
+
+## Why we built it
+
+A truck earns on the road, far from the office. The owner sees an advance go out and a pile of slips come back, and has to trust that the diesel, the tolls and the "police" payments were what the driver says. Bills go out late because a POD is missing. The accountant types everything again into the books.
+
+We wanted the proof to come from the road itself: every entry the crew makes carries the place, the phone's own time and a photo, works without network and cannot be quietly changed later. The office checks, settles and bills from the same entries, and the books post themselves.
+
+## What we believe
+
+- Proof beats trust. Every entry shows where and when it was made; odd ones are flagged before anyone approves them.
+- Nothing is typed twice. A trip becomes an LR, the LR a bill, the bill a receipt and a ledger line.
+- Your data is yours. Every change is kept in an audit log, a finalised bill is never edited, and you can download everything. If a plan ends, nothing is deleted.
+- Simple for the crew. Large buttons, the driver's own language, and it keeps working in the ghats and at the border.
+
+## Who it is for
+
+Owners with one truck and transport companies with hundreds; full loads and part loads; your own trucks and hired ones. India first, with GST for transport, TDS and lorry receipts; the UAE next, with VAT and Salik.
+
+## Talk to us
+
+We would like to hear how your trips run today. Write to us from the contact page — a person reads every message.

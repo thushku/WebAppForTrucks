@@ -8,6 +8,26 @@
 </div>
 
 <section class="card">
+  <h2 class="border-b border-ink-100 px-5 py-4 font-display text-lg font-semibold">{{ __('Messages from the website') }}</h2>
+  @if ($messages->isEmpty())
+    <p class="px-5 py-6 text-sm text-ink-500">{{ __('No message waiting.') }}</p>
+  @else
+    <ul class="divide-y divide-ink-100">
+      @foreach ($messages as $message)
+        <li class="flex flex-wrap items-start gap-4 px-5 py-4">
+          <div class="min-w-0 flex-1">
+            <div class="text-sm"><b>{{ $message->name }}</b>@if ($message->company) · {{ $message->company }}@endif · <a href="mailto:{{ $message->email }}" class="text-brand-700 hover:underline">{{ $message->email }}</a>@if ($message->mobile) · {{ $message->mobile }}@endif</div>
+            <div class="text-xs text-ink-500">{{ __(\App\Platform\Website\ContactMessage::TOPICS[$message->topic] ?? $message->topic) }} · {{ $message->created_at->format('d M Y H:i') }}</div>
+            <p class="mt-2 whitespace-pre-line text-sm text-ink-800">{{ $message->message }}</p>
+          </div>
+          <form method="POST" action="{{ route('platform.messages.handled', $message) }}">@csrf<button class="btn-secondary px-3 py-1.5">{{ __('Answered') }}</button></form>
+        </li>
+      @endforeach
+    </ul>
+  @endif
+</section>
+
+<section class="card">
   <h2 class="border-b border-ink-100 px-5 py-4 font-display text-lg font-semibold">{{ __('Locked logins') }}</h2>
   @if ($locked->isEmpty())
     <p class="px-5 py-6 text-sm text-ink-500">{{ __('No login is locked.') }}</p>
@@ -37,7 +57,7 @@
     <tbody>
       @forelse ($companies as $company)
         <tr>
-          <td class="font-medium">{{ $company->name }}</td>
+          <td class="font-medium"><a href="{{ route('platform.companies.show', $company) }}" class="text-brand-700 hover:underline">{{ $company->name }}</a></td>
           <td>{{ $company->country }}</td>
           <td><span class="pill bg-ink-100 text-ink-700">{{ $company->status }}</span></td>
           <td class="nowrap">{{ $company->trial_ends_at?->format('d M Y') ?? '—' }}</td>

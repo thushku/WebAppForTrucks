@@ -1,2 +1,5 @@
 User-agent: *
-Disallow:
+Disallow: /share/
+Disallow: /invite/
+Disallow: /verify/
+Disallow: /password/
