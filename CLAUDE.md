@@ -50,6 +50,9 @@ founder's laptop) in `phoneapp/`.
   Public pages: `Site/{Site,Contact}Controller`, views `resources/views/site` on `layouts/site`; "/" is the website
   for visitors and the dashboard for people signed in. Getting started for a new company: `Settings/SetupController`
   with `Platform/Signup/GettingStarted` (the steps, ticked from the data; `/welcome`, opened by the first sign-in after the email is confirmed; a card on the dashboard until done).
+- Number series (M30): `DocumentNumbering::assign()` per scope — `company`, `registration` (each further GSTIN's tax
+  invoices; the default GSTIN uses the company series) and `branch` (`assignInBranch()` for the `BRANCH_TYPES` when the
+  company series has `per_branch`); a scoped series is first made as a copy with the branch code in its prefix.
 - Branches (M22): `Platform/Tenancy/BranchContext` (the header filter in the session, and a person's branch limit from
   their role grants) and the `HasBranch` trait (`->inBranch()` for lists; route binding answers 404 to a limited person
   for another branch's record) on Trip, Truck, Person, Invoice, Quotation. Services and the books never apply it.

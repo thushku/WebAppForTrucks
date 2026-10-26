@@ -2,6 +2,26 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M30: number series per GSTIN and per branch (decision P21)
+
+**Built (in `webapp/`, `Settings/Services/DocumentNumbering`, Settings → Numbering):**
+- **A run per GSTIN** (GST Rule 46): with two or more GSTINs the main one keeps the company-wide series and each other
+  GSTIN numbers its tax invoices, credit notes and debit notes in its own run, starting with its branch's code
+  (`BOM/26-27/00001`, `BOMCN26-27/0001`, always within 16 characters). Before, every GSTIN's series started from the same
+  `INV/` prefix, so the never-twice guard interleaved them and no GSTIN had a consecutive run.
+- **A branch with its own GSTIN bills from it**: a bill of that branch's trips (or started in that branch) takes the
+  branch's GSTIN, and the tax is worked out again from that state (a Mumbai bill to a Kerala client is IGST).
+- **Per-branch series** for LRs, quotations and hire challans: "Number each branch separately" on the company-wide
+  series (shown once there are two branches); each branch's run starts as `BOM/LR/…`; a document with no branch keeps
+  the company series.
+- `{BR}` prints the branch's code (it printed the branch's database number before).
+- Settings → Numbering: the company-wide series, then **Per branch** and **Per GSTIN**, each with its live preview.
+
+**Tests:** 263 passing (new `SeriesTest`, 2 tests: two GSTINs — the main bill `INV/26-27/00001`, the Mumbai branch's bill
+`BOM/26-27/00001` from its own GSTIN with IGST, its credit note `BOMCN26-27/0001`, the screen's Per GSTIN previews; the
+per-branch switch, the screen's Per branch previews, a Mumbai LR `BOM/LR/26-27/00001` and a branch-less one in the company
+run, `{BR}` as the code).
+
 ## 2026-10-26 — Milestone M29: the owner app's masters (13-parity #9)
 
 **Built (in `webapp/`, `Api/Owner/MastersController`; api-v1 §12 "Masters"):**

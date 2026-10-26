@@ -61,6 +61,12 @@ class InvoiceService
             $tripBranches = Trip::whereIn('id', InvoiceLine::where('invoice_id', $invoice->id)->whereNotNull('trip_id')->pluck('trip_id'))->pluck('branch_id')->unique();
             if ($tripBranches->count() === 1 && $tripBranches->first()) {
                 $invoice->forceFill(['branch_id' => $tripBranches->first()])->save();
+                // A branch with its own GSTIN bills from it (M30): the tax is worked out again from that state.
+                $own = TaxRegistration::usable()->where('branch_id', $invoice->branch_id)->orderByDesc('is_default')->value('id');
+                if ($own && $own !== $invoice->tax_registration_id) {
+                    $invoice->forceFill(['tax_registration_id' => $own])->save();
+                    $this->recalculate($invoice->fresh());
+                }
             }
 
             return $invoice->fresh(['lines', 'taxes']);
@@ -108,7 +114,11 @@ class InvoiceService
     {
         $company = $this->context->company();
         $today   = CarbonImmutable::now($company->timezone ?: 'UTC')->startOfDay();
-        $registration = $related?->registration ?? TaxRegistration::usable($today)->orderByDesc('is_default')->orderBy('id')->first();
+        $branchId = $related?->branch_id ?? app(\App\Platform\Tenancy\BranchContext::class)->defaultBranch();
+        // The branch's own GSTIN when it has one (M30), else the main one.
+        $registration = $related?->registration
+            ?? ($branchId ? TaxRegistration::usable($today)->where('branch_id', $branchId)->orderByDesc('is_default')->first() : null)
+            ?? TaxRegistration::usable($today)->orderByDesc('is_default')->orderBy('id')->first();
         $buyerTaxId   = $related?->buyer_tax_id ?? $party->taxIds()->where('active', true)->where('country', $registration?->country ?? $company->country)
             ->orderByDesc('is_default')->value('tax_id');
 
@@ -121,7 +131,7 @@ class InvoiceService
             'reference' => $related?->reference, 'currency' => $related?->currency ?? $company->currency,
             'transport_type' => $related?->transport_type, 'carrier_role' => $related?->carrier_role, 'loading_state' => $related?->loading_state,
             'evidence' => $related?->evidence, 'inclusive' => false, 'created_by' => $by?->id ?? auth()->id(),
-            'branch_id' => $related?->branch_id ?? app(\App\Platform\Tenancy\BranchContext::class)->defaultBranch(),
+            'branch_id' => $branchId,
         ]);
     }
 
@@ -410,9 +420,10 @@ class InvoiceService
 
             $registration = $invoice->registration;
             $series = Invoice::SERIES[$invoice->doc_type];
-            // One series per GSTIN when the company bills from several (each registration's numbers are its own).
-            $scoped = $registration && TaxRegistration::usable()->count() > 1;
-            $number = $this->numbering->assign($series, $invoice->issue_date->copy()->setTime(12, 0), ['BR' => $invoice->branch_id ? (string) $invoice->branch_id : 'HO'],
+            // One series per GSTIN when the company bills from several (each registration's numbers are its own,
+            // GST Rule 46): the main GSTIN keeps the company-wide series, every other has its own (M30).
+            $scoped = $registration && ! $registration->is_default && TaxRegistration::usable()->count() > 1;
+            $number = $this->numbering->assign($series, $invoice->issue_date->copy()->setTime(12, 0), ['BR' => $this->numbering->branchCode($invoice->branch_id)],
                 $scoped ? 'registration' : 'company', $scoped ? $registration->id : 0);
 
             $invoice->forceFill([

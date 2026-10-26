@@ -220,7 +220,7 @@ class TripService
 
             $trip->forceFill([
                 'trip_number' => $this->numbering->assign('trip', $trip->trip_date->copy()->setTime(12, 0), [
-                    'SHP' => $shipper, 'FRM' => $trip->from->short_code, 'TO' => $trip->to->short_code,
+                    'SHP' => $shipper, 'FRM' => $trip->from->short_code, 'TO' => $trip->to->short_code, 'BR' => $this->numbering->branchCode($trip->branch_id),
                 ]),
                 'status'      => 'assigned',
                 'assigned_at' => now(),
@@ -245,7 +245,7 @@ class TripService
     public function numberLr(Consignment $consignment): void
     {
         $consignment->forceFill([
-            'lr_number' => $this->numbering->assign('lr', $consignment->lr_date?->copy()->setTime(12, 0) ?? now()),
+            'lr_number' => $this->numbering->assignInBranch('lr', $consignment->lr_date?->copy()->setTime(12, 0) ?? now(), Trip::whereKey($consignment->trip_id)->value('branch_id')),
             'lr_date'   => $consignment->lr_date ?? now()->toDateString(),
         ])->save();
     }

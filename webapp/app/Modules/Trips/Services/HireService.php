@@ -77,7 +77,7 @@ class HireService
 
         DB::transaction(function () use ($challan) {
             $challan->forceFill([
-                'number'    => $this->numbering->assign('hire_challan', $challan->challan_date->copy()->setTime(12, 0)),
+                'number'    => $this->numbering->assignInBranch('hire_challan', $challan->challan_date->copy()->setTime(12, 0), \App\Modules\Trips\Models\Trip::whereKey($challan->trip_id)->value('branch_id')),
                 'status'    => 'issued',
                 'issued_at' => now(),
             ])->save();

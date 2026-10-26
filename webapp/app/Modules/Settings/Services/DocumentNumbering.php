@@ -2,8 +2,10 @@
 
 namespace App\Modules\Settings\Services;
 
+use App\Modules\Settings\Models\Branch;
 use App\Modules\Settings\Models\DocumentCounter;
 use App\Modules\Settings\Models\DocumentSequence;
+use App\Modules\Tax\Models\TaxRegistration;
 use App\Platform\Tenancy\CompanyContext;
 use App\Support\FiscalYear;
 use Carbon\CarbonImmutable;
@@ -69,10 +71,28 @@ class DocumentNumbering
 
     public function __construct(private CompanyContext $context) {}
 
-    /** The sequence for a document type, created from the product default the first time. */
+    /**
+     * The sequence for a document type, created from the product default the
+     * first time. A branch's or a GSTIN's own series (M30) starts as a copy of
+     * the company-wide one with the branch code in its prefix, so the series
+     * never print the same number.
+     */
     public function sequence(string $docType, string $scopeType = 'company', int $scopeId = 0): DocumentSequence
     {
         $default = DocumentSequence::DOC_TYPES[$docType] ?? throw new RuntimeException("Unknown document type {$docType}.");
+        if ($scopeType !== 'company') {
+            $existing = DocumentSequence::where(['doc_type' => $docType, 'scope_type' => $scopeType, 'scope_id' => $scopeId])->first();
+            if ($existing) {
+                return $existing;
+            }
+            $base = $this->sequence($docType);
+
+            return DocumentSequence::create([
+                'doc_type' => $docType, 'scope_type' => $scopeType, 'scope_id' => $scopeId,
+                'prefix' => $this->scopedPrefix($base, $this->scopeCode($scopeType, $scopeId)),
+                'format' => $base->format, 'reset_policy' => $base->reset_policy, 'start_number' => 1, 'max_length' => $base->max_length,
+            ]);
+        }
 
         return DocumentSequence::firstOrCreate(
             ['doc_type' => $docType, 'scope_type' => $scopeType, 'scope_id' => $scopeId],
@@ -139,6 +159,65 @@ class DocumentNumbering
 
             return $text;
         });
+    }
+
+    /**
+     * Take the next number of a document that belongs to a branch: the
+     * branch's own series when the company numbers this type per branch, else
+     * the company's; {BR} is the branch's code either way.
+     */
+    public function assignInBranch(string $docType, ?CarbonInterface $on, ?int $branchId, array $parts = []): string
+    {
+        $parts['BR'] ??= $this->branchCode($branchId);
+        $perBranch = $branchId && in_array($docType, DocumentSequence::BRANCH_TYPES, true) && $this->sequence($docType)->per_branch;
+
+        return $this->assign($docType, $on, $parts, $perBranch ? 'branch' : 'company', $perBranch ? $branchId : 0);
+    }
+
+    /** A branch's code for {BR}: the head office's when there is no branch, else "HO". */
+    public function branchCode(?int $branchId): string
+    {
+        $branch = $branchId ? Branch::find($branchId) : Branch::where('is_head_office', true)->first();
+
+        return $branch?->code ?: 'HO';
+    }
+
+    /** The code a branch's or a GSTIN's series carries: the branch code, else the GSTIN's state code. */
+    public function scopeCode(string $scopeType, int $scopeId): string
+    {
+        return match ($scopeType) {
+            'branch' => $this->branchCode($scopeId),
+            'registration' => ($registration = TaxRegistration::find($scopeId))
+                ? ($registration->branch_id ? $this->branchCode($registration->branch_id) : (string) ($registration->state_code ?: substr((string) $registration->tax_id, 0, 2)))
+                : 'XX',
+            default => '',
+        };
+    }
+
+    /**
+     * "BOM/LR/" for a branch's LRs; for a GSTIN's tax invoices the code goes
+     * in front of the type ("BOM/", "BOMCN"), without the slash and then
+     * shortened until the widest number fits the 16 characters a tax invoice
+     * may have.
+     */
+    private function scopedPrefix(DocumentSequence $base, string $code): string
+    {
+        $code = self::code($code);
+        if (! in_array($base->doc_type, DocumentSequence::TAX_INVOICE_TYPES, true)) {
+            return mb_substr($code . '/' . $base->prefix, 0, 20);
+        }
+        $type = $base->doc_type === 'invoice' ? '' : rtrim(strtoupper((string) DocumentSequence::DOC_TYPES[$base->doc_type][1]), '/');
+        foreach ([6, 3, 2] as $width) {
+            foreach (['/', ''] as $slash) {
+                $prefix = substr($code, 0, $width) . $type . $slash;
+                $draft = $base->replicate()->fill(['prefix' => $prefix]);
+                if (! $base->max_length || mb_strlen($this->render($draft, 99999, now()->addYears(8), self::SAMPLE_PARTS)) <= $base->max_length) {
+                    return $prefix;
+                }
+            }
+        }
+
+        return $prefix;
     }
 
     /** Set where the current period's counter continues (Settings → Numbering). */

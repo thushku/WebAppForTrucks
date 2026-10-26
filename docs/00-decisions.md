@@ -367,6 +367,22 @@ package), QR codes / amount in words / CSV written in-house. See
 - **Help** shows only the support contacts the provider set in the console
   (WhatsApp, phone, email), else the contact form.
 
+### P21. Number series per GSTIN and per branch (added 26 Oct 2026, M30)
+
+- **One consecutive run per GSTIN** (GST Rule 46). The main GSTIN keeps the
+  company-wide series (so adding a second GSTIN never changes the first's
+  numbers); each further GSTIN gets its own tax invoice, credit note and
+  debit note series, starting with its branch's code ("BOM/26-27/00001",
+  "BOMCN26-27/0001") within 16 characters. Settings → Numbering lists them
+  under "Per GSTIN".
+- **A branch with its own GSTIN bills from it**: a bill of that branch's
+  trips (or made in that branch) takes the branch's GSTIN, and its tax is
+  worked out from that state.
+- **LRs, quotations and hire challans can run per branch** — a switch on the
+  company-wide series ("Number each branch separately"); each branch's series
+  starts as "BOM/LR/…"; a document with no branch keeps the company series.
+- `{BR}` in a format is the branch's code (the head office's when none).
+
 ---
 
 ## 4. Still open

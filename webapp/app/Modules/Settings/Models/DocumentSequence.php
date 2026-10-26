@@ -45,13 +45,16 @@ class DocumentSequence extends Model
     /** Documents that are tax invoices in India: number at most 16 characters, unique per year (GST Rule 46). */
     public const TAX_INVOICE_TYPES = ['invoice', 'credit_note', 'debit_note'];
 
+    /** Documents a company may number per branch (M30): each branch prints its own run. */
+    public const BRANCH_TYPES = ['lr', 'quotation', 'hire_challan'];
+
     protected $guarded = ['id', 'company_id'];
 
-    protected $attributes = ['scope_type' => 'company', 'scope_id' => 0, 'prefix' => '', 'start_number' => 1, 'reset_policy' => 'fiscal_year'];
+    protected $attributes = ['scope_type' => 'company', 'scope_id' => 0, 'prefix' => '', 'start_number' => 1, 'reset_policy' => 'fiscal_year', 'per_branch' => false];
 
     protected function casts(): array
     {
-        return ['start_number' => 'integer', 'max_length' => 'integer', 'scope_id' => 'integer'];
+        return ['start_number' => 'integer', 'max_length' => 'integer', 'scope_id' => 'integer', 'per_branch' => 'boolean'];
     }
 
     public function counters(): HasMany

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Settings\Models\Branch;
 use App\Modules\Settings\Models\DocumentSequence;
 use App\Modules\Settings\Services\DocumentNumbering;
+use App\Modules\Tax\Models\TaxRegistration;
 use App\Platform\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +22,10 @@ use Illuminate\View\View;
  * preview of the next one. In India a tax invoice number may have at most
  * 16 characters, only letters, digits, "-" and "/" (GST Rule 46), so the
  * screen refuses a format that could break that.
+ *
+ * M30: LRs, quotations and hire challans can be numbered per branch, and a
+ * company with several GSTINs numbers each further GSTIN's tax invoices in
+ * its own series — both listed here under the company-wide series.
  */
 class NumberingController extends Controller
 {
@@ -30,11 +36,25 @@ class NumberingController extends Controller
         $sequences = collect(array_keys(DocumentSequence::DOC_TYPES))
             ->map(fn ($type) => $this->numbering->sequence($type));
 
+        // Each branch's own series, for the types numbered per branch (M30).
+        $branches = Branch::where('active', true)->orderByDesc('is_head_office')->orderBy('name')->get(['id', 'name', 'code']);
+        $branchSeries = $branches->count() > 1
+            ? $sequences->filter(fn ($s) => $s->per_branch)->flatMap(fn ($s) => $branches->map(fn ($b) => $this->numbering->sequence($s->doc_type, 'branch', $b->id)))->values()
+            : collect();
+        // Each further GSTIN's own tax invoice series; the main one uses the company-wide series.
+        $registrations = TaxRegistration::usable()->orderByDesc('is_default')->orderBy('id')->get(['id', 'tax_id', 'state_code', 'branch_id', 'is_default']);
+        $gstSeries = $registrations->count() > 1
+            ? $registrations->reject(fn ($r) => $r->is_default)->flatMap(fn ($r) => collect(DocumentSequence::TAX_INVOICE_TYPES)->map(fn ($t) => $this->numbering->sequence($t, 'registration', $r->id)))->values()
+            : collect();
+        $all = $sequences->concat($branchSeries)->concat($gstSeries);
+
         return view('settings.numbering', [
-            'sequences' => $sequences,
-            'previews'  => $sequences->mapWithKeys(fn ($s) => [$s->id => $this->numbering->preview($s)]),
-            'nexts'     => $sequences->mapWithKeys(fn ($s) => [$s->id => $this->numbering->peekNumber($s)]),
-            'periods'   => $sequences->mapWithKeys(fn ($s) => [$s->id => $this->numbering->periodKey($s, $this->today())]),
+            'sequences' => $sequences, 'branchSeries' => $branchSeries, 'gstSeries' => $gstSeries,
+            'branchCount' => $branches->count(), 'mainGstin' => $registrations->count() > 1 ? $registrations->first()?->tax_id : null,
+            'labels'    => $all->mapWithKeys(fn ($s) => [$s->id => $this->scopeLabel($s, $branches, $registrations)]),
+            'previews'  => $all->mapWithKeys(fn ($s) => [$s->id => $this->numbering->preview($s, null, $this->partsFor($s))]),
+            'nexts'     => $all->mapWithKeys(fn ($s) => [$s->id => $this->numbering->peekNumber($s)]),
+            'periods'   => $all->mapWithKeys(fn ($s) => [$s->id => $this->numbering->periodKey($s, $this->today())]),
         ]);
     }
 
@@ -42,13 +62,13 @@ class NumberingController extends Controller
     {
         $data = $this->validated($request, $sequence);
 
-        DB::transaction(function () use ($sequence, $data) {
+        DB::transaction(function () use ($sequence, $data, $request) {
             $sequence->update([
                 'prefix'       => $data['prefix'] ?? '',
                 'format'       => $data['format'],
                 'reset_policy' => $data['reset_policy'],
                 'start_number' => $data['start_number'],
-            ]);
+            ] + ($sequence->scope_type === 'company' && in_array($sequence->doc_type, DocumentSequence::BRANCH_TYPES, true) ? ['per_branch' => $request->boolean('per_branch')] : []));
             $this->numbering->setNext($sequence, (int) $data['next_number']);
         });
 
@@ -70,7 +90,22 @@ class NumberingController extends Controller
             'reset_policy' => $data['reset_policy'],
         ]);
 
-        return response()->json(['ok' => true, 'number' => $this->numbering->render($draft, (int) $data['next_number'], $this->today(), DocumentNumbering::SAMPLE_PARTS)]);
+        return response()->json(['ok' => true, 'number' => $this->numbering->render($draft, (int) $data['next_number'], $this->today(), $this->partsFor($sequence) + DocumentNumbering::SAMPLE_PARTS)]);
+    }
+
+    /** {BR} as it will print for a branch's or a GSTIN's series. */
+    private function partsFor(DocumentSequence $sequence): array
+    {
+        return $sequence->scope_type === 'company' ? [] : ['BR' => $this->numbering->scopeCode($sequence->scope_type, $sequence->scope_id)];
+    }
+
+    private function scopeLabel(DocumentSequence $sequence, $branches, $registrations): ?string
+    {
+        return match ($sequence->scope_type) {
+            'branch' => ($b = $branches->firstWhere('id', $sequence->scope_id)) ? $b->name . ' (' . $b->code . ')' : null,
+            'registration' => ($r = $registrations->firstWhere('id', $sequence->scope_id)) ? 'GSTIN ' . $r->tax_id : null,
+            default => null,
+        };
     }
 
     /** Now, on the company's own clock. */

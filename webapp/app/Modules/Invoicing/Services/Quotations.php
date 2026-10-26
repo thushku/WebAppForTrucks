@@ -55,7 +55,7 @@ class Quotations
 
         DB::transaction(function () use ($quotation) {
             $quotation->forceFill([
-                'number' => $this->numbering->assign('quotation', $quotation->quote_date->copy()->setTime(12, 0)),
+                'number' => $this->numbering->assignInBranch('quotation', $quotation->quote_date->copy()->setTime(12, 0), $quotation->branch_id),
                 'status' => 'issued', 'issued_at' => now(),
             ])->save();
             // The client's link, to read and answer it (M24).
