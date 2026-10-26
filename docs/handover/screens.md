@@ -40,7 +40,7 @@ payroll; hide the tab until the API has them.)
 | C23 | **Raise complaint** | title, details, priority, odometer, photo | `complaint.raise` |
 | C24 | **Waiting to send** | every item not yet sent, oldest first, with **Send now**; warns after 24 hours | — (the phone's queue) |
 | C25 | **Phone health check** | battery saving, autostart, background data, with phone-brand steps (Xiaomi, Oppo, Vivo, Realme, Samsung) | — |
-| C26 | **Settings** | language, PIN, fingerprint, night mode, sign out | `POST /auth/logout` |
+| C26 | **Settings** | my profile (name, photo, language, date of birth), PIN, fingerprint, night mode, Help (WhatsApp, call, email support), sign out | `GET`/`POST /profile`, `GET /help` (§13), `POST /auth/logout` |
 | C27 | **About** | version and build, server, company, last sync | `GET /me` |
 
 Permissions are asked in this order, each after a short "why" screen: location while
@@ -50,7 +50,7 @@ asked in version 1.
 ## Owner app (owner, manager, accountant, workshop, viewer)
 
 Side menu: **Dashboard · Approvals · Live map · Trips · Trucks · Papers · Bills ·
-Ledgers · Scan to sign in on the web · Settings · About**. Show only what `GET /me` →
+Ledgers · Scan to sign in on the web · Settings · Help · About**; the drawer's head (photo, name, email) opens My profile. Show only what `GET /me` →
 `permissions` allows (codes in the table).
 
 | # | Screen | Shows / does | Permission | API |
@@ -77,6 +77,8 @@ Ledgers · Scan to sign in on the web · Settings · About**. Show only what `GE
 | O19 | **Add a paper** | truck or person, type, number, expiry, camera photo(s) | `document.manage` | `POST /owner/papers` (multipart) |
 | O20 | **Notifications** | the inbox behind the pushes, high ones first in red; tap opens what it is about; **My notifications**: which groups ring the phone, quiet hours | — | `GET /notifications`, `POST /notifications/read`, `GET`/`PUT /notifications/settings` (§11) |
 | O21 | **Crew cash** | from a crew member (Ledgers → crew, or Trip detail → crew): their trip cash, earnings, advance and the net in words; **Given to them** / **Spent for the company** — amount, what for, date, trip (theirs, not settled), mode or what it was spent on | `trip.settle` | `GET /owner/crew/{id}/khata`, `POST /owner/crew/{id}/cash` (§12) |
+| O22 | **My profile** | tabs **Personal** (name, verified email and mobile read-only, photo with a square crop, language, date of birth) and **Business** (the company as it prints: names, address, contacts, logo, GSTIN/TRN listed; editable with the right) | — (Business edit: `settings.company`) | `GET`/`POST /profile`, `GET`/`POST /owner/company` (§13) |
+| O23 | **Help** | WhatsApp support, Call support, Email support (only those the provider set), questions and answers, terms, privacy, version | — | `GET /help` (§13) |
 
 Every O16–O19 and O21 write sends an `Idempotency-Key` made when the person taps (§12), so a retry on a bad network never
 makes a second trip, bill or receipt. Still web only: hire challans, credit and debit notes, payments, settlement.

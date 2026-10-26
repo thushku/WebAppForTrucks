@@ -92,7 +92,11 @@
 
       <div class="relative" data-menu>
         <button type="button" data-menu-button class="flex items-center gap-2 rounded-full border border-ink-100 bg-white py-1 ps-1 pe-3 text-sm hover:border-brand-300" aria-haspopup="menu" aria-expanded="false">
-          <span class="grid size-8 place-items-center rounded-full bg-brand-100 font-display text-xs font-bold text-brand-800">{{ $account?->initials() }}</span>
+          @if ($account?->photo_path)
+            <img src="{{ route('profile.photo', ['v' => substr(md5($account->photo_path), 0, 8)]) }}" alt="" class="size-8 rounded-full object-cover">
+          @else
+            <span class="grid size-8 place-items-center rounded-full bg-brand-100 font-display text-xs font-bold text-brand-800">{{ $account?->initials() }}</span>
+          @endif
           <span class="hidden max-w-[10rem] truncate font-medium sm:block">{{ $account?->name }}</span>
         </button>
         <div data-menu-panel class="card absolute end-0 z-30 mt-2 hidden w-64 p-2" role="menu">
@@ -101,6 +105,10 @@
             <div class="truncate text-xs text-ink-500">{{ $account?->email ?? $account?->mobile }}</div>
           </div>
           <div class="my-1 border-t border-ink-100"></div>
+          @if ($company)
+            <a href="{{ route('profile.edit') }}" class="nav-link" role="menuitem"><x-icon name="users" /> {{ __('My profile') }}</a>
+            <a href="{{ route('help') }}" class="nav-link" role="menuitem"><x-icon name="help" /> {{ __('Help') }}</a>
+          @endif
           @if ($account && $account->activeMemberships()->count() > 1)
             <a href="{{ route('company.choose') }}" class="nav-link" role="menuitem"><x-icon name="switch" /> {{ __('Switch company') }}</a>
           @endif

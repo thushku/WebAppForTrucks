@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\QrLoginController;
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Documents\DocumentShareController;
 use App\Http\Controllers\Documents\RequiredTypesController;
@@ -115,6 +116,12 @@ Route::middleware('auth')->group(function () {
 
             return back();
         })->name('branch.select');
+
+        // My profile and Help (M28).
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:20,1')->name('profile.update');
+        Route::get('/profile/photo', [ProfileController::class, 'photo'])->name('profile.photo');
+        Route::get('/help', [ProfileController::class, 'help'])->name('help');
 
         // The bell (M20): everyone's own notices in this company.
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

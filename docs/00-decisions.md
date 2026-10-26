@@ -355,6 +355,18 @@ package), QR codes / amount in words / CSV written in-house. See
 - The khata's net now includes the advance bucket, everywhere (ledger page,
   person page, owner app, My Khata's `advance`).
 
+### P20. My profile and Help (added 26 Oct 2026, M28)
+
+- A person keeps their own **name, screen language, date of birth and photo**
+  — one profile for every company and both apps. The photo is cut to its
+  middle square and kept small and private.
+- **Email and mobile are not changed from the profile**: they are how one
+  signs in, so a change waits for a flow that confirms the new one first.
+- A read-only company (plan ended) still lets people keep their own profile
+  and notices; everything else stays read-only.
+- **Help** shows only the support contacts the provider set in the console
+  (WhatsApp, phone, email), else the contact form.
+
 ---
 
 ## 4. Still open

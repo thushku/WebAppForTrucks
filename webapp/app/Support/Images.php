@@ -18,6 +18,43 @@ final class Images
      */
     public static function shrink(string $path, int $longSide = 1600, int $targetBytes = 512000): string
     {
+        $image = self::load($path);
+
+        // One white canvas at the final size: shrinks big photos and flattens
+        // PNG transparency (JPEG has none).
+        $w      = imagesx($image);
+        $h      = imagesy($image);
+        $scale  = min(1, $longSide / max($w, $h));
+        $canvas = imagecreatetruecolor(max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
+        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+        imagecopyresampled($canvas, $image, 0, 0, 0, 0, imagesx($canvas), imagesy($canvas), $w, $h);
+        imagedestroy($image);
+
+        return self::jpeg($canvas, $targetBytes);
+    }
+
+    /**
+     * A profile photo (M28): the middle square of the picture, upright, at
+     * $size × $size, as JPEG bytes.
+     */
+    public static function square(string $path, int $size = 512): string
+    {
+        $image = self::load($path);
+        $w     = imagesx($image);
+        $h     = imagesy($image);
+        $side  = min($w, $h);
+        $out   = min($size, $side);
+        $canvas = imagecreatetruecolor($out, $out);
+        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+        imagecopyresampled($canvas, $image, 0, 0, intdiv($w - $side, 2), intdiv($h - $side, 2), $out, $out, $side, $side);
+        imagedestroy($image);
+
+        return self::jpeg($canvas, 150000);
+    }
+
+    /** The picture, read and turned upright; refused when it is not a JPG, PNG or WebP. */
+    private static function load(string $path): \GdImage
+    {
         $info = @getimagesize($path);
         if (! $info || ! in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
             throw ValidationException::withMessages(['photo' => __('That file is not a photo (JPG, PNG or WebP).')]);
@@ -43,16 +80,12 @@ final class Images
             };
         }
 
-        // One white canvas at the final size: shrinks big photos and flattens
-        // PNG transparency (JPEG has none).
-        $w      = imagesx($image);
-        $h      = imagesy($image);
-        $scale  = min(1, $longSide / max($w, $h));
-        $canvas = imagecreatetruecolor(max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
-        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
-        imagecopyresampled($canvas, $image, 0, 0, 0, 0, imagesx($canvas), imagesy($canvas), $w, $h);
-        imagedestroy($image);
+        return $image;
+    }
 
+    /** JPEG bytes, the quality stepped down until under the target size. */
+    private static function jpeg(\GdImage $canvas, int $targetBytes): string
+    {
         $bytes = '';
         foreach ([82, 72, 62, 52, 42] as $quality) {
             ob_start();

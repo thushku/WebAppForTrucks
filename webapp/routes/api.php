@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Owner\CompanyController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
 use App\Http\Controllers\Api\Owner\WriteController;
 use App\Http\Controllers\Api\WebLoginController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -42,12 +44,19 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
         Route::post('/auth/pin', [AuthController::class, 'setPin'])->name('api.auth.pin');
         Route::post('/device', [AuthController::class, 'device'])->name('api.device');
 
+        // My profile and Help (M28): the person's own, whichever company the app is in.
+        Route::get('/profile', [ProfileController::class, 'show'])->name('api.profile');
+        Route::post('/profile', [ProfileController::class, 'save'])->middleware('throttle:20,1')->name('api.profile.update');
+        Route::get('/profile/photo', [ProfileController::class, 'photo'])->name('api.profile.photo');
+        Route::get('/help', [ProfileController::class, 'helpApi'])->name('api.help');
+
         Route::middleware('api.company')->group(function () {
             Route::get('/me', function (Request $request) {
                 $member = app(\App\Platform\Tenancy\CompanyContext::class)->member();
 
                 return response()->json([
-                    'account' => ['name' => $request->user()->name, 'mobile' => $request->user()->mobile, 'locale' => $request->user()->locale],
+                    'account' => ['name' => $request->user()->name, 'mobile' => $request->user()->mobile, 'locale' => $request->user()->locale,
+                        'photo_url' => app(\App\Platform\Auth\Profile::class)->toApi($request->user())['photo_url']],
                     'company' => ['id' => $member->company->uuid, 'name' => $member->company->name, 'country' => $member->company->country, 'currency' => $member->company->currency,
                         'status' => $member->company->status, 'read_only' => $member->company->isReadOnly(), 'trial_ends_at' => $member->company->trial_ends_at?->toDateString()],
                     'announcement' => app(\App\Platform\Settings\PlatformSettings::class)->get('announcement'),
@@ -99,6 +108,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');
                 Route::post('/receipts', [WriteController::class, 'storeReceipt'])->middleware('permission:payment.record')->name('receipts.store');
                 Route::post('/papers', [WriteController::class, 'storePaper'])->middleware('permission:document.manage')->name('papers.store');
+                // The Business tab of the profile (M28): the company as it prints; edited with settings.company.
+                Route::get('/company', [CompanyController::class, 'show'])->name('company');
+                Route::post('/company', [CompanyController::class, 'save'])->middleware('permission:settings.company')->name('company.update');
+                Route::get('/company/logo', [CompanyController::class, 'logo'])->name('company.logo');
+
                 // Quick cash for the crew (M27): the khata in short, then a cash entry.
                 Route::get('/crew/{person}/khata', [WriteController::class, 'crewKhata'])->whereNumber('person')->middleware('permission:trip.settle')->name('crew.khata');
                 Route::post('/crew/{person}/cash', [WriteController::class, 'storeCrewCash'])->whereNumber('person')->middleware('permission:trip.settle')->name('crew.cash');

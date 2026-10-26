@@ -384,3 +384,21 @@ Answers to a write are `201`.
 
 A person limited to a branch sees and uses only that branch's trucks, crew and trips here (decision P17).
 
+
+## 13. My profile, the company's business details, Help (added in M28)
+
+The person's own profile is the same for both apps and every company (no `X-Company` needed); it keeps working when
+the company is read-only. The email and mobile are how they sign in: shown, not changed here. Saving is a plain
+multipart `POST` (for the photo) — sending the same thing twice is harmless, so no `Idempotency-Key`.
+
+| Call | Permission | Body → answer |
+|---|---|---|
+| `GET /profile` | signed in | `name`, `initials`, `email`, `email_verified`, `mobile`, `mobile_verified`, `locale`, `languages` (code → its own name, the ones the provider enabled), `date_of_birth`, `photo_url` (null without a photo; the URL changes when the photo does, so it can be cached) |
+| `POST /profile` (multipart) | signed in | `name` (required), `locale`, `date_of_birth` (Y-m-d, 14 years ago or earlier), `photo` (JPG / PNG / WebP up to 8 MB; the server keeps the middle square, 512 px, camera data dropped — crop on the phone first if the person chose a square), `remove_photo` → the profile |
+| `GET /profile/photo` | signed in | the person's own photo (JPEG) |
+| `GET /help` | signed in | the provider's support contacts (console → Settings): `brand`, `email`, `phone`, `whatsapp` (digits) and `whatsapp_url` (a chat with a first line), `faq_url`, `contact_url`, `terms_url`, `privacy_url`, `version` — a missing contact is null; show only those there |
+| `GET /owner/company` | office member | the company as it prints: `can_edit`, `name`, `legal_name`, `short_code`, `address_line1`, `address_line2`, `city`, `state_code`, `state`, `postal_code`, `phone`, `email`, `website`, `country`, `currency`, `timezone`, `logo_url`, `tax_ids[]` (`regime`, `number`, `state_code`, `default`; edited on the web, Settings → Tax), `regions` (code → name, for the picker) and `regions_label` (State / Emirate) |
+| `POST /owner/company` (multipart) | `settings.company` | the fields above (`name` required; Indian PIN codes have 6 digits) and `logo` (PNG / JPG / WebP up to 300 KB, 2000 px), `remove_logo` → the company |
+| `GET /owner/company/logo` | office member | the logo image |
+
+`GET /me` → `account.photo_url` as well, for the side drawer.

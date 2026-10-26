@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ResolveApiCompany
 {
-    private const ALLOWED_WHILE_READ_ONLY = ['api.web-login.*'];
+    private const ALLOWED_WHILE_READ_ONLY = ['api.web-login.*', 'api.notifications.*'];
 
     public function __construct(private CompanyContext $context) {}
 

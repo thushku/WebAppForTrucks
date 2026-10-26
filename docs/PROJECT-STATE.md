@@ -2,6 +2,25 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M28: my profile, the company's business details and Help (13-parity #14, #28, #30)
+
+**Built (in `webapp/`, `Platform/Auth/Profile`, `Platform/Tenancy/CompanyProfile`; decision P20):**
+- **My profile** (the header menu → My profile, and `GET`/`POST /profile` for both apps): name, screen language (the
+  screens switch at once), date of birth (optional) and a **photo** — the middle square, 512 px, re-saved as JPEG so the
+  camera's data is dropped, private (served only to its owner); shown in the header and the app's drawer
+  (`/me` → `account.photo_url`). Email and mobile are shown, not changed (they are how one signs in). Audited.
+- **Business** for the owner app (`GET`/`POST /owner/company`, logo at `/owner/company/logo`): the company as it prints
+  — names, address, contacts, logo, GSTIN/TRN listed — read by the office, changed with `settings.company` under the
+  same rules as Settings → Company (both now use `CompanyProfile`).
+- **Help** (the header menu → Help, and `GET /help`): WhatsApp, call and email support from the provider's settings
+  (only those set; the contact form when none), questions and answers, terms, privacy, the version.
+- A read-only company (plan ended) still lets people keep their own profile and notices (web and app).
+- Handover: api-v1 §13, screens O22 My profile (Personal · Business), O23 Help, C26 Settings.
+
+**Tests:** 258 passing (new `ProfileTest`, 3 tests: the web profile — refusals, the language followed, the photo
+squared to 512 and served, removed in a read-only company —; the apps' profile and photo, `/me`, a PDF refused, Help, the
+Business tab read and saved with a logo, a viewer reading but not saving; Help with and without the provider's contacts).
+
 ## 2026-10-26 — Milestone M27: the crew money desk (13-parity #19, #23)
 
 **Built (in `webapp/`, `Accounts/Services/CrewCash`; decision P19):**

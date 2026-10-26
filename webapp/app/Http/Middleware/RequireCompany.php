@@ -16,8 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RequireCompany
 {
-    /** Writes still allowed while read-only: renewing, signing out, switching company. */
-    private const ALLOWED_WHILE_READ_ONLY = ['logout', 'company.switch', 'billing.*', 'company.deletion.*'];
+    /** Writes still allowed while read-only: renewing, signing out, switching company, and one's own profile and notices. */
+    private const ALLOWED_WHILE_READ_ONLY = ['logout', 'company.switch', 'billing.*', 'company.deletion.*', 'profile.update', 'notifications.*'];
 
     public function __construct(private CompanyContext $context) {}
 
