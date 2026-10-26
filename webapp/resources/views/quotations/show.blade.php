@@ -5,6 +5,7 @@
   $q = $quotation;
   $m = fn ($v) => $v !== null ? \App\Support\Money::company($v) : '—';
   $bases = \App\Modules\Parties\Models\RateContractLine::BASES;
+  $tz = app(\App\Platform\Tenancy\CompanyContext::class)->company()->timezone ?: 'UTC';
   $tones = ['draft' => 'bg-ink-100 text-ink-700', 'issued' => 'bg-brand-50 text-brand-700', 'accepted' => 'bg-emerald-50 text-paid', 'declined' => 'bg-red-50 text-overdue', 'cancelled' => 'bg-ink-100 text-ink-500'];
 @endphp
 <div class="flex flex-wrap items-start justify-between gap-3">
@@ -15,6 +16,11 @@
     <p class="mt-1 text-sm text-ink-700"><a href="{{ route('parties.show', $q->party) }}" class="font-medium hover:underline">{{ $q->party->name }}</a> · {{ $q->quote_date->format('d M Y') }}@if ($q->valid_until) · {{ __('valid until :date', ['date' => $q->valid_until->format('d M Y')]) }}@endif</p>
     @if ($q->subject)<p class="text-sm text-ink-500">{{ $q->subject }}</p>@endif
     @if ($q->decision_note)<p class="mt-1 text-sm text-ink-600">{{ __(':status — :note', ['status' => $q->statusLabel($today), 'note' => $q->decision_note]) }}</p>@endif
+    @if ($q->answered_by_name)<p class="text-sm text-ink-600">{{ __('Answered on the client link by :name, :date', ['name' => $q->answered_by_name, 'date' => $q->decided_at?->timezone($tz)->format('d M Y H:i')]) }}</p>@endif
+    @if ($q->public_token)
+      <p class="mt-1 text-xs text-ink-500">{{ __('Client link:') }} <a href="{{ route('documents.public', $q->public_token) }}" target="_blank" rel="noopener" class="font-mono text-brand-700 hover:underline">{{ route('documents.public', $q->public_token) }}</a>
+        · {{ $q->viewed_at ? __('opened :date', ['date' => $q->viewed_at->timezone($tz)->format('d M H:i')]) : __('not opened yet') }}</p>
+    @endif
   </div>
   <div class="flex flex-wrap gap-2">
     <a href="{{ route('quotations.print', $q) }}" target="_blank" rel="noopener" class="btn-secondary"><x-icon name="printer" /> {{ __('Print') }}</a>

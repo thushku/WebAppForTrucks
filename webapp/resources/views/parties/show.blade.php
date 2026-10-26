@@ -6,7 +6,8 @@
   $dial = $party->mobile ? preg_replace('/[^0-9+]/', '', $party->mobile) : null;
   $wa   = $dial ? 'https://wa.me/' . ltrim($dial, '+') . '?text=' . rawurlencode(__('Hello :name', ['name' => $party->name])) : null;
   $isSupplier = $party->hasRole('supplier') || $party->hasRole('broker');
-  $tabs = ['overview' => __('Overview')] + ($party->hasRole('client') || $isSupplier ? ['rates' => __('Rates')] : []) + ($isSupplier ? ['vehicles' => __('Trucks')] : []);
+  $tabs = ['overview' => __('Overview')] + ($party->hasRole('client') && auth()->user()->can('invoice.view') ? ['billing' => __('Billing')] : [])
+    + ($party->hasRole('client') || $isSupplier ? ['rates' => __('Rates')] : []) + ($isSupplier ? ['vehicles' => __('Trucks')] : []);
 @endphp
 <section class="card p-6">
   <div class="flex flex-wrap items-start gap-4">
@@ -41,13 +42,14 @@
     @foreach ($tabs as $key => $label)
       <a href="{{ route('parties.show', [$party, 'tab' => $key]) }}" class="-mb-px border-b-2 px-3 py-2 text-sm font-medium {{ $tab === $key ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900' }}" @if ($tab === $key) aria-current="page" @endif>{{ $label }}</a>
     @endforeach
-    <span class="px-3 py-2 text-sm text-ink-300" title="{{ __('Coming in a later milestone') }}">{{ __('Ledger') }}</span>
     @can('document.view')<a href="{{ route('documents.owner', ['party', $party->id]) }}" class="-mb-px border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Documents') }}</a>@endcan
   </nav>
 </section>
 
 @if ($tab === 'overview')
   @include('parties.partials.overview')
+@elseif ($tab === 'billing' && $billing)
+  @include('parties.partials.billing', ['b' => $billing])
 @elseif ($tab === 'rates')
   @include('parties.partials.rates')
 @else

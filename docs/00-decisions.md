@@ -299,6 +299,9 @@ package), QR codes / amount in words / CSV written in-house. See
   series, so offices can mix both.
 - **Every voucher prints to sign** (payment, receipt, journal, contra) with the
   amount in words and prepared / approved / received boxes.
+- (M24) A sent quotation has the client's secure link; the client accepts
+  (with their name) or declines (with why) there, once, while it is not
+  expired; the office is notified. No sign-in, never indexed.
 
 ### P17. Branches at work (added 26 Oct 2026, M22)
 

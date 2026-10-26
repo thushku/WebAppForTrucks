@@ -2,6 +2,26 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M24: the client's billing desk, quotations answered online
+
+**Built (in `webapp/`; 13-parity #20–21; decision P16 extended):**
+- **Client page → Billing** (for clients, with `invoice.view`): **Not billed yet** (the LRs waiting and their value),
+  **Billed, not paid**, **Overdue**, **Received this year**; the LRs to bill with tick boxes → **Make the bill for the
+  ticked LRs**; the bills with status, balance, PDF and **Settle** (the receipt form filled for that bill); the payments
+  with mode, reference and the bills they paid, **Add payment**; the client's quotations, **New quotation**. The stale
+  "Ledger — coming later" tab is gone (the Ledger button stays).
+- **Quotations answered on the client's link**: a sent quotation gets a secure link (`/d/{token}`, like a bill), in its
+  email and WhatsApp words. The client reads it on any phone and **accepts** (name, a PO number) or **declines** (why)
+  — once, while it is not expired. The office sees "Answered on the client link by …", when it was first opened, and
+  gets a notice ("ACC Limited accepted quotation QT/…"); logged.
+- The statement, quotation and voucher pages fit a phone (wide tables scroll inside themselves).
+- "LRs waiting to be billed" is one rule (`Consignment::waitingToBill`) for the bills page, the client page and the app.
+
+**Tests:** 246 passing (new `ClientBillingTest`, 2 tests: the billing tab's totals and lists, billing ticked LRs,
+Settle filled for the bill, payments and the year's money, a viewer without the buttons, the workshop without the page;
+the client link in the words, read without signing in (not indexed), opened noted, decline needs a reason, accepted once,
+the office's notice and audit, no answer on an expired quotation).
+
 ## 2026-10-26 — Milestone M23: the owner app makes things
 
 **Built (in `webapp/`, `Api/Owner/WriteController`; api-v1 §12; decision P18):**

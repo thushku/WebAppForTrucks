@@ -121,6 +121,18 @@ class Notices
             $names->take(3)->join('; ') . ($names->count() > 3 ? ' …' : ''), route('documents.index', [], false), ['type' => 'papers'], 'papers');
     }
 
+    /** A client answered a quotation on its link (M24): whoever makes bills hears it. */
+    public function quotationAnswered(\App\Modules\Invoicing\Models\Quotation $quotation): void
+    {
+        $quotation->loadMissing('party:id,name');
+        $accepted = $quotation->status === 'accepted';
+        $this->notifier->tell($this->notifier->accountsWith('invoice.create'), $accepted ? 'quotation.accepted' : 'quotation.declined',
+            $accepted ? __(':party accepted quotation :number', ['party' => $quotation->party->name, 'number' => $quotation->number])
+                : __(':party declined quotation :number', ['party' => $quotation->party->name, 'number' => $quotation->number]),
+            collect([$quotation->answered_by_name, $quotation->decision_note])->filter()->join(' — '),
+            route('quotations.show', $quotation, false), ['type' => 'quotation', 'quotation' => (string) $quotation->id]);
+    }
+
     /** "Diesel ₹5,000" — the entry's kind and amount. */
     private function what(RoadEvent $event): string
     {

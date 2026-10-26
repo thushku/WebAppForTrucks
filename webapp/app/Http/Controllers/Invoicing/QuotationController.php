@@ -161,7 +161,7 @@ class QuotationController extends Controller
     {
         abort_unless((bool) $quotation->number, 404);
         $quotation->load('party');
-        $text = $messages->renderQuotation('whatsapp', $quotation)['body'] . "\n" . route('quotations.print', $quotation);
+        $text = $messages->renderQuotation('whatsapp', $quotation)['body'];
         $mobile = preg_replace('/\D/', '', (string) $quotation->party->mobile);
 
         return redirect()->away('https://wa.me/' . ($mobile ?: '') . '?text=' . rawurlencode($text));
@@ -169,17 +169,7 @@ class QuotationController extends Controller
 
     private function html(Quotation $quotation, DocumentData $data): string
     {
-        $quotation->load(['party', 'lines.from', 'lines.to']);
-        $p = $quotation->party;
-        $company = $this->context->company();
-
-        return view('documents.quotation', [
-            'quotation' => $quotation, 'seller' => $data->letterhead(),
-            'partyAddress' => array_values(array_filter([$p->address_line1, $p->address_line2, trim(implode(' ', array_filter([$p->city, $p->postal_code])))])),
-            'taxId' => PartyTaxId::where('party_id', $p->id)->orderByDesc('is_default')->value('tax_id'),
-            'taxNote' => $company->country === 'IN' ? __('GST is charged on the bill as the law applies to the service (forward charge or reverse charge).') : __('VAT is charged on the bill as applicable.'),
-            'tz' => $company->timezone ?: 'UTC',
-        ] + $this->names())->render();
+        return app(DocumentRenderer::class)->quotationHtml($quotation);
     }
 
     private function names(): array

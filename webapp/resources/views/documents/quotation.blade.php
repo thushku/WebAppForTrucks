@@ -25,11 +25,11 @@
       @foreach ($partyAddress as $line)<div class="muted">{{ $line }}</div>@endforeach
       @if ($taxId)<div class="muted">{{ $seller['tax_label'] }} {{ $taxId }}</div>@endif
     </div>
-    @if ($q->subject)<div style="text-align:right; max-width:50%"><div class="muted">{{ __('Subject') }}</div><strong>{{ $q->subject }}</strong></div>@endif
+    @if ($q->subject)<div class="title" style="max-width:50%"><div class="muted">{{ __('Subject') }}</div><strong>{{ $q->subject }}</strong></div>@endif
   </div>
 
   <p>{{ __('We are pleased to offer the following rates for your loads:') }}</p>
-  <table>
+  <div class="scroll"><table>
     <thead><tr><th>{{ __('Route') }}</th><th>{{ __('Material') }}</th><th>{{ __('Truck') }}</th><th class="num">{{ __('Rate') }}</th><th class="num">{{ __('Min. weight') }}</th><th>{{ __('Detention') }}</th><th class="num">{{ __('Loading / unloading') }}</th></tr></thead>
     <tbody>
       @foreach ($q->lines as $l)
@@ -44,10 +44,28 @@
         </tr>
       @endforeach
     </tbody>
-  </table>
+  </table></div>
 
   <p class="foot">{{ $taxNote }}</p>
   @if ($q->terms)<div class="foot"><strong>{{ __('Terms') }}</strong><div style="white-space:pre-line">{{ $q->terms }}</div></div>@endif
+
+  @if (! empty($answered))
+    <p style="margin-top:18px; padding:10px 12px; border-radius:8px; background:#ecfdf5; color:#065f46">{{ $answered === 'accepted' ? __('Thank you — we have your acceptance and will be in touch to plan the loads.') : __('Thank you — we have your answer.') }}</p>
+  @elseif (! empty($answerUrl))
+    <form method="POST" action="{{ $answerUrl }}" style="margin-top:18px; padding:12px; border:1px solid #c8d1dc; border-radius:8px">
+      @csrf
+      <strong>{{ __('Your answer') }}</strong>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px">
+        <label style="flex:1 1 200px">{{ __('Your name') }}<br><input name="name" required maxlength="120" value="{{ old('name') }}" style="width:100%; padding:6px; border:1px solid #c8d1dc; border-radius:6px"></label>
+        <label style="flex:2 1 260px">{{ __('Note (a PO number, or why not)') }}<br><input name="note" maxlength="255" value="{{ old('note') }}" style="width:100%; padding:6px; border:1px solid #c8d1dc; border-radius:6px"></label>
+      </div>
+      @if ($errors->any())<p style="color:#b42318; margin:6px 0 0">{{ $errors->first() }}</p>@endif
+      <div style="display:flex; gap:8px; margin-top:10px">
+        <button name="decision" value="accepted" style="padding:8px 14px; border:0; border-radius:6px; background:#162f5e; color:#fff; font-weight:600">{{ __('Accept the quotation') }}</button>
+        <button name="decision" value="declined" style="padding:8px 14px; border:1px solid #c8d1dc; border-radius:6px; background:#fff">{{ __('Decline') }}</button>
+      </div>
+    </form>
+  @endif
 
   <div class="signs">
     <div>{{ __('Accepted by the client — signature, name and date') }}</div>

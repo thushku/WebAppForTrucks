@@ -58,14 +58,20 @@ class Quotations
                 'number' => $this->numbering->assign('quotation', $quotation->quote_date->copy()->setTime(12, 0)),
                 'status' => 'issued', 'issued_at' => now(),
             ])->save();
+            // The client's link, to read and answer it (M24).
+            $quotation->forceFill(['public_token' => app(DocumentLinks::class)->create('quotation', $quotation->id)])->save();
         });
         $this->audit->record('quotation.issued', "Quotation {$quotation->number} to {$quotation->party->name}", 'quotation', (string) $quotation->id, $quotation->number);
 
         return $quotation;
     }
 
-    /** The client's answer: accepted (how — "PO 4512", "email of 3 Nov") or declined (why). */
-    public function decide(Quotation $quotation, string $decision, ?string $note, Account $by): void
+    /**
+     * The client's answer: accepted (how — "PO 4512", "email of 3 Nov") or
+     * declined (why); noted by the office ($by), or given by the client on
+     * the link ($clientName).
+     */
+    public function decide(Quotation $quotation, string $decision, ?string $note, ?Account $by, ?string $clientName = null): void
     {
         if (! in_array($quotation->status, ['issued'], true) || ! in_array($decision, ['accepted', 'declined'], true)) {
             throw ValidationException::withMessages(['decision' => __('Only a sent quotation can be accepted or declined.')]);
@@ -73,7 +79,15 @@ class Quotations
         if ($decision === 'declined' && mb_strlen(trim((string) $note)) < 3) {
             throw ValidationException::withMessages(['note' => __('Write why the client declined (it helps the next quotation).')]);
         }
-        $quotation->forceFill(['status' => $decision, 'decision_note' => $note ? mb_substr(trim($note), 0, 255) : null, 'decided_at' => now(), 'decided_by' => $by->id])->save();
+        if ($quotation->isExpired(CarbonImmutable::now($this->context->company()->timezone ?: 'UTC')) && $clientName !== null) {
+            throw ValidationException::withMessages(['decision' => __('This quotation has expired. Ask us for a new one.')]);
+        }
+        $quotation->forceFill(['status' => $decision, 'decision_note' => $note ? mb_substr(trim($note), 0, 255) : null, 'decided_at' => now(),
+            'decided_by' => $by?->id, 'answered_by_name' => $clientName ? mb_substr(trim($clientName), 0, 120) : null])->save();
+        if ($clientName !== null) {
+            $this->audit->record("quotation.{$decision}", "Quotation {$quotation->number} {$decision} online by {$clientName}", 'quotation', (string) $quotation->id, $quotation->number, reason: $note);
+            app(\App\Platform\Notifications\Notices::class)->quotationAnswered($quotation);
+        }
     }
 
     public function cancel(Quotation $quotation, string $reason): void

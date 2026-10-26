@@ -88,6 +88,7 @@ Route::get('/share/{token}/file/{file}', [DocumentShareController::class, 'file'
 // A bill or receipt by its secure link, for the client (no sign-in; M9).
 Route::get('/d/{token}', [PublicDocumentController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('documents.public');
 Route::get('/d/{token}/pdf', [PublicDocumentController::class, 'pdf'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:20,1')->name('documents.public.pdf');
+Route::post('/d/{token}/answer', [PublicDocumentController::class, 'answer'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:10,1')->name('documents.public.answer');
 
 // What a phone camera opens when the sign-in QR is scanned outside the app.
 Route::get('/qr/{token}', [QrLoginController::class, 'scan'])->where('token', '[A-Za-z0-9]{40}')->name('login.qr.scan');

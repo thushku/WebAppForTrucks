@@ -74,14 +74,42 @@ class PartyController extends Controller
         $party->load(['roles', 'taxIds', 'contacts', 'bankAccounts', 'vehicles', 'group',
             'rateContracts' => fn ($q) => $q->withCount('lines')]);
 
-        $tab = in_array($request->query('tab'), ['overview', 'rates', 'vehicles'], true) ? $request->query('tab') : 'overview';
+        $tab = in_array($request->query('tab'), ['overview', 'rates', 'vehicles', 'billing'], true) ? $request->query('tab') : 'overview';
 
         return view('parties.show', [
             'party'   => $party,
             'tab'     => $tab,
             'country' => $this->context->company()->country,
             'members' => Party::where('group_party_id', $party->id)->orderBy('name')->get(['id', 'name']),
+            'billing' => $tab === 'billing' && $request->user()->can('invoice.view') ? $this->billing($party) : null,
         ]);
+    }
+
+    /**
+     * The client's billing view (M24, 13-parity #20): what is not billed yet,
+     * what is billed and unpaid, what came in this financial year; the LRs
+     * to bill, the bills with Settle, the payments and the quotations.
+     */
+    private function billing(Party $party): array
+    {
+        $company = $this->context->company();
+        $year = \App\Support\FiscalYear::containing(\Carbon\CarbonImmutable::now($company->timezone ?: 'UTC'), (int) ($company->fy_start_month ?: 4));
+        $unbilled = \App\Modules\Trips\Models\Consignment::with('trip:id,trip_number,trip_date')->waitingToBill()->where('billing_party_id', $party->id)
+            ->orderBy('lr_date')->orderBy('id')->get(['id', 'trip_id', 'lr_number', 'lr_date', 'status', 'freight', 'loading_charge', 'unloading_charge', 'other_charges', 'pod_received_at']);
+        $open = \App\Modules\Invoicing\Models\Invoice::inBranch()->where('party_id', $party->id)->whereIn('status', \App\Modules\Invoicing\Models\Invoice::OPEN_STATUSES);
+
+        return [
+            'year' => $year,
+            'unbilled' => $unbilled,
+            'unbilled_total' => round((float) $unbilled->sum(fn ($c) => (float) $c->freight + (float) $c->loading_charge + (float) $c->unloading_charge + (float) $c->other_charges), 2),
+            'due' => round((float) (clone $open)->where('doc_type', '!=', 'credit_note')->sum('balance_due'), 2),
+            'overdue' => round((float) (clone $open)->where('doc_type', '!=', 'credit_note')->where('due_date', '<', now($company->timezone ?: 'UTC')->toDateString())->sum('balance_due'), 2),
+            'received' => round((float) \App\Modules\Invoicing\Models\Receipt::where('party_id', $party->id)->where('status', '!=', 'void')
+                ->whereBetween('receipt_date', [$year->start->toDateString(), $year->end->toDateString()])->sum('amount'), 2),
+            'invoices' => \App\Modules\Invoicing\Models\Invoice::inBranch()->where('party_id', $party->id)->orderByDesc('issue_date')->orderByDesc('id')->limit(50)->get(),
+            'receipts' => \App\Modules\Invoicing\Models\Receipt::with('allocations.invoice:id,number')->where('party_id', $party->id)->orderByDesc('receipt_date')->orderByDesc('id')->limit(30)->get(),
+            'quotations' => \App\Modules\Invoicing\Models\Quotation::inBranch()->where('party_id', $party->id)->orderByDesc('quote_date')->orderByDesc('id')->limit(10)->get(),
+        ];
     }
 
     public function edit(Party $party): View

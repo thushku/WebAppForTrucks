@@ -81,6 +81,18 @@ class Consignment extends Model
         return $this->belongsTo(Party::class, 'consignee_party_id');
     }
 
+    /**
+     * LRs waiting for a bill: numbered, not billed, not on a draft bill, not
+     * cancelled — in the branch shown (M22). The bills page, the client's
+     * billing tab and the owner app read the same list (M24).
+     */
+    public function scopeWaitingToBill(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereHas('trip', fn ($t) => $t->inBranch())->whereNotNull('lr_number')->whereNull('invoice_id')
+            ->whereIn('status', ['booked', 'picked_up', 'in_transit', 'delivered', 'pod_received'])
+            ->whereNotIn('id', \App\Modules\Invoicing\Models\InvoiceLine::query()->whereNotNull('consignment_id')->whereHas('invoice', fn ($q) => $q->where('status', 'draft'))->select('consignment_id'));
+    }
+
     /** The printed LR book its typed number is from (M21); null for the automatic series. */
     public function lrBook(): BelongsTo
     {

@@ -25,11 +25,11 @@ class Quotation extends Model
 
     public const STATUSES = ['draft' => 'Draft', 'issued' => 'Sent', 'accepted' => 'Accepted', 'declined' => 'Declined', 'cancelled' => 'Cancelled'];
 
-    protected $guarded = ['id', 'company_id', 'number'];
+    protected $guarded = ['id', 'company_id', 'number', 'public_token'];
 
     protected function casts(): array
     {
-        return ['quote_date' => 'date', 'valid_until' => 'date', 'issued_at' => 'datetime', 'decided_at' => 'datetime'];
+        return ['quote_date' => 'date', 'valid_until' => 'date', 'issued_at' => 'datetime', 'decided_at' => 'datetime', 'viewed_at' => 'datetime'];
     }
 
     public function party(): BelongsTo

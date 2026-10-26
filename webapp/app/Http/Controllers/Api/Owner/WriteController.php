@@ -111,9 +111,7 @@ class WriteController extends Controller
     {
         $party = $request->integer('party') ?: null;
         $loads = Consignment::with(['billingParty:id,name', 'trip:id,uuid,trip_number,from_place_id,to_place_id', 'trip.from:id,name', 'trip.to:id,name'])
-            ->whereHas('trip', fn ($t) => $t->inBranch())->whereNotNull('lr_number')->whereNull('invoice_id')
-            ->whereIn('status', ['booked', 'picked_up', 'in_transit', 'delivered', 'pod_received'])->where('payment_type', 'to_be_billed')
-            ->whereNotIn('id', InvoiceLine::query()->whereNotNull('consignment_id')->whereHas('invoice', fn ($q) => $q->where('status', 'draft'))->select('consignment_id'))
+            ->waitingToBill()->where('payment_type', 'to_be_billed')
             ->when($party, fn ($q) => $q->where('billing_party_id', $party))->orderBy('lr_date')->orderBy('id')->limit(200)->get();
 
         return response()->json(['loads' => $loads->map(fn (Consignment $c) => [

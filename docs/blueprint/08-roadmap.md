@@ -38,6 +38,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M21 ✅ | The rest of M9: **quotations** (print, PDF, email, WhatsApp; accepted → rate contract; a trip from a route), **pre-printed LR books** (typed LR numbers checked, spoilt/lost leaves, skipped-leaf report), payment vouchers printed to sign | Quote, book and sign as the office does on paper |
 | M22 ✅ | Branches at work: the header's branch filter for lists, dashboard, map and P&L; staff limited to a branch on the web and in the owner app | A Mumbai manager sees Mumbai |
 | M23 ✅ | Owner app makes things: trip planned and sent, bills from LRs issued, money received, papers photographed — once per Idempotency-Key | Run the office from the phone |
+| M24 ✅ | The client's page as a billing desk (not billed, due, overdue, received; tick LRs and bill; Settle; payments; quotations) and quotations answered by the client on their link | Bill and collect from one page |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

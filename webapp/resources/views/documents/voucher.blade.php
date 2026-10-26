@@ -26,7 +26,7 @@
     <div style="text-align:right"><div class="muted">{{ __('Amount') }}</div><strong style="font-size:18px">{{ \App\Support\Money::company($amount) }}</strong><div class="muted">{{ $words }}</div></div>
   </div>
 
-  <table>
+  <div class="scroll"><table>
     <thead><tr><th>{{ __('Account') }}</th><th>{{ __('Trip / truck') }}</th><th class="num">{{ __('Debit') }}</th><th class="num">{{ __('Credit') }}</th></tr></thead>
     <tbody>
       @foreach ($v->lines as $l)
@@ -39,7 +39,7 @@
       @endforeach
       <tr class="sum"><td colspan="2">{{ __('Total') }}</td><td class="num">{{ $m($v->lines->sum('debit')) }}</td><td class="num">{{ $m($v->lines->sum('credit')) }}</td></tr>
     </tbody>
-  </table>
+  </table></div>
 
   <div class="signs">
     <div>{{ __('Prepared by') }}@if ($v->author)<br><strong style="color:#0f1a2b">{{ $v->author->name }}</strong>@endif</div>

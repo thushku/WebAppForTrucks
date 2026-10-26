@@ -301,7 +301,6 @@ class InvoiceController extends Controller
     /** LRs with a number, not cancelled, not billed yet and not on a live draft. */
     private function unbilledQuery()
     {
-        return Consignment::query()->whereHas('trip', fn ($t) => $t->inBranch())->whereNotNull('lr_number')->whereNull('invoice_id')->whereIn('status', ['booked', 'picked_up', 'in_transit', 'delivered', 'pod_received'])
-            ->whereNotIn('id', InvoiceLine::query()->whereNotNull('consignment_id')->whereHas('invoice', fn ($q) => $q->where('status', 'draft'))->select('consignment_id'));
+        return Consignment::query()->waitingToBill();
     }
 }

@@ -14,32 +14,6 @@ use Carbon\CarbonImmutable;
 // an accepted one becomes the rate contract and starts trips at its rates.
 // And the payment voucher, printed to sign.
 
-/** The quotation form: two routes and the spare empty row. */
-function qtForm(array $w, array $override = []): array
-{
-    return array_replace_recursive([
-        'party_id' => $w['acc']->id, 'quote_date' => '2026-10-25', 'valid_until' => '2026-11-09', 'subject' => 'Cement, November',
-        'terms' => "Payment within 30 days.\nDetention after 24 hours.", 'notes' => 'They asked for a Pune rate too',
-        'lines' => [
-            ['from_place_id' => $w['cok']->id, 'to_place_id' => $w['bom']->id, 'material' => 'cement', 'basis' => 'tonne', 'rate' => '3400', 'min_weight_mt' => '9',
-                'detention_free_hours' => '24', 'detention_rate_per_day' => '2500', 'loading_charge' => '500', 'note' => 'Tarpaulin included'],
-            ['from_place_id' => $w['cok']->id, 'to_place_id' => $w['pnq']->id, 'basis' => 'trip', 'rate' => '61000'],
-            ['from_place_id' => '', 'to_place_id' => '', 'rate' => ''],
-        ],
-    ], $override);
-}
-
-function qtSent(array $w): Quotation
-{
-    test()->post(route('quotations.store'), qtForm($w))->assertSessionHasNoErrors();
-    app(CompanyContext::class)->set($w['company']);
-    $quotation = Quotation::latest('id')->firstOrFail();
-    test()->post(route('quotations.issue', $quotation))->assertSessionHasNoErrors();
-    app(CompanyContext::class)->set($w['company']);
-
-    return $quotation->fresh();
-}
-
 it('writes a quotation, sends it with its number, prints, emails and shares it, and never changes it after', function () {
     config(['mail.default' => 'array', 'documents.pdf_driver' => 'browser']);
     app()->forgetInstance('mail.manager');

@@ -18,5 +18,8 @@
   .foot { margin-top: 18px; font-size: 11px; }
   .signs { display: flex; justify-content: space-between; gap: 24px; margin-top: 48px; }
   .signs div { flex: 1; border-top: 1px solid #8a97a8; padding-top: 6px; font-size: 11px; color: #5b6b80; }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* On a phone (a client opening the link): no paper margins, the header wraps, wide tables scroll inside themselves. */
+  @media screen and (max-width: 640px) { .page { margin: 0; padding: 16px; } .head, .to, .signs { flex-wrap: wrap; } .title { text-align: left; } .scroll table { min-width: 560px; } }
   @media print { body { background: #fff; } .page { margin: 0; max-width: none; padding: 0; } @page { size: A4; margin: 12mm; } }
 </style>

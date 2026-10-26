@@ -21,7 +21,7 @@
     <div style="text-align:right"><div class="muted">{{ __('Balance on :date', ['date' => $to->format('d M Y')]) }}</div><strong style="font-size:15px">{{ $bal($s['closing']) }}</strong><div class="muted">{{ $words }}</div></div>
   </div>
 
-  <table>
+  <div class="scroll"><table>
     <thead><tr><th>{{ __('Date') }}</th><th>{{ __('Particulars') }}</th><th>{{ __('Reference') }}</th><th class="num">{{ __('Debit') }}</th><th class="num">{{ __('Credit') }}</th><th class="num">{{ __('Balance') }}</th></tr></thead>
     <tbody>
       <tr><td>{{ $from->format('d M Y') }}</td><td><strong>{{ __('Opening balance') }}</strong></td><td></td><td></td><td></td><td class="num">{{ $bal($s['opening']) }}</td></tr>
@@ -37,7 +37,7 @@
       @endforeach
       <tr class="sum"><td>{{ $to->format('d M Y') }}</td><td>{{ __('Closing balance') }}</td><td></td><td class="num">{{ $m($s['debit']) }}</td><td class="num">{{ $m($s['credit']) }}</td><td class="num">{{ $bal($s['closing']) }}</td></tr>
     </tbody>
-  </table>
+  </table></div>
 
   <p class="foot muted">{{ __('Debit (Dr): owed to :company. Credit (Cr): owed by :company. Please tell us within 15 days if anything is different in your books.', ['company' => $seller['name']]) }}<br>{{ __('Made on :date.', ['date' => now($tz)->format('d M Y H:i')]) }}</p>
 </div>
