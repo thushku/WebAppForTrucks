@@ -334,6 +334,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/tds', [Accounts\ReportsController::class, 'tds'])->name('tds');
             Route::get('/tally', [Accounts\ReportsController::class, 'tally'])->middleware('permission:data.export,statement.export')->name('tally');
             Route::get('/bank', [Accounts\BankController::class, 'index'])->name('bank');
+            // FASTag and fuel-card statements (M44).
+            Route::get('/cards', [Accounts\CardController::class, 'index'])->name('cards');
+            Route::get('/cards/{statement}', [Accounts\CardController::class, 'show'])->whereNumber('statement')->name('cards.show');
             Route::middleware('permission:accounts.post')->group(function () {
                 Route::post('/chart', [Accounts\BooksController::class, 'storeLedger'])->name('chart.store');
                 Route::get('/journal/new', [Accounts\JournalController::class, 'create'])->name('journal.create');
@@ -347,6 +350,8 @@ Route::middleware('auth')->group(function () {
                 Route::post('/bank/import', [Accounts\BankController::class, 'import'])->middleware('throttle:20,60')->name('bank.import');
                 Route::post('/bank/auto', [Accounts\BankController::class, 'auto'])->name('bank.auto');
                 Route::post('/bank/lines/{line}', [Accounts\BankController::class, 'match'])->whereNumber('line')->name('bank.match');
+                Route::post('/cards/import', [Accounts\CardController::class, 'import'])->middleware('throttle:20,60')->name('cards.import');
+                Route::post('/cards/lines/{line}', [Accounts\CardController::class, 'line'])->whereNumber('line')->name('cards.line');
             });
             Route::middleware('permission:accounts.lock')->group(function () {
                 Route::get('/lock', [Accounts\LockController::class, 'edit'])->name('lock');

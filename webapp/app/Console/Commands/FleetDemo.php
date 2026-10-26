@@ -86,6 +86,7 @@ class FleetDemo extends Command
             $this->leave($owner);
             $this->bankStatement($owner);
             $this->quotesAndBooks($owner);
+            $this->cardStatement($owner);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -363,6 +364,28 @@ class FleetDemo extends Command
         $away = $add(['MRF2409R0150'], 'MRF', 'Steel Muscle S3C8', '10.00 R20', 20500, 80000, '2024-09-01')->first();
         $away->forceFill(['km_run' => 81500])->save();
         $tyres->sendForRetread($away, now()->subDays(7)->toDateString(), $dealer->id, $owner);
+    }
+
+    /**
+     * A FASTag statement for the running Kochi → Mumbai trip (M44): its two
+     * tolls the driver entered match by themselves; a third charge nobody
+     * entered waits to be booked; a recharge is left out.
+     */
+    private function cardStatement(Account $owner): void
+    {
+        $trip = \App\Modules\Trips\Models\Trip::with('truck')->where('status', 'running')->whereNotNull('truck_id')->orderBy('id')->first();
+        if (! $trip) {
+            return;
+        }
+        $at = fn (int $minutes) => \Carbon\CarbonImmutable::instance($trip->started_at)->setTimezone('Asia/Kolkata')->addMinutes($minutes)->format('d/m/Y H:i:s');
+        $reg = $trip->truck->reg_no;
+        $csv = "Transaction Date & Time,Vehicle Number,Plaza Name,Transaction ID,Debit,Credit\n"
+            . "{$at(36)},{$reg},Kumbalam,NETC-88123401,155.00,\n{$at(182)},{$reg},Paliyekkara,NETC-88123477,255.00,\n"
+            . "{$at(250)},{$reg},Pampampallam,NETC-88123512,110.00,\n{$at(400)},,Wallet recharge,NETC-88123600,,10000.00\n";
+        $path = tempnam(sys_get_temp_dir(), 'demo-fastag');
+        file_put_contents($path, $csv);
+        app(\App\Modules\Accounts\Services\CardStatements::class)->import('fastag', $path, 'FASTag-statement-' . now()->format('M-Y') . '.csv', $owner);
+        @unlink($path);
     }
 
     /** Leave (M40): one request waiting from the app, one taken, one coming up. */

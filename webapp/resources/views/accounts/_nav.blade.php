@@ -3,7 +3,7 @@
   $tabs = [
     'accounts.index' => __('Overview'), 'accounts.day-book' => __('Day book'), 'accounts.trial-balance' => __('Trial balance'),
     'accounts.profit-loss' => __('Profit and loss'), 'accounts.balance-sheet' => __('Balance sheet'), 'accounts.trucks' => __('Truck profit'),
-    'accounts.ageing' => __('Ageing'), 'accounts.tax' => __('Tax returns'), 'accounts.tds' => __('TDS'), 'accounts.bank' => __('Bank reconciliation'), 'accounts.chart' => __('Chart of accounts'),
+    'accounts.ageing' => __('Ageing'), 'accounts.tax' => __('Tax returns'), 'accounts.tds' => __('TDS'), 'accounts.bank' => __('Bank reconciliation'), 'accounts.cards' => __('Card statements'), 'accounts.chart' => __('Chart of accounts'),
   ];
 @endphp
 <div class="flex flex-wrap items-center justify-between gap-3">

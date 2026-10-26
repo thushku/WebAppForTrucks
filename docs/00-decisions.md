@@ -524,6 +524,23 @@ package), QR codes / amount in words / CSV written in-house. See
   days are not paid); **a trip whose crew is on leave that day needs an
   override** to be sent.
 
+### P31. FASTag and fuel-card statements (added 26 Oct 2026, M44)
+
+- The provider's **CSV is brought in** under Accounts → Card statements
+  (`accounts.post`): its header row is found by its words (date and time,
+  vehicle, plaza or pump, amount or debit, transaction id), dates are read
+  day first in the company's time zone, **recharges, refunds and reversals
+  are left out**, and a charge already brought in (same transaction id) is
+  never brought in twice.
+- **A charge matches by itself** the crew's entry paid by that card for the
+  same truck (by its plate, ignoring spaces and dashes), within ₹0.50 and a
+  day, the nearest in time; each entry matches one charge. Otherwise it is
+  **matched by hand**, **booked** (the toll or fuel as the truck's and trip's
+  cost, from the card's wallet ledger — the crew entered nothing, so nothing
+  is counted twice) or **set aside** with a reason.
+- Entries in the statement's days that say the card paid but have no charge
+  are listed for a question to the crew; nothing is changed by itself.
+
 ---
 
 ## 4. Still open

@@ -93,6 +93,8 @@ founder's laptop) in `phoneapp/`.
   "Difference in opening balances" —, `BankReconciliation` — the bank's CSV in, auto match only when clear, match by
   hand, book charges or interest, the summary; a party's statement is `documents/statement` from `LedgerController`;
   a sum that skips cancelled vouchers must skip their reversals too (`whereNull('v.reverses_voucher_id')`, P29);
+  M44: `CardStatements` — FASTag / fuel-card CSVs (`card_statements`, `card_statement_lines`) matched to the crew's card
+  entries, booked (`source_type` card_line) or set aside, Accounts → Card statements;
   M27: `CrewCash` — quick cash given to or spent by a crew member, from the person page and the owner app: for a trip
   it is a `TripAdvance` (so the settlement counts it), else an advance against pay (bucket `loan`) or dues paid
   (`earnings`); spent is the expense owed with their pay. `Statements::crewBuckets` has `loan` and a net of all three), `Reports` (M32: `Digest` — the morning summary; `fleet:digest`

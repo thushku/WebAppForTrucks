@@ -2,6 +2,25 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M44: FASTag and fuel-card statements (decision P31)
+
+**Built (in `webapp/`, `Accounts/Services/CardStatements`, Accounts → Card statements):**
+- **Bring in** the CSV from the FASTag or fuel-card portal: the header row is found by its words (date and time,
+  vehicle, plaza or pump, amount or debit, transaction id), day-first dates in the company's time zone; recharges and
+  refunds are left out; a charge already brought in is never brought in twice; each charge finds its truck by the plate
+  and the trip the truck was on then.
+- **Matched by itself** to the crew's entry paid by that card — same truck, same amount (within ₹0.50), within a day, the
+  nearest — or **by hand** from the entries of that truck; a charge nobody entered is **booked** as the truck's toll or
+  fuel (and the trip's) from the card's wallet ledger, or **set aside** with a reason; undo a match.
+- The statement page lists **entries that say the card paid but have no charge** — worth a question to the crew.
+- The demo has a FASTag statement for the running trip: two tolls matched, one charge nobody entered.
+- Migration 000030: `card_statements`, `card_statement_lines`. Hindi for every new string.
+
+**Tests:** 293 passing (new `CardStatementTest`: a FASTag CSV with a title row and a recharge — four charges in, one
+matched by itself, a ₹255 charge matched by hand to a ₹250 entry, a ₹95 charge booked as the truck's and trip's toll from
+the FASTag wallet, another truck's charge set aside only with a reason, a booked charge not booked twice, the entries
+without a charge, the same file again bringing nothing in, a file without the columns refused).
+
 ## 2026-10-26 — Milestone M43: credit and debit notes from the owner app
 
 **Built (in `webapp/`, `Api/Owner/WriteController::storeNote`):**
