@@ -28,7 +28,9 @@ use App\Http\Controllers\Trips\TripController;
 use App\Http\Controllers\Trips\TripMoneyController;
 use App\Http\Controllers\Parties\PartyDetailsController;
 use App\Http\Controllers\Parties\RateContractController;
+use App\Http\Controllers\Invoicing;
 use App\Http\Controllers\Payroll;
+use App\Http\Controllers\Trips;
 use App\Http\Controllers\Settings;
 use App\Http\Controllers\Site;
 use Illuminate\Support\Facades\Route;
@@ -214,6 +216,42 @@ Route::middleware('auth')->group(function () {
             Route::post('/{invoice}/email', [InvoiceController::class, 'email'])->middleware(['permission:invoice.send', 'throttle:30,60'])->name('email');
         });
 
+        // Quotations / rate confirmations (M21).
+        Route::prefix('quotations')->name('quotations.')->group(function () {
+            Route::middleware('permission:invoice.view')->group(function () {
+                Route::get('/', [Invoicing\QuotationController::class, 'index'])->name('index');
+                Route::get('/{quotation}', [Invoicing\QuotationController::class, 'show'])->whereNumber('quotation')->name('show');
+                Route::get('/{quotation}/print', [Invoicing\QuotationController::class, 'print'])->whereNumber('quotation')->name('print');
+                Route::get('/{quotation}/pdf', [Invoicing\QuotationController::class, 'pdf'])->whereNumber('quotation')->name('pdf');
+            });
+            Route::middleware('permission:invoice.create')->group(function () {
+                Route::get('/new', [Invoicing\QuotationController::class, 'create'])->name('create');
+                Route::post('/', [Invoicing\QuotationController::class, 'store'])->name('store');
+                Route::get('/{quotation}/edit', [Invoicing\QuotationController::class, 'edit'])->whereNumber('quotation')->name('edit');
+                Route::put('/{quotation}', [Invoicing\QuotationController::class, 'update'])->whereNumber('quotation')->name('update');
+                Route::post('/{quotation}/issue', [Invoicing\QuotationController::class, 'issue'])->whereNumber('quotation')->name('issue');
+                Route::post('/{quotation}/decide', [Invoicing\QuotationController::class, 'decide'])->whereNumber('quotation')->name('decide');
+                Route::post('/{quotation}/copy', [Invoicing\QuotationController::class, 'copy'])->whereNumber('quotation')->name('copy');
+                Route::post('/{quotation}/contract', [Invoicing\QuotationController::class, 'contract'])->whereNumber('quotation')->name('contract');
+            });
+            Route::post('/{quotation}/email', [Invoicing\QuotationController::class, 'email'])->whereNumber('quotation')->middleware(['permission:invoice.send', 'throttle:30,60'])->name('email');
+            Route::get('/{quotation}/whatsapp', [Invoicing\QuotationController::class, 'whatsapp'])->whereNumber('quotation')->middleware('permission:invoice.send')->name('whatsapp');
+        });
+
+        // Pre-printed LR books (M21).
+        Route::prefix('lr-books')->name('lr-books.')->group(function () {
+            Route::middleware('permission:lr.view')->group(function () {
+                Route::get('/', [Trips\LrBookController::class, 'index'])->name('index');
+                Route::get('/{book}', [Trips\LrBookController::class, 'show'])->whereNumber('book')->name('show');
+            });
+            Route::middleware('permission:lr.manage')->group(function () {
+                Route::post('/', [Trips\LrBookController::class, 'store'])->name('store');
+                Route::post('/{book}/leaves', [Trips\LrBookController::class, 'mark'])->whereNumber('book')->name('mark');
+                Route::delete('/{book}/leaves/{leaf}', [Trips\LrBookController::class, 'unmark'])->whereNumber(['book', 'leaf'])->name('unmark');
+                Route::post('/{book}/status', [Trips\LrBookController::class, 'status'])->whereNumber('book')->name('status');
+            });
+        });
+
         // Money received (M9).
         Route::prefix('receipts')->name('receipts.')->group(function () {
             Route::middleware('permission:payment.view')->group(function () {
@@ -261,6 +299,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/trucks', [Accounts\BooksController::class, 'trucks'])->name('trucks');
             Route::get('/chart', [Accounts\BooksController::class, 'chart'])->name('chart');
             Route::get('/vouchers/{voucher}', [Accounts\BooksController::class, 'voucher'])->whereNumber('voucher')->name('vouchers.show');
+            Route::get('/vouchers/{voucher}/print', [Accounts\BooksController::class, 'printVoucher'])->whereNumber('voucher')->name('vouchers.print');
             Route::get('/ageing', [Accounts\ReportsController::class, 'ageing'])->name('ageing');
             Route::get('/tax', [Accounts\ReportsController::class, 'tax'])->name('tax');
             Route::get('/tds', [Accounts\ReportsController::class, 'tds'])->name('tds');

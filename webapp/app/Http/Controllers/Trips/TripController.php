@@ -102,7 +102,20 @@ class TripController extends Controller
             'truck_source' => $request->query('source') === 'hired' ? 'hired' : 'own',
         ]);
 
-        return view('trips.form', $this->formData($trip, true));
+        // From a quotation's route (M21): the route, the client and the quoted rate filled in.
+        $prefill = null;
+        $line = $request->filled('quotation_line') ? \App\Modules\Invoicing\Models\QuotationLine::with('quotation')->find((int) $request->query('quotation_line')) : null;
+        if ($line && in_array($line->quotation->status, ['issued', 'accepted'], true)) {
+            $trip->from_place_id = $line->from_place_id;
+            $trip->to_place_id = $line->to_place_id;
+            $prefill = new Consignment([
+                'billing_party_id' => $line->quotation->party_id, 'material' => $line->material, 'freight_basis' => $line->basis, 'rate' => $line->rate,
+                'detention_free_hours' => $line->detention_free_hours, 'detention_rate_per_day' => $line->detention_rate_per_day,
+                'loading_charge' => $line->loading_charge, 'unloading_charge' => $line->unloading_charge, 'payment_type' => 'to_be_billed', 'quotation_id' => $line->quotation_id,
+            ]);
+        }
+
+        return view('trips.form', $this->formData($trip, true) + ['prefill' => $prefill]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -115,7 +128,12 @@ class TripController extends Controller
             // Freight needs the trip's km for a per-km rate; work it out with the trip's fields.
             $consignment['freight'] = $this->consignments->freight(new Trip($fields), $consignment);
         }
-        $trip = $this->trips->create($fields, $crew, $consignment, $ewaybills);
+        try {
+            $trip = $this->trips->create($fields, $crew, $consignment, $ewaybills);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // The load's own fields sit under "load." on this form (a typed LR number, M21).
+            throw \Illuminate\Validation\ValidationException::withMessages(collect($e->errors())->mapWithKeys(fn ($m, $k) => [$k === 'lr_number' ? 'load.lr_number' : $k => $m])->all());
+        }
 
         return redirect()->route('trips.show', $trip)->with('status', __('Trip saved as a draft. Check it, then send it to the crew.'));
     }

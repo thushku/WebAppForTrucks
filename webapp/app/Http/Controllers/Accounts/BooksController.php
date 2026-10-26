@@ -126,6 +126,31 @@ class BooksController extends AccountsController
         return view('accounts.voucher', ['voucher' => $voucher, 'source' => self::sourceLink($voucher)]);
     }
 
+    /**
+     * The voucher to print and sign (M21): who was paid (or paid us), through
+     * which cash or bank ledger, the amount in words, and the signature boxes.
+     */
+    public function printVoucher(Voucher $voucher, \App\Modules\Invoicing\Services\DocumentData $data): \Illuminate\Http\Response
+    {
+        $voucher->load(['lines.ledger', 'lines.trip:id,trip_number', 'lines.truck:id,reg_no', 'author:id,name']);
+        $money = $voucher->lines->filter(fn ($l) => in_array($l->ledger->kind, ['cash', 'bank'], true));
+        $others = $voucher->lines->reject(fn ($l) => in_array($l->ledger->kind, ['cash', 'bank'], true));
+        $party = match ($voucher->voucher_type) {
+            'payment' => $others->firstWhere(fn ($l) => (float) $l->debit > 0)?->ledger->name,
+            'receipt' => $others->firstWhere(fn ($l) => (float) $l->credit > 0)?->ledger->name,
+            default => null,
+        };
+        $amount = $money->isNotEmpty() ? $money->sum(fn ($l) => (float) $l->debit + (float) $l->credit) : (float) $voucher->lines->sum('debit');
+        $company = $this->context->company();
+
+        return response(view('documents.voucher', [
+            'voucher' => $voucher, 'seller' => $data->letterhead(), 'party' => $party, 'through' => $money->pluck('ledger.name')->unique()->join(', ') ?: null,
+            'amount' => round($amount, 2), 'words' => \App\Support\NumberWords::amount(round($amount, 2), $company->currency ?: 'INR'),
+            'docTitle' => ['payment' => __('Payment voucher'), 'receipt' => __('Receipt voucher'), 'contra' => __('Contra voucher')][$voucher->voucher_type] ?? __('Journal voucher'),
+            'tz' => $company->timezone ?: 'UTC',
+        ])->render());
+    }
+
     /** The chart of accounts: groups, ledgers and their balance today; ledgers the accountant adds. */
     public function chart(Statements $statements, ChartOfAccounts $chart): View
     {

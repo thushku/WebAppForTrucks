@@ -11,6 +11,8 @@
   </div>
   <div class="flex flex-wrap gap-2">
     @can('payment.view')<a href="{{ route('receipts.index') }}" class="btn-secondary">{{ __('Receipts') }}</a>@endcan
+    <a href="{{ route('quotations.index') }}" class="btn-secondary">{{ __('Quotations') }}</a>
+    @can('lr.view')<a href="{{ route('lr-books.index') }}" class="btn-secondary">{{ __('LR books') }}</a>@endcan
     @can('invoice.create')<a href="{{ route('invoices.create') }}" class="btn-primary"><x-icon name="plus" /> {{ __('New bill') }}@if ($unbilled)<span class="ms-1 rounded-full bg-white/20 px-1.5 text-xs">{{ __(':n LRs waiting', ['n' => $unbilled]) }}</span>@endif</a>@endcan
   </div>
 </div>

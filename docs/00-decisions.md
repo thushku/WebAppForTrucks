@@ -280,6 +280,26 @@ package), QR codes / amount in words / CSV written in-house. See
 - Per-person choice of which notices to push, quiet hours and WhatsApp/SMS
   notices come later (WhatsApp Business needs a provider — your approval).
 
+### P16. Quotations, LR books and printed vouchers (added 26 Oct 2026, M21)
+
+- **A quotation is not a tax document** and is never posted: it shows the
+  rates and their basis with a note that GST/VAT comes on the bill. A draft is
+  edited freely; **issuing gives it its QT/ number and fixes it** — a new offer
+  is a copy. "Expired" is read from the valid-until date, never stored.
+- **Accepted → the client's rate contract** (a draft with the same routes,
+  approved on the client's page as before), so their LRs fill the rate in by
+  themselves. Any route of a sent or accepted quotation can start a trip with
+  the rate filled in; the load remembers the quotation.
+- **LR books**: a typed LR number is taken only from a leaf of a book in use,
+  not on another load and not cancelled or lost; it is kept as the book's
+  prefix and the leaf number (leading zeros dropped). Books may not overlap.
+  **An LR keeps its number** once it has one (auto or typed): a wrong leaf means
+  cancelling the LR. "Skipped" leaves are the free ones below the highest used
+  leaf — the ones to look for. Loads without a typed number keep the automatic
+  series, so offices can mix both.
+- **Every voucher prints to sign** (payment, receipt, journal, contra) with the
+  amount in words and prepared / approved / received boxes.
+
 ---
 
 ## 4. Still open

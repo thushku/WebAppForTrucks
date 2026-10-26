@@ -56,6 +56,8 @@ trait ValidatesLoads
             $p . 'eway_no'              => ['nullable', 'string', 'regex:/^[0-9]{12}$/'],
             $p . 'eway_valid_until'     => ['nullable', 'date'],
             $p . 'remarks'              => ['nullable', 'string', 'max:2000'],
+            $p . 'lr_number'            => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-\s]+$/'],
+            $p . 'quotation_id'         => ['nullable', 'integer', Rule::exists('quotations', 'id')->where('company_id', $companyId)->whereIn('status', ['issued', 'accepted'])],
         ];
         if ($withStops) {
             $rules[$p . 'pickup_stop_id'] = ['required', 'integer'];

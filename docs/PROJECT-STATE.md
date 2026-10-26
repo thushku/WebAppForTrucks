@@ -2,6 +2,41 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M21: quotations, pre-printed LR books, vouchers to sign
+
+**Built (in `webapp/`; blueprint 10 §1, §3, §6.3; decision P16):**
+- **Quotations** (Invoices & LR → Quotations): a client, dates, subject, printed terms and an office note, and routes
+  with the rate contract's columns (from, to, material, truck type, basis, rate, minimum weight, detention, loading and
+  unloading, a note). Draft → **sent** with the next `QT/26-27/0001` number and fixed (a new offer is a copy) →
+  accepted (how: "PO 4512") or declined (why) or cancelled; past its date it shows **Expired**. Printed on the
+  letterhead with an acceptance block, as PDF, **by email** with the company's words (Settings → Messages now has
+  "Sending a quotation") and **WhatsApp**. Accepted: **Make it the rate contract** (a draft on the client's page with the
+  same routes, approved as usual — then their LRs fill the rate in); every route has **Start a trip** (the trip form comes
+  filled in, the load remembers the quotation, the quotation lists its trips).
+- **LR books** (Invoices & LR → LR books): the register of pre-printed books (book no., printed prefix, first and last
+  leaf, branch, given to, date; no overlaps). The load form has **LR number from a printed book** while books are in
+  use: it is taken only from a free leaf of a book in use ("a-01005" is leaf A-1005), refused when outside every book,
+  already used, cancelled or lost, or the book is closed; empty → the automatic series as before. An LR keeps its number.
+  Each book's page shows every leaf (used — with its trip —, cancelled, lost, free, **skipped**), the counts, and lets the
+  office mark a leaf spoilt or lost with why (or free it again) and close the book; all logged.
+- **Vouchers to sign**: every voucher's page has **Print to sign** — payment, receipt, journal or contra voucher on the
+  letterhead with paid to / received from, through which cash or bank, the reference, the amount in words, the lines and
+  prepared / approved / received boxes.
+- The statement, the quotation and the voucher share one page style and letterhead (`documents/_page-*`).
+- Demo: a sent quotation to Kerala Agro Foods (two routes), the Aluva agent's LR book 12 (A-1001–A-1100, one leaf spoilt).
+
+**Tests:** 239 passing (new `QuotationTest`, 3 tests: the draft with a wrong row and wrong dates refused, sent with its
+number and fixed, the print with every column and no office note, PDF fallback, email and delivery, WhatsApp text,
+expired, copy, viewer; accepted → rate contract → approved → the rate finder uses it, a trip from a route remembering
+the quotation, a cancelled one starting none; the payment voucher print. New `LrBookTest`, 2 tests: the register and
+its refusals, typed numbers in any form, refused outside / twice / lost / closed, the automatic series, the report and
+skipped leaves, freeing a leaf, the audit, viewer; a typed leaf on a load added to a sent trip, an LR's number never
+changing).
+
+**Not yet:** a client accepting a quotation online (a secure link like the bill's), quotation templates in the template
+editor, LR books handed to the crew app (the driver typing the leaf), receipt vouchers for advances under GST,
+multi-currency bills (with the UAE launch).
+
 ## 2026-10-26 — Milestone M20: notifications — the bell, the phones' inbox, Firebase push
 
 **Built (in `webapp/`, `app/Platform/Notifications`; decision P15; api-v1 §11):**

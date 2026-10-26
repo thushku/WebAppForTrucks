@@ -256,6 +256,25 @@ function phoneStart(array $w, int $odometer = 100250): array
     return phoneRun([phoneCommand($w, 'trip.start', ['event' => ['event_at' => now()->toIso8601String(), 'odometer' => $odometer, 'photos' => ['odometer']]])])[0];
 }
 
+// ---- Quotations and LR books (QuotationTest, LrBookTest) -------------------
+
+/** A company, signed in as its owner, with Kochi, Mumbai, Pune, ACC Limited, a truck and its crew. */
+function qtWorld(): array
+{
+    $company = makeCompany();
+    $owner = signInTo($company);
+
+    return app(CompanyContext::class)->runAs($company, fn () => [
+        'company' => $company, 'owner' => $owner,
+        'cok' => \App\Modules\Settings\Models\Place::create(['name' => 'Kochi', 'short_code' => 'COK']),
+        'bom' => \App\Modules\Settings\Models\Place::create(['name' => 'Mumbai', 'short_code' => 'BOM']),
+        'pnq' => \App\Modules\Settings\Models\Place::create(['name' => 'Pune', 'short_code' => 'PNQ']),
+        'acc' => makeParty(['name' => 'ACC Limited', 'short_code' => 'ACC', 'email' => 'logistics@acc.test', 'mobile' => '+919820000101', 'address_line1' => 'Cement House', 'city' => 'Mumbai'], ['client', 'consignor']),
+        'truck' => makeTruck(['payload_mt' => 25, 'odometer_km' => 100000]),
+        'driver' => makePerson(['name' => 'Ravi Kumar', 'licence_no' => 'KL0720150012345', 'licence_expiry' => '2030-01-01']),
+    ]);
+}
+
 // ---- Invoicing (InvoiceTest, TemplateTest) ---------------------------------------
 
 function invGstin(string $state, string $pan): string

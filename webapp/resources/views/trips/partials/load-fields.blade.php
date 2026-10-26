@@ -9,6 +9,8 @@
   $err  = fn ($f) => $n ? "{$n}.{$f}" : $f;
   $dateVal = fn ($f) => ($v = $old($f)) instanceof \Carbon\CarbonInterface ? $v->toDateString() : $v;
   $india = app(\App\Platform\Tenancy\CompanyContext::class)->company()->country === 'IN';
+  // A number from a printed LR book can be typed while the load has none (M21).
+  $typeLr = ! $c?->lr_number && \App\Modules\Trips\Models\LrBook::where('status', 'active')->exists();
 @endphp
 <div class="grid gap-4 sm:grid-cols-3" data-load data-rate-url="{{ route('trips.rate') }}">
   <div>
@@ -54,6 +56,12 @@
     <div><label class="label" for="{{ $id('rate') }}">&nbsp;</label><input id="{{ $id('rate') }}" name="{{ $name('rate') }}" type="number" min="0" step="0.01" class="input" value="{{ $old('rate') }}" data-calc-rate required aria-label="{{ __('Rate') }}">@error($err('rate'))<span class="error">{{ $message }}</span>@enderror</div>
   </div>
   <input type="hidden" name="{{ $name('rate_contract_line_id') }}" value="{{ $old('rate_contract_line_id') }}" data-rate-line>
+  @if ($old('quotation_id'))<input type="hidden" name="{{ $name('quotation_id') }}" value="{{ $old('quotation_id') }}">@endif
+  @if ($typeLr)
+    <div><label class="label" for="{{ $id('lr_number') }}">{{ __('LR number from a printed book') }} <span class="text-ink-400">({{ __('optional') }})</span></label>
+      <input id="{{ $id('lr_number') }}" name="{{ $name('lr_number') }}" class="input font-mono" value="{{ old($n ? "{$n}.lr_number" : 'lr_number') }}" maxlength="40" placeholder="{{ __('Empty: the next automatic number') }}">
+      @error($err('lr_number'))<span class="error">{{ $message }}</span>@enderror</div>
+  @endif
   <div class="sm:col-span-3 -mt-2 text-xs text-ink-500" data-rate-note aria-live="polite"></div>
   <div><label class="label" for="{{ $id('loading_charge') }}">{{ __('Loading charge') }}</label><input id="{{ $id('loading_charge') }}" name="{{ $name('loading_charge') }}" type="number" min="0" step="0.01" class="input" value="{{ $old('loading_charge') ?: '' }}"></div>
   <div><label class="label" for="{{ $id('unloading_charge') }}">{{ __('Unloading charge') }}</label><input id="{{ $id('unloading_charge') }}" name="{{ $name('unloading_charge') }}" type="number" min="0" step="0.01" class="input" value="{{ $old('unloading_charge') ?: '' }}"></div>

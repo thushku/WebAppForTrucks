@@ -86,16 +86,30 @@ class DocumentMailer
      */
     public function sendStatement(int $ledgerId, string $name, string $html, array $to, string $subject, string $body, ?Account $by): bool
     {
+        return $this->sendPage('statement', $ledgerId, 'Statement-' . \Illuminate\Support\Str::slug($name), $html, $to, $subject, $body, $by);
+    }
+
+    /** A quotation by email (M21): the PDF attached, kept with its deliveries. */
+    public function sendQuotation(\App\Modules\Invoicing\Models\Quotation $quotation, string $html, array $to, string $subject, string $body, ?Account $by): bool
+    {
+        return $this->sendPage('quotation', $quotation->id, 'Quotation-' . str_replace('/', '-', (string) $quotation->number), $html, $to, $subject, $body, $by);
+    }
+
+    /**
+     * One of our pages (a statement, a quotation) by email: as a PDF when the
+     * server can make one, else as the HTML page itself; every send kept.
+     */
+    private function sendPage(string $type, int $id, string $file, string $html, array $to, string $subject, string $body, ?Account $by): bool
+    {
         $pdf = null;
         if ($this->renderer->canPdf()) {
             try {
                 $pdf = $this->renderer->pdf($html);
             } catch (\Throwable $e) {
-                Log::warning('Statement PDF failed', ['ledger' => $ledgerId, 'error' => $e->getMessage()]);
+                Log::warning('Page PDF failed', ['type' => $type, 'id' => $id, 'error' => $e->getMessage()]);
             }
         }
         $company = app(\App\Platform\Tenancy\CompanyContext::class)->company();
-        $file = 'Statement-' . \Illuminate\Support\Str::slug($name);
         $error = null;
         try {
             Mail::raw($body, function ($m) use ($to, $subject, $company, $pdf, $html, $file) {
@@ -107,9 +121,9 @@ class DocumentMailer
             });
         } catch (\Throwable $e) {
             $error = mb_substr($e->getMessage(), 0, 500);
-            Log::warning('Statement email failed', ['ledger' => $ledgerId, 'error' => $error]);
+            Log::warning('Page email failed', ['type' => $type, 'id' => $id, 'error' => $error]);
         }
-        DocumentDelivery::create(['document_type' => 'statement', 'document_id' => $ledgerId, 'channel' => 'email', 'recipient' => mb_substr(implode(', ', $to), 0, 255),
+        DocumentDelivery::create(['document_type' => $type, 'document_id' => $id, 'channel' => 'email', 'recipient' => mb_substr(implode(', ', $to), 0, 255),
             'status' => $error ? 'failed' : 'sent', 'error' => $error, 'sent_by' => $by?->id, 'sent_at' => now()]);
 
         return $error === null;

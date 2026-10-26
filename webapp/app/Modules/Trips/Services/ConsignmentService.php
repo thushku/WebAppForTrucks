@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
  */
 class ConsignmentService
 {
-    public function __construct(private RateFinder $rates, private TripService $trips) {}
+    public function __construct(private RateFinder $rates, private TripService $trips, private LrBooks $lrBooks) {}
 
     /** @param array<string, mixed> $data */
     public function save(Trip $trip, ?Consignment $consignment, array $data, array $ewaybills = []): Consignment
@@ -36,7 +36,12 @@ class ConsignmentService
         }
         $this->assertStops($trip, $data);
 
-        return DB::transaction(function () use ($trip, $consignment, $data, $ewaybills) {
+        $typed = LrBooks::normalise((string) \Illuminate\Support\Arr::pull($data, 'lr_number'));
+        if ($typed !== '' && $consignment?->lr_number && $typed !== $consignment->lr_number) {
+            throw ValidationException::withMessages(['lr_number' => __('An LR keeps its number. Cancel this LR and add the load again to use another leaf.')]);
+        }
+
+        return DB::transaction(function () use ($trip, $consignment, $data, $ewaybills, $typed) {
             $data['freight'] = $this->freight($trip, $data);
 
             $consignment ??= new Consignment(['trip_id' => $trip->id, 'created_by' => auth()->id()]);
@@ -47,6 +52,9 @@ class ConsignmentService
                 ConsignmentEwaybill::create(['consignment_id' => $consignment->id] + $e);
             }
 
+            if ($typed !== '' && ! $consignment->lr_number) {
+                $this->lrBooks->claim($consignment, $typed);
+            }
             // Loads added after the trip was sent get their LR at once.
             if (! $consignment->lr_number && ! $trip->isDraft()) {
                 $this->trips->numberLr($consignment);

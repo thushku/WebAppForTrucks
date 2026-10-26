@@ -1,0 +1,252 @@
+<?php
+
+namespace App\Http\Controllers\Invoicing;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Invoicing\Models\Quotation;
+use App\Modules\Invoicing\Models\QuotationLine;
+use App\Modules\Invoicing\Services\DocumentData;
+use App\Modules\Invoicing\Services\DocumentMailer;
+use App\Modules\Invoicing\Services\DocumentRenderer;
+use App\Modules\Invoicing\Services\Messages;
+use App\Modules\Invoicing\Services\Quotations;
+use App\Modules\Parties\Models\Party;
+use App\Modules\Parties\Models\PartyTaxId;
+use App\Modules\Parties\Models\RateContractLine;
+use App\Modules\Settings\Models\MasterItem;
+use App\Modules\Settings\Models\Place;
+use App\Platform\Tenancy\CompanyContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+/**
+ * Quotations / rate confirmations (M21) under Invoices & LR: write one,
+ * send it (print, PDF, email), note the client's answer, then turn it into
+ * the client's rate contract or start a trip from one of its routes.
+ */
+class QuotationController extends Controller
+{
+    public const TABS = ['open' => 'Open', 'accepted' => 'Accepted', 'closed' => 'Declined and cancelled', 'all' => 'All'];
+
+    public function __construct(private CompanyContext $context, private Quotations $quotations) {}
+
+    public function index(Request $request): View
+    {
+        $tab = array_key_exists($request->query('tab'), self::TABS) ? $request->query('tab') : 'open';
+        $q = trim((string) $request->query('q'));
+        $list = Quotation::with('party:id,name')->withCount('lines')
+            ->when($tab === 'open', fn ($b) => $b->whereIn('status', ['draft', 'issued']))
+            ->when($tab === 'accepted', fn ($b) => $b->where('status', 'accepted'))
+            ->when($tab === 'closed', fn ($b) => $b->whereIn('status', ['declined', 'cancelled']))
+            ->when($q !== '', fn ($b) => $b->where(fn ($w) => $w->where('number', 'like', "%{$q}%")->orWhereHas('party', fn ($p) => $p->where('name', 'like', "%{$q}%"))))
+            ->orderByDesc('quote_date')->orderByDesc('id')->paginate(30)->withQueryString();
+
+        return view('quotations.index', ['quotations' => $list, 'tab' => $tab, 'q' => $q, 'today' => $this->today()]);
+    }
+
+    public function create(Request $request): View
+    {
+        $today = $this->today();
+        $quotation = new Quotation(['quote_date' => $today, 'valid_until' => $today->addDays(15), 'party_id' => (int) $request->query('party') ?: null,
+            'terms' => __("Rates are per the basis shown; taxes extra as applicable.\nDetention after the free hours at the rate shown.\nPayment within 30 days of the bill.")]);
+
+        return view('quotations.form', $this->formData($quotation));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        [$fields, $lines] = $this->validated($request);
+        $quotation = $this->quotations->save(null, $fields, $lines, $request->user());
+
+        return redirect()->route('quotations.show', $quotation)->with('status', __('Draft saved. Print it to check, then send it.'));
+    }
+
+    public function show(Quotation $quotation, Messages $messages): View
+    {
+        $quotation->load(['party', 'lines.from', 'lines.to', 'rateContract']);
+        $emails = $quotation->number ? $messages->renderQuotation('email', $quotation) + ['to' => $quotation->party->email] : null;
+
+        return view('quotations.show', [
+            'quotation' => $quotation, 'today' => $this->today(), 'email' => $emails,
+            'trips' => \App\Modules\Trips\Models\Consignment::with('trip:id,trip_number,trip_date,status')->where('quotation_id', $quotation->id)->latest('id')->limit(20)->get(['id', 'trip_id', 'lr_number', 'freight']),
+            'names' => $this->names(),
+        ]);
+    }
+
+    public function edit(Quotation $quotation): View|RedirectResponse
+    {
+        if (! $quotation->isDraft()) {
+            return redirect()->route('quotations.show', $quotation)->with('error', __('A sent quotation is not changed. Copy it for a new offer.'));
+        }
+
+        return view('quotations.form', $this->formData($quotation->load('lines')));
+    }
+
+    public function update(Request $request, Quotation $quotation): RedirectResponse
+    {
+        [$fields, $lines] = $this->validated($request);
+        $this->quotations->save($quotation, $fields, $lines, $request->user());
+
+        return redirect()->route('quotations.show', $quotation)->with('status', __('Draft saved.'));
+    }
+
+    public function issue(Quotation $quotation): RedirectResponse
+    {
+        $this->quotations->issue($quotation);
+
+        return redirect()->route('quotations.show', $quotation)->with('status', __('Quotation :number is ready to send.', ['number' => $quotation->number]));
+    }
+
+    public function decide(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $data = $request->validate(['decision' => ['required', Rule::in(['accepted', 'declined', 'cancelled'])], 'note' => ['nullable', 'string', 'max:255']]);
+        if ($data['decision'] === 'cancelled') {
+            if (mb_strlen(trim((string) ($data['note'] ?? ''))) < 3) {
+                throw ValidationException::withMessages(['note' => __('Write why it is cancelled.')]);
+            }
+            $this->quotations->cancel($quotation, trim($data['note']));
+        } else {
+            $this->quotations->decide($quotation, $data['decision'], $data['note'] ?? null, $request->user());
+        }
+
+        return back()->with('status', ['accepted' => __('Marked accepted. Make it the client’s rate contract so their LRs get these rates.'), 'declined' => __('Marked declined.'), 'cancelled' => __('Cancelled.')][$data['decision']]);
+    }
+
+    public function contract(Request $request, Quotation $quotation): RedirectResponse
+    {
+        abort_unless($request->user()->can('party.manage'), 403);
+        $contract = $this->quotations->toRateContract($quotation->load('lines'), $request->user());
+
+        return redirect()->route('parties.rates.edit', [$quotation->party_id, $contract])->with('status', __('Rate contract made from :number. Check it and approve it.', ['number' => $quotation->number]));
+    }
+
+    public function copy(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $copy = $this->quotations->copy($quotation->load('lines'), $request->user());
+
+        return redirect()->route('quotations.edit', $copy)->with('status', __('A new draft from :number — change what is new and send it.', ['number' => $quotation->label]));
+    }
+
+    public function print(Quotation $quotation, DocumentData $data): Response
+    {
+        return response($this->html($quotation, $data));
+    }
+
+    public function pdf(Quotation $quotation, DocumentData $data, DocumentRenderer $renderer): Response|RedirectResponse
+    {
+        if (! $renderer->canPdf()) {
+            return redirect()->route('quotations.print', $quotation);
+        }
+
+        return DocumentRenderer::pdfResponse($renderer->pdf($this->html($quotation, $data)), 'Quotation-' . str_replace('/', '-', (string) ($quotation->number ?? 'draft')));
+    }
+
+    public function email(Request $request, Quotation $quotation, DocumentData $data, DocumentMailer $mailer): RedirectResponse
+    {
+        if (! $quotation->number || $quotation->status === 'cancelled') {
+            throw ValidationException::withMessages(['to_email' => __('Send the quotation first (it gets its number), then email it.')]);
+        }
+        $fields = $request->validate(['to_email' => ['required', 'email:filter', 'max:255'], 'subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:5000']]);
+        $sent = $mailer->sendQuotation($quotation, $this->html($quotation, $data), [$fields['to_email']], $fields['subject'], $fields['body'], $request->user());
+
+        return back()->with($sent ? 'status' : 'error', $sent ? __('Quotation sent to :to.', ['to' => $fields['to_email']]) : __('The mail could not be sent. Check the address and try again.'));
+    }
+
+    public function whatsapp(Quotation $quotation, Messages $messages): RedirectResponse
+    {
+        abort_unless((bool) $quotation->number, 404);
+        $quotation->load('party');
+        $text = $messages->renderQuotation('whatsapp', $quotation)['body'] . "\n" . route('quotations.print', $quotation);
+        $mobile = preg_replace('/\D/', '', (string) $quotation->party->mobile);
+
+        return redirect()->away('https://wa.me/' . ($mobile ?: '') . '?text=' . rawurlencode($text));
+    }
+
+    private function html(Quotation $quotation, DocumentData $data): string
+    {
+        $quotation->load(['party', 'lines.from', 'lines.to']);
+        $p = $quotation->party;
+        $company = $this->context->company();
+
+        return view('documents.quotation', [
+            'quotation' => $quotation, 'seller' => $data->letterhead(),
+            'partyAddress' => array_values(array_filter([$p->address_line1, $p->address_line2, trim(implode(' ', array_filter([$p->city, $p->postal_code])))])),
+            'taxId' => PartyTaxId::where('party_id', $p->id)->orderByDesc('is_default')->value('tax_id'),
+            'taxNote' => $company->country === 'IN' ? __('GST is charged on the bill as the law applies to the service (forward charge or reverse charge).') : __('VAT is charged on the bill as applicable.'),
+            'tz' => $company->timezone ?: 'UTC',
+        ] + $this->names())->render();
+    }
+
+    private function names(): array
+    {
+        return [
+            'materials' => MasterItem::ofList('material')->pluck('name', 'code'),
+            'truckTypes' => MasterItem::ofList('truck_type')->pluck('name', 'code'),
+        ];
+    }
+
+    private function formData(Quotation $quotation): array
+    {
+        return [
+            'quotation' => $quotation,
+            'clients' => Party::active()->withRole('client')->orderBy('name')->get(['id', 'name', 'short_code']),
+            'places' => Place::active()->orderBy('name')->get(['id', 'name', 'short_code']),
+            'materials' => MasterItem::ofList('material')->where('active', true)->get(['code', 'name']),
+            'truckTypes' => MasterItem::ofList('truck_type')->where('active', true)->get(['code', 'name']),
+        ];
+    }
+
+    /** @return array{0: array<string, mixed>, 1: array<int, array<string, mixed>>} */
+    private function validated(Request $request): array
+    {
+        $companyId = $this->context->id();
+        $place = Rule::exists('places', 'id')->where('company_id', $companyId);
+        $data = $request->validate([
+            'party_id' => ['required', 'integer', Rule::exists('parties', 'id')->where('company_id', $companyId)],
+            'quote_date' => ['required', 'date_format:Y-m-d'],
+            'valid_until' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:quote_date'],
+            'subject' => ['nullable', 'string', 'max:150'],
+            'terms' => ['nullable', 'string', 'max:3000'],
+            'notes' => ['nullable', 'string', 'max:3000'],
+            'lines' => ['nullable', 'array', 'max:200'],
+            'lines.*.from_place_id' => ['nullable', 'integer', $place],
+            'lines.*.to_place_id' => ['nullable', 'integer', $place],
+            'lines.*.material' => ['nullable', 'string', Rule::exists('master_items', 'code')->where('company_id', $companyId)->where('list', 'material')],
+            'lines.*.truck_type' => ['nullable', 'string', Rule::exists('master_items', 'code')->where('company_id', $companyId)->where('list', 'truck_type')],
+            'lines.*.basis' => ['nullable', Rule::in(array_keys(RateContractLine::BASES))],
+            'lines.*.rate' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+            'lines.*.min_weight_mt' => ['nullable', 'numeric', 'min:0', 'max:200'],
+            'lines.*.detention_free_hours' => ['nullable', 'integer', 'min:0', 'max:720'],
+            'lines.*.detention_rate_per_day' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'lines.*.loading_charge' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'lines.*.unloading_charge' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'lines.*.note' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $lines = [];
+        foreach ($data['lines'] ?? [] as $i => $line) {
+            // The spare empty row on the form is ignored.
+            if (! filled($line['from_place_id'] ?? null) && ! filled($line['to_place_id'] ?? null) && ! filled($line['rate'] ?? null)) {
+                continue;
+            }
+            foreach (['from_place_id', 'to_place_id', 'rate'] as $required) {
+                if (! filled($line[$required] ?? null)) {
+                    throw ValidationException::withMessages(["lines.{$i}.{$required}" => __('Row :n: give from, to and the rate.', ['n' => count($lines) + 1])]);
+                }
+            }
+            $lines[] = array_merge(array_map(fn ($v) => $v === '' ? null : $v, collect($line)->only(array_merge(QuotationLine::CONTRACT_FIELDS, ['note']))->all()), ['basis' => $line['basis'] ?? 'trip']);
+        }
+
+        return [collect($data)->except('lines')->all(), $lines];
+    }
+
+    private function today(): CarbonImmutable
+    {
+        return CarbonImmutable::now($this->context->company()->timezone ?: 'UTC')->startOfDay();
+    }
+}

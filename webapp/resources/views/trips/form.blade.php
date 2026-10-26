@@ -117,7 +117,7 @@
     <section class="card p-6 {{ old('trip_kind', $t->trip_kind) === 'empty' ? 'hidden' : '' }}" data-first-load>
       <h2 class="text-lg font-semibold">{{ $t->load_type === 'ftl' ? __('The load') : __('First load') }}</h2>
       <p class="mt-1 text-sm text-ink-500">{{ __('The agreed rate fills in when the party, route and material have an approved rate contract.') }}</p>
-      <div class="mt-4">@include('trips.partials.load-fields', ['n' => 'load', 'c' => null])</div>
+      <div class="mt-4">@include('trips.partials.load-fields', ['n' => 'load', 'c' => $prefill ?? null])</div>
     </section>
   @endif
 

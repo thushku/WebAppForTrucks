@@ -81,6 +81,18 @@ class Consignment extends Model
         return $this->belongsTo(Party::class, 'consignee_party_id');
     }
 
+    /** The printed LR book its typed number is from (M21); null for the automatic series. */
+    public function lrBook(): BelongsTo
+    {
+        return $this->belongsTo(LrBook::class);
+    }
+
+    /** The quotation its rate came from (M21). */
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Invoicing\Models\Quotation::class);
+    }
+
     public function pickupStop(): BelongsTo
     {
         return $this->belongsTo(TripStop::class, 'pickup_stop_id');

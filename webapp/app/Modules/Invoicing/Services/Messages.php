@@ -16,7 +16,7 @@ use Carbon\CarbonImmutable;
  */
 class Messages
 {
-    public const PURPOSES = ['invoice' => 'Sending a bill', 'receipt' => 'Sending a receipt', 'reminder' => 'Overdue reminder', 'statement' => 'Sending a statement'];
+    public const PURPOSES = ['invoice' => 'Sending a bill', 'receipt' => 'Sending a receipt', 'reminder' => 'Overdue reminder', 'statement' => 'Sending a statement', 'quotation' => 'Sending a quotation'];
 
     public const CHANNELS = ['email' => 'Email', 'whatsapp' => 'WhatsApp'];
 
@@ -42,6 +42,7 @@ class Messages
         $email = [
             'invoice' => [__('{document} {number} from {company}'), __("Dear {party},\n\nPlease find {document} {number} dated {date} for {amount}, due on {due_date}.\n\nView or download it here: {link}\n\nThank you,\n{company}")],
             'receipt' => [__('Receipt {number} from {company}'), __("Dear {party},\n\nThank you for your payment. Receipt {number} dated {date} for {amount} is here: {link}\n\nRegards,\n{company}")],
+            'quotation' => [__('Quotation {number} from {company}'), __("Dear {party},\n\nPlease find attached our quotation {number} dated {date}, valid until {due_date}.\n\nTell us if you would like to go ahead, or if anything should change.\n\nRegards,\n{company}")],
             'statement' => [__('Statement of account from {company}, to {date}'), __("Dear {party},\n\nPlease find attached our statement of your account to {date}. The balance is {amount}.\n\nPlease tell us within 15 days if anything is different in your books.\n\nRegards,\n{company}")],
             'reminder' => [__('Reminder: {document} {number} is {days_overdue} days overdue'), __("Dear {party},\n\nThis is a reminder that {document} {number} dated {date} is past its due date ({due_date}). {amount} is still due.\n\nYou can see the bill here: {link}\n\nIf you have paid already, please send us the payment details and ignore this message.\n\nRegards,\n{company}")],
         ];
@@ -50,6 +51,7 @@ class Messages
             'receipt' => __('Receipt {number} from {company} for {amount}. Thank you! {link}'),
             'reminder' => __('Reminder from {company}: {document} {number} for {amount} was due on {due_date}. {link}'),
             'statement' => __('Statement of account from {company} to {date}: the balance is {amount}.'),
+            'quotation' => __('Quotation {number} from {company}, valid until {due_date}. Tell us if you would like to go ahead.'),
         ];
 
         return $channel === 'email' ? ['subject' => $email[$purpose][0], 'body' => $email[$purpose][1]] : ['subject' => null, 'body' => $whatsapp[$purpose]];
@@ -72,6 +74,19 @@ class Messages
         $values = ['{company}' => $this->context->company()->name, '{party}' => $name, '{document}' => __('Statement of account'), '{number}' => '',
             '{amount}' => Money::company(abs($closing)) . ' ' . ($closing > 0.004 ? __('due to us') : ($closing < -0.004 ? __('due to you') : '')), '{total}' => Money::company(abs($closing)),
             '{date}' => $to->format('d M Y'), '{due_date}' => '', '{days_overdue}' => '', '{link}' => ''];
+        $fill = fn (?string $text) => $text === null ? null : trim(strtr($text, $values));
+
+        return ['subject' => $fill($template['subject']), 'body' => $fill($template['body'])];
+    }
+
+    /** A quotation's message (M21): its number, date and validity. */
+    public function renderQuotation(string $channel, \App\Modules\Invoicing\Models\Quotation $quotation): array
+    {
+        $template = $this->template('quotation', $channel);
+        $quotation->loadMissing('party:id,name');
+        $values = ['{company}' => $this->context->company()->name, '{party}' => $quotation->party?->name ?? '', '{document}' => __('Quotation'), '{number}' => (string) $quotation->number,
+            '{amount}' => '', '{total}' => '', '{date}' => $quotation->quote_date->format('d M Y'), '{due_date}' => $quotation->valid_until?->format('d M Y') ?? __('further notice'),
+            '{days_overdue}' => '', '{link}' => ''];
         $fill = fn (?string $text) => $text === null ? null : trim(strtr($text, $values));
 
         return ['subject' => $fill($template['subject']), 'body' => $fill($template['body'])];

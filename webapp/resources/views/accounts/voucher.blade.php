@@ -11,6 +11,7 @@
   </div>
   <div class="flex flex-wrap gap-2">
     @if ($source)<a href="{{ $source['url'] }}" class="btn-secondary text-sm">{{ $source['label'] }}</a>@endif
+    <a href="{{ route('accounts.vouchers.print', $voucher) }}" target="_blank" rel="noopener" class="btn-secondary text-sm"><x-icon name="printer" class="size-4" /> {{ __('Print to sign') }}</a>
   </div>
 </div>
 

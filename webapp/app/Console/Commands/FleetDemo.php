@@ -83,6 +83,7 @@ class FleetDemo extends Command
             $this->trips($owner->id);
             $this->payroll($owner);
             $this->bankStatement($owner);
+            $this->quotesAndBooks($owner);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -105,6 +106,29 @@ class FleetDemo extends Command
         $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test, same password).');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * A quotation sent to Kerala Agro Foods for two routes (M21), and the
+     * Aluva agent's pre-printed LR book with one leaf spoilt.
+     */
+    private function quotesAndBooks(Account $owner): void
+    {
+        $place = fn (string $code) => Place::where('short_code', $code)->value('id');
+        $quotes = app(\App\Modules\Invoicing\Services\Quotations::class);
+        $quote = $quotes->save(null, [
+            'party_id' => \App\Modules\Parties\Models\Party::where('short_code', 'KAF')->value('id'), 'quote_date' => now()->subDays(2)->toDateString(),
+            'valid_until' => now()->addDays(13)->toDateString(), 'subject' => 'Rice and spices from Kochi to Bengaluru and Chennai',
+            'terms' => "Rates are per the basis shown; GST as the law applies.\nDetention after 24 free hours at the rate shown.\nPayment within 30 days of the bill.",
+        ], [
+            ['from_place_id' => $place('COK'), 'to_place_id' => $place('BLR'), 'basis' => 'tonne', 'rate' => 2150, 'min_weight_mt' => 9, 'detention_free_hours' => 24, 'detention_rate_per_day' => 2500],
+            ['from_place_id' => $place('COK'), 'to_place_id' => $place('MAA'), 'basis' => 'trip', 'rate' => 48000, 'detention_free_hours' => 24, 'detention_rate_per_day' => 2500, 'loading_charge' => 600],
+        ], $owner);
+        $quotes->issue($quote->fresh());
+
+        $books = app(\App\Modules\Trips\Services\LrBooks::class);
+        $book = $books->add(['book_no' => '12', 'prefix' => 'A-', 'first_no' => 1001, 'last_no' => 1100, 'issued_to' => 'Aluva agent', 'issued_on' => now()->subDays(20)->toDateString()], $owner);
+        $books->mark($book, 1001, 'cancelled', 'Written wrong, torn out', $owner);
     }
 
     /**

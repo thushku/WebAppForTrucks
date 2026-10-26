@@ -39,6 +39,7 @@ class TripService
         private FleetService $fleet,
         private AuditRecorder $audit,
         private \App\Platform\Notifications\Notices $notices,
+        private LrBooks $lrBooks,
     ) {}
 
     /**
@@ -56,7 +57,12 @@ class TripService
             $to   = TripStop::create(['trip_id' => $trip->id, 'seq' => 2, 'place_id' => $trip->to_place_id, 'kind' => 'unload']);
 
             if ($consignment) {
+                // A number typed from a printed LR book is checked against the books; the rest wait for the automatic series.
+                $typed = trim((string) \Illuminate\Support\Arr::pull($consignment, 'lr_number'));
                 $load = Consignment::create($consignment + ['trip_id' => $trip->id, 'pickup_stop_id' => $from->id, 'drop_stop_id' => $to->id, 'created_by' => auth()->id()]);
+                if ($typed !== '') {
+                    $this->lrBooks->claim($load, $typed);
+                }
                 foreach ($ewaybills as $e) {
                     $load->ewaybills()->create($e);
                 }

@@ -51,7 +51,8 @@ founder's laptop) in `phoneapp/`.
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
-  broker commissions; TripService is the trip life and the dispatch gate), `Road` (what the crew app sends: road events
+  broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
+  LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events
   with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `CrewCommands` are the phone's taps, kept per
   UUID in `api_commands` so a retry never runs twice), `Tax` (registrations, dated codes/rates/rules from the
   country presets, `TaxEngine` → place of supply, rule match, `TaxCalculator`, `Withholding` for TDS; no rule = an
@@ -61,6 +62,8 @@ founder's laptop) in `phoneapp/`.
   DesignSchema` checks every design (anything unknown is dropped and listed), `DocumentTemplates` resolves bill →
   client → branch → default → built-in, saves versions and rollbacks; a bill freezes its design at issue
   (`design_snapshot`); the editor is Settings → Templates with a live preview (`resources/js/templates.js`).
+  Quotations (M21): `Quotations` (draft → issued with its QT/ number and fixed → accepted / declined; accepted →
+  `toRateContract`), print `documents/quotation`; the voucher print is `documents/voucher` (`BooksController::printVoucher`).
   Messages (M18): `Messages` (the words sent with bills, receipts and reminders — Settings → Messages, shipped
   defaults, `{placeholders}`), `DocumentMailer` (email with the PDF and the secure link, every send kept as a
   delivery), `Reminders` (`fleet:reminders` daily: overdue reminders on the company's days, once per step).
