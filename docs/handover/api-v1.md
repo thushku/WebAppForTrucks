@@ -332,6 +332,11 @@ with `POST /device`, as a **push**. Notices are per company: the inbox lists the
 | `GET /notifications?before=&limit=30` | `unread` (the badge), `items[]` newest first: `id`, `kind`, `title`, `body`, `data` (what to open, below), `times` (how often a collapsed notice was updated), `read`, `at`; `more` — then ask again with `before` = the last `id` |
 | `POST /notifications/read` `{ "ids": [12, 13] }` or `{ "all": true }` | `unread` after marking. Mark a notice read when the person opens it from the list or from the push |
 | `GET /me` | also `unread_notifications` |
+| `GET /notifications/settings` | `groups[]` (`key`, `name`, `about`, `push`: whether this group reaches the phone), `quiet_from`, `quiet_to` ("22:00") |
+| `PUT /notifications/settings` `{ "push": ["trips", "incidents"], "quiet_from": "22:00", "quiet_to": "06:00" }` | the same, saved. Groups left out of `push` stay in the inbox only; in quiet hours only high-priority notices are pushed. Per company |
+
+Every item also has `priority` (`high`, `medium`, `low`): show high ones in red at the top of the unread ones. The
+push carries it in `data.priority`; a low one is sent with Android priority `normal` (it does not wake the phone).
 
 **The push message** (FCM HTTP v1): `notification.title` / `notification.body` as in the
 inbox, Android `priority: high`, channel id `fleet` (create it in the app; the name "Trips and

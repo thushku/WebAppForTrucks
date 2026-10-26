@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Platform\Notifications;
+
+use App\Models\CompanyUser;
+use Carbon\CarbonImmutable;
+
+/**
+ * What a person wants pushed to their phone, per company (M26, 13-parity
+ * #15, #29). Every notice has a kind in a group and a priority; a person
+ * can switch a group's pushes off (the inbox still keeps them) and set
+ * quiet hours when only high-priority notices push.
+ */
+class NotificationSettings
+{
+    /** group => [name, what it covers] */
+    public const GROUPS = [
+        'trips' => ['Trips', 'A trip sent to you or called off'],
+        'entries' => ['My entries', 'A question on or rejection of your entry, a second approval asked of you'],
+        'approvals' => ['Entries to approve', 'Crew entries waiting for your approval'],
+        'incidents' => ['Incidents', 'An accident, breakdown or police case on the road'],
+        'papers' => ['Papers', 'Insurance, permits, PUC and licences running out'],
+        'money' => ['Pay', 'Your pay paid'],
+        'quotations' => ['Quotations', 'A client accepting or declining a quotation'],
+    ];
+
+    /** kind => [group, default priority] */
+    public const KINDS = [
+        'trip.sent' => ['trips', 'high'], 'trip.cancelled' => ['trips', 'high'],
+        'entry.second' => ['entries', 'high'], 'entry.queried' => ['entries', 'medium'], 'entry.rejected' => ['entries', 'medium'],
+        'approvals.waiting' => ['approvals', 'medium'], 'road.incident' => ['incidents', 'high'], 'papers.due' => ['papers', 'medium'],
+        'pay.paid' => ['money', 'low'], 'quotation.accepted' => ['quotations', 'medium'], 'quotation.declined' => ['quotations', 'medium'],
+        'test' => [null, 'low'],
+    ];
+
+    public const PRIORITIES = ['high' => 'High', 'medium' => 'Medium', 'low' => 'Low'];
+
+    public static function priorityOf(string $kind): string
+    {
+        return self::KINDS[$kind][1] ?? 'medium';
+    }
+
+    public static function groupOf(string $kind): ?string
+    {
+        return self::KINDS[$kind][0] ?? null;
+    }
+
+    /** @return array{muted: string[], quiet_from: ?string, quiet_to: ?string} */
+    public function of(?CompanyUser $member): array
+    {
+        $s = $member?->notification_settings ?? [];
+
+        return ['muted' => array_values(array_intersect($s['muted'] ?? [], array_keys(self::GROUPS))), 'quiet_from' => $s['quiet_from'] ?? null, 'quiet_to' => $s['quiet_to'] ?? null];
+    }
+
+    public function save(CompanyUser $member, array $muted, ?string $quietFrom, ?string $quietTo): void
+    {
+        $member->forceFill(['notification_settings' => [
+            'muted' => array_values(array_intersect($muted, array_keys(self::GROUPS))),
+            'quiet_from' => $quietFrom && $quietTo ? $quietFrom : null, 'quiet_to' => $quietFrom && $quietTo ? $quietTo : null,
+        ]])->save();
+    }
+
+    /**
+     * Whether this notice goes to the phone now: not for a muted group; in
+     * quiet hours only a high one. null = push; else why not ("off", "quiet").
+     */
+    public function holdBack(?CompanyUser $member, string $kind, string $priority, CarbonImmutable $now): ?string
+    {
+        $s = $this->of($member);
+        $group = self::groupOf($kind);
+        if ($group !== null && in_array($group, $s['muted'], true)) {
+            return 'off';
+        }
+        if ($priority !== 'high' && $s['quiet_from'] && $s['quiet_to'] && self::within($now->format('H:i'), $s['quiet_from'], $s['quiet_to'])) {
+            return 'quiet';
+        }
+
+        return null;
+    }
+
+    /** "23:30" within 22:00–06:00 (across midnight) or 13:00–14:00. */
+    public static function within(string $time, string $from, string $to): bool
+    {
+        return $from <= $to ? $time >= $from && $time < $to : $time >= $from || $time < $to;
+    }
+}

@@ -26,6 +26,7 @@ class CompanyUser extends Model
         return [
             'joined_at'    => 'datetime',
             'last_seen_at' => 'datetime',
+            'notification_settings' => 'array',
         ];
     }
 

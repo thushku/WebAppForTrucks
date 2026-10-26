@@ -47,10 +47,10 @@ class SendPush implements ShouldQueue
             }
 
             $message = [
-                'title' => $note->title, 'body' => $note->body, 'collapse' => $note->collapse_key ? $note->kind . ':' . $note->collapse_key : null,
+                'title' => $note->title, 'body' => $note->body, 'collapse' => $note->collapse_key ? $note->kind . ':' . $note->collapse_key : null, 'priority' => $note->priority ?? 'medium',
                 'badge' => UserNotification::for($note->account_id)->whereNull('read_at')->count(),
                 // The phone opens this: the company first (a person may work for two), then what the notice is about.
-                'data' => array_map('strval', ['notification' => $note->id, 'kind' => $note->kind, 'company' => $company->uuid] + ($note->data ?? [])),
+                'data' => array_map('strval', ['notification' => $note->id, 'kind' => $note->kind, 'priority' => $note->priority ?? 'medium', 'company' => $company->uuid] + ($note->data ?? [])),
             ];
             $results = [];
             foreach ($devices as $device) {

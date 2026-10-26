@@ -75,7 +75,7 @@ Ledgers · Scan to sign in on the web · Settings · About**. Show only what `GE
 | O17 | **Bill LRs** | the LRs waiting for a client, tick and **Make the bill** / **Make and issue** | `invoice.create` (`invoice.finalise`) | `GET /owner/unbilled`, `POST /owner/invoices`, `.../finalise` |
 | O18 | **Money received** | client, amount, mode, UTR or cheque, TDS; shows which bills it paid | `payment.record` | `POST /owner/receipts` |
 | O19 | **Add a paper** | truck or person, type, number, expiry, camera photo(s) | `document.manage` | `POST /owner/papers` (multipart) |
-| O20 | **Notifications** | the inbox behind the pushes; tap opens what it is about | — | `GET /notifications`, `POST /notifications/read` (§11) |
+| O20 | **Notifications** | the inbox behind the pushes, high ones first in red; tap opens what it is about; **My notifications**: which groups ring the phone, quiet hours | — | `GET /notifications`, `POST /notifications/read`, `GET`/`PUT /notifications/settings` (§11) |
 
 Every O16–O19 write sends an `Idempotency-Key` made when the person taps (§12), so a retry on a bad network never
 makes a second trip, bill or receipt. Still web only: hire challans, credit and debit notes, payments, settlement.

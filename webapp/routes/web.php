@@ -118,6 +118,8 @@ Route::middleware('auth')->group(function () {
 
         // The bell (M20): everyone's own notices in this company.
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/settings', [NotificationController::class, 'settings'])->name('notifications.settings');
+        Route::put('/notifications/settings', [NotificationController::class, 'saveSettings'])->name('notifications.settings.update');
         Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->whereNumber('notification')->name('notifications.open');
         Route::post('/notifications/read', [NotificationController::class, 'readAll'])->name('notifications.read-all');
 

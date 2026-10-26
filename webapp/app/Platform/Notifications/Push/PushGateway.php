@@ -16,7 +16,7 @@ interface PushGateway
     public const FAILED = 'failed';
 
     /**
-     * @param array{title: string, body: ?string, data: array<string, string>, collapse: ?string, badge: int} $message
+     * @param array{title: string, body: ?string, data: array<string, string>, collapse: ?string, badge: int, priority?: string} $message
      * @return string one of the constants
      *
      * @throws PushUnavailable when the service is down for now (try again later)

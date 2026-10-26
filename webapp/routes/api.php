@@ -60,6 +60,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
             // The inbox behind the push (M20), for both apps.
             Route::get('/notifications', [NotificationController::class, 'index'])->name('api.notifications');
             Route::post('/notifications/read', [NotificationController::class, 'read'])->name('api.notifications.read');
+            Route::get('/notifications/settings', [NotificationController::class, 'settings'])->name('api.notifications.settings');
+            Route::put('/notifications/settings', [NotificationController::class, 'saveSettings'])->name('api.notifications.settings.update');
 
             // The owner app approves a web sign-in it has scanned (decision P7).
             Route::post('/web-login/inspect', [WebLoginController::class, 'inspect'])->name('api.web-login.inspect');

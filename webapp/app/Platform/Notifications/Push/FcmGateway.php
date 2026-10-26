@@ -70,7 +70,8 @@ class FcmGateway implements PushGateway
             'token' => $token,
             'notification' => array_filter(['title' => $message['title'], 'body' => $message['body']]),
             'data' => $data ?: null,
-            'android' => array_filter(['priority' => 'high', 'collapse_key' => $message['collapse'],
+            // Low notices wait for the phone's next wake-up; medium and high wake it (M26).
+            'android' => array_filter(['priority' => ($message['priority'] ?? 'medium') === 'low' ? 'normal' : 'high', 'collapse_key' => $message['collapse'],
                 'notification' => array_filter(['channel_id' => config('services.fcm.android_channel', 'fleet'), 'tag' => $message['collapse'], 'sound' => 'default'])]),
             'apns' => ['headers' => array_filter(['apns-collapse-id' => $message['collapse'] ? mb_substr($message['collapse'], 0, 64) : null]),
                 'payload' => ['aps' => ['sound' => 'default', 'badge' => $message['badge']]]],

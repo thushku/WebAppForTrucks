@@ -30,11 +30,17 @@ class UserNotification extends Model
         return $query->where('account_id', $account instanceof Account ? $account->id : $account);
     }
 
+    /** The inbox's order (M26): unread first, high before medium before low, then newest. */
+    public function scopeInboxOrder($query)
+    {
+        return $query->orderByRaw('read_at is null desc')->orderByRaw("case priority when 'high' then 0 when 'medium' then 1 else 2 end")->orderByDesc('updated_at')->orderByDesc('id');
+    }
+
     /** What the phone apps get: the words, what to open, and whether it was read. */
     public function toApi(): array
     {
         return [
-            'id' => $this->id, 'kind' => $this->kind, 'title' => $this->title, 'body' => $this->body, 'data' => $this->data ?? (object) [],
+            'id' => $this->id, 'kind' => $this->kind, 'priority' => $this->priority ?? 'medium', 'title' => $this->title, 'body' => $this->body, 'data' => $this->data ?? (object) [],
             'times' => $this->times, 'read' => $this->read_at !== null, 'at' => $this->updated_at?->toIso8601String(),
         ];
     }

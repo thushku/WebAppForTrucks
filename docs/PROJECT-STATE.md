@@ -2,6 +2,20 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M26: notification priorities and my notification settings (13-parity #15, #29)
+
+**Built (in `webapp/`, `Platform/Notifications/NotificationSettings`):**
+- Every notice has a **priority**: high (a trip sent or called off, a second approval asked of you, an incident), medium
+  (questions, entries waiting, papers, quotations), low (pay paid, the test). The bell's page shows unread ones first,
+  high ones on top with an **Urgent** chip and a red dot; the push carries it and a low one does not wake the phone.
+- **My notifications** (the bell → My notifications, and `GET`/`PUT /notifications/settings` for both apps): switch off
+  any group for the phone (trips, my entries, entries to approve, incidents, papers, pay, quotations) — the inbox keeps
+  them — and set **quiet hours** (across midnight too) when only high notices ring. Per person and per company.
+
+**Tests:** 252 passing (new `NotificationSettingsTest`, 3 tests: the priorities, the inbox order and the push urgency; a
+group off and quiet hours at 11 pm and 9 am, per company; the phone API's settings, validation and `priority`, the
+quiet-hours arithmetic).
+
 ## 2026-10-26 — Milestone M25: the trip desk (13-parity #3–5, #25)
 
 **Built (in `webapp/`):**

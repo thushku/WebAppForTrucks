@@ -40,6 +40,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M23 ✅ | Owner app makes things: trip planned and sent, bills from LRs issued, money received, papers photographed — once per Idempotency-Key | Run the office from the phone |
 | M24 ✅ | The client's page as a billing desk (not billed, due, overdue, received; tick LRs and bill; Settle; payments; quotations) and quotations answered by the client on their link | Bill and collect from one page |
 | M25 ✅ | Trip desk parity: "+ New" client / driver / truck / place in the trip form, billing filter, trip report (page, PDF, Excel), annexure driver column | Plan and report trips without leaving the page |
+| M26 ✅ | Notification priorities (inbox order, push urgency) and My notifications: groups off for the phone, quiet hours — web and both apps | Only what matters rings |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

@@ -268,13 +268,13 @@ it('pushes through Firebase with the service-account key, and forgets a phone Fi
             && $c['iss'] === 'push@fleet-test.iam.gserviceaccount.com' && $c['scope'] === 'https://www.googleapis.com/auth/firebase.messaging'
             && openssl_verify("{$head}.{$claims}", $decode($signature), $public, OPENSSL_ALGO_SHA256) === 1;
     });
-    // The message, as FCM HTTP v1 wants it.
+    // The message, as FCM HTTP v1 wants it; a low notice (the test) does not wake the phone.
     Http::assertSent(fn ($request) => $request->url() === 'https://fcm.googleapis.com/v1/projects/fleet-test/messages:send'
         && $request->hasHeader('Authorization', 'Bearer ya29.test-token')
         && $request['message']['token'] === 'tok-good'
         && $request['message']['notification'] === ['title' => 'Hello from the office', 'body' => 'Is push working?']
         && $request['message']['data']['company'] === $w['company']->uuid && $request['message']['data']['type'] === 'test'
-        && $request['message']['android']['priority'] === 'high' && $request['message']['apns']['payload']['aps']['badge'] === 1);
+        && $request['message']['data']['priority'] === 'low' && $request['message']['android']['priority'] === 'normal' && $request['message']['apns']['payload']['aps']['badge'] === 1);
     expect($gone->fresh()->push_token)->toBeNull()
         ->and($good->fresh()->push_token)->toBe('tok-good')
         ->and(UserNotification::for($owner)->value('push_result'))->toBe('sent');

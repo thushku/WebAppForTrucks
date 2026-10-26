@@ -277,8 +277,11 @@ package), QR codes / amount in words / CSV written in-house. See
   repository (`FIREBASE_CREDENTIALS`); without it pushes go to the log. Pushes
   go through the queue (a worker must run); a token Firebase no longer knows
   is forgotten.
-- Per-person choice of which notices to push, quiet hours and WhatsApp/SMS
-  notices come later (WhatsApp Business needs a provider — your approval).
+- (M26) **Priorities**: high (a trip sent or called off, a second approval, an
+  incident), medium (most), low (pay paid, tests). **Each person chooses per
+  company** which groups reach their phone and quiet hours when only high
+  notices ring; the inbox always keeps everything.
+- WhatsApp/SMS notices come later (WhatsApp Business needs a provider — your approval).
 
 ### P16. Quotations, LR books and printed vouchers (added 26 Oct 2026, M21)
 
