@@ -439,6 +439,15 @@ Route::middleware('auth')->group(function () {
                 Route::post('/{truck}/tyres/{tyre}/off', [TyreController::class, 'off'])->name('tyres.off');
                 Route::post('/{truck}/tyres/{tyre}/move', [TyreController::class, 'move'])->name('tyres.move');
             });
+            // Fines and e-challans (M48): seen with truck.view, recorded with truck.manage, paid with accounts.post.
+            Route::get('/fines', [\App\Http\Controllers\Fleet\FineController::class, 'index'])->middleware('permission:truck.view')->name('fines');
+            Route::get('/fines/{fine}', [\App\Http\Controllers\Fleet\FineController::class, 'show'])->whereNumber('fine')->middleware('permission:truck.view')->name('fines.show');
+            Route::middleware('permission:truck.manage')->group(function () {
+                Route::post('/fines', [\App\Http\Controllers\Fleet\FineController::class, 'store'])->name('fines.store');
+                Route::put('/fines/{fine}', [\App\Http\Controllers\Fleet\FineController::class, 'update'])->whereNumber('fine')->name('fines.update');
+                Route::post('/fines/{fine}/status', [\App\Http\Controllers\Fleet\FineController::class, 'status'])->whereNumber('fine')->name('fines.status');
+            });
+            Route::post('/fines/{fine}/pay', [\App\Http\Controllers\Fleet\FineController::class, 'pay'])->whereNumber('fine')->middleware('permission:accounts.post')->name('fines.pay');
             Route::get('/{truck}', [TruckController::class, 'show'])->middleware('permission:truck.view')->name('show');
         });
 

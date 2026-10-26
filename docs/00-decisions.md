@@ -575,6 +575,27 @@ package), QR codes / amount in words / CSV written in-house. See
 - Never another client's anything, never the freight of loads not yet
   billed, never the crew or office notes.
 
+### P35. Fines and e-challans (added 26 Oct 2026, M48)
+
+- A fine is recorded against **the truck at the time on the challan**; the
+  trip on the road then and **the driver at the wheel** (the driving shift
+  covering that moment, else the trip's driver) are found by themselves —
+  the office may name someone else, and must when nobody was driving.
+- **Who bears it** is chosen per fine: the company, or the driver — then it
+  comes off **their next pay run** as a "fine" deduction (recovered as
+  income), oldest first while the pay covers it; taken out of a draft
+  payslip or a cancelled run, it waits for the next one. The driver is told.
+- Paid **from the office** it is booked as the truck's (and trip's) fine, the
+  same ledger as fines the crew pay on the road; paid **by the crew on the
+  road** it is already in the trip's expenses, so nothing new is booked.
+- **Disputed** fines wait (never taken from pay); a fine **cancelled** by the
+  authority after it was paid has its payment reversed. One that is in a pay
+  run is not cancelled until it is out of it (or given back as an addition).
+- **Black points** (UAE) add up per driver over 12 months against the 24
+  that suspend a licence. An unpaid fine is **late** past its pay-by date,
+  or 60 days after it was issued without one (e-challans then go to court —
+  to be confirmed per state).
+
 ---
 
 ## 4. Still open

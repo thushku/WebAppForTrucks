@@ -62,6 +62,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M45 ✅ | The client's tracking link per LR: the steps, the nearest place while on the road, the delivery — no freight, no crew — shared from the trip page or the owner app; ends 30 days after delivery | Fewer "where is my truck?" calls |
 | M46 ✅ | A pump's credit statement checked like a card statement: matched to the fuel taken on credit there, fuel nobody entered owed to the pump; dates on any statement read without failing | Pump-statement auto-matching (phase 2) |
 | M47 ✅ | The client's own page: one link with their loads of 60 days and each one's tracking, their open bills with their links and what is due; made and stopped from the billing tab or the owner app | The client portal (phase 4), without a sign-in |
+| M48 ✅ | Fines and e-challans: recorded against the truck and the driver at the wheel then, paid from the office or on the road, disputed or cancelled, the driver's taken from their next pay run; black points per driver; owner app and My Khata | Fines no longer forgotten or argued about (UAE black points phase 3) |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

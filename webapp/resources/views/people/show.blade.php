@@ -80,6 +80,15 @@
       @if ($person->bank_last4 || $person->bank_name)
         <dt class="text-ink-500">{{ __('Bank') }}</dt><dd>{{ collect([$person->bank_name, $person->bank_last4 ? '••••' . $person->bank_last4 : null, $person->bank_ifsc])->filter()->join(' · ') }}</dd>
       @endif
+      {{-- Fines of 12 months and black points (M48). --}}
+      @can('truck.view')
+        @php($fineCount = \App\Modules\Fleet\Models\Fine::where('person_id', $person->id)->where('status', '!=', 'cancelled')->where('issued_at', '>=', now()->subYear())->count())
+        @if ($fineCount)
+          @php($pts = (int) (app(\App\Modules\Fleet\Services\Fines::class)->points($person->id)->first()?->points ?? 0))
+          <dt class="text-ink-500">{{ __('Fines') }}</dt>
+          <dd><a href="{{ route('trucks.fines', ['person' => $person->id, 'tab' => 'all']) }}" class="text-brand-700 hover:underline">{{ trans_choice(':count fine in 12 months|:count fines in 12 months', $fineCount) }}</a>@if ($pts)<span class="{{ $pts >= \App\Modules\Fleet\Models\Fine::POINTS_LIMIT ? 'font-semibold text-overdue' : 'text-ink-500' }}"> · {{ __(':n of :limit points', ['n' => $pts, 'limit' => \App\Modules\Fleet\Models\Fine::POINTS_LIMIT]) }}</span>@endif</dd>
+        @endif
+      @endcan
     </dl>
     @if ($person->notes)<p class="mt-4 whitespace-pre-line rounded-xl bg-ink-50 p-3 text-sm">{{ $person->notes }}</p>@endif
   </section>

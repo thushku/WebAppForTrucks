@@ -24,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  */
 class PayRuns
 {
-    public function __construct(private PayCalculator $calculator, private AuditRecorder $audit, private Statements $statements, private \App\Platform\Notifications\Notices $notices) {}
+    public function __construct(private PayCalculator $calculator, private AuditRecorder $audit, private Statements $statements, private \App\Platform\Notifications\Notices $notices, private \App\Modules\Fleet\Services\Fines $fines) {}
 
     /**
      * People already paid (or in another live run) for any day of the period
@@ -54,8 +54,9 @@ class PayRuns
                     continue;
                 }
                 $base = $this->calculator->base($person, $from, $to);
-                Payslip::create(['pay_run_id' => $run->id, 'person_id' => $person->id, 'pay_basis' => $base['basis'], 'units' => $base['units'], 'rate' => $base['rate'],
+                $slip = Payslip::create(['pay_run_id' => $run->id, 'person_id' => $person->id, 'pay_basis' => $base['basis'], 'units' => $base['units'], 'rate' => $base['rate'],
                     'base_pay' => $base['base'], 'lines' => [], 'additions' => 0, 'deductions' => 0, 'net' => $base['base'], 'status' => 'pending']);
+                $this->addFines($slip, $to);
             }
             $this->totals($run);
             $this->audit->record('payroll.run_created', "Pay run {$run->periodLabel()} made for {$run->people} people", 'pay_run', (string) $run->id, $run->label, severity: 'notable');
@@ -73,6 +74,7 @@ class PayRuns
                 $base = $this->calculator->base($slip->person, CarbonImmutable::parse($run->period_from->toDateString()), CarbonImmutable::parse($run->period_to->toDateString()));
                 $slip->fill(['pay_basis' => $base['basis'], 'units' => $base['units'], 'rate' => $base['rate'], 'base_pay' => $base['base']]);
                 $this->net($slip)->save();
+                $this->addFines($slip, CarbonImmutable::parse($run->period_to->toDateString()));
             }
             $this->totals($run);
         });
@@ -105,6 +107,10 @@ class PayRuns
         DB::transaction(function () use ($slip, $index) {
             $slip = Payslip::whereKey($slip->id)->lockForUpdate()->firstOrFail();
             $lines = $slip->lines ?? [];
+            // A fine taken out of the payslip waits for the next pay run.
+            if ($fineId = $lines[$index]['fine_id'] ?? null) {
+                \App\Modules\Fleet\Models\Fine::whereKey($fineId)->where('payslip_id', $slip->id)->update(['payslip_id' => null]);
+            }
             unset($lines[$index]);
             $slip->lines = array_values($lines);
             $this->net($slip)->save();
@@ -118,6 +124,7 @@ class PayRuns
         $this->assertDraft($slip->run);
         DB::transaction(function () use ($slip) {
             $run = $slip->run;
+            \App\Modules\Fleet\Models\Fine::where('payslip_id', $slip->id)->update(['payslip_id' => null]);
             $slip->delete();
             $this->totals($run);
         });
@@ -185,6 +192,8 @@ class PayRuns
         }
         DB::transaction(function () use ($run, $reason) {
             $run->payslips()->get()->each(fn (Payslip $s) => $s->forceFill(['status' => 'cancelled'])->save());
+            // Its fines wait for the next pay run.
+            \App\Modules\Fleet\Models\Fine::whereIn('payslip_id', $run->payslips()->select('id'))->update(['payslip_id' => null]);
             $run->forceFill(['status' => 'cancelled', 'cancel_reason' => mb_substr($reason, 0, 255)])->save();
             $this->audit->record('payroll.run_cancelled', "Pay run {$run->periodLabel()} cancelled", 'pay_run', (string) $run->id, $run->label, reason: $reason, severity: 'notable');
         });
@@ -216,6 +225,31 @@ class PayRuns
 
         return Person::query()->when($scope === 'crew', fn ($q) => $q->whereIn('type', ['driver', 'helper']))->where('status', '!=', 'left')
             ->whereNotIn('id', $with)->orderBy('name')->get(['id', 'name', 'type']);
+    }
+
+    /**
+     * The driver's fines not yet taken back (M48) go on the payslip as
+     * "fine" deductions, oldest first, as long as the pay covers them; the
+     * rest wait for the next pay run.
+     */
+    private function addFines(Payslip $slip, CarbonImmutable $upTo): void
+    {
+        $fines = $this->fines->toRecover($slip->person_id, $upTo);
+        if ($fines->isEmpty()) {
+            return;
+        }
+        $lines = $slip->lines ?? [];
+        foreach ($fines as $fine) {
+            $line = $this->fines->payslipLine($fine);
+            $slip->lines = [...$lines, $line];
+            if ($this->net($slip)->net < 0) {
+                continue;
+            }
+            $lines[] = $line;
+            $fine->forceFill(['payslip_id' => $slip->id])->save();
+        }
+        $slip->lines = $lines;
+        $this->net($slip)->save();
     }
 
     private function net(Payslip $slip): Payslip

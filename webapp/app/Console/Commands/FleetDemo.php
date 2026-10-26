@@ -87,6 +87,7 @@ class FleetDemo extends Command
             $this->bankStatement($owner);
             $this->quotesAndBooks($owner);
             $this->cardStatement($owner);
+            $this->fines($owner);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -386,6 +387,24 @@ class FleetDemo extends Command
         file_put_contents($path, $csv);
         app(\App\Modules\Accounts\Services\CardStatements::class)->import('fastag', $path, 'FASTag-statement-' . now()->format('M-Y') . '.csv', $owner);
         @unlink($path);
+    }
+
+    /** Fines (M48): an overspeeding challan on the running trip the driver bears, a no-entry one paid, an old parking one unpaid. */
+    private function fines(Account $owner): void
+    {
+        $trip = \App\Modules\Trips\Models\Trip::with('truck')->where('status', 'running')->whereNotNull('truck_id')->orderBy('id')->first();
+        $fines = app(\App\Modules\Fleet\Services\Fines::class);
+        $local = fn ($at) => \Carbon\CarbonImmutable::instance($at)->setTimezone('Asia/Kolkata')->format('Y-m-d H:i');
+        if ($trip) {
+            $fines->record(['truck_id' => $trip->truck_id, 'issued_at' => $local(\Carbon\CarbonImmutable::instance($trip->started_at)->addMinutes(95)), 'challan_no' => 'KL07' . $trip->id . '230011',
+                'authority' => 'Kerala Police (e-challan)', 'offence' => 'Overspeeding (78 km/h in a 60 zone)', 'place' => 'Aluva bypass', 'amount' => 2000, 'bears' => 'driver'], $owner);
+        }
+        $truck = \App\Modules\Fleet\Models\Truck::orderBy('id')->first();
+        $paid = $fines->record(['truck_id' => $truck->id, 'issued_at' => $local(now()->subDays(9)->setTime(6, 40)), 'challan_no' => 'MH04' . $truck->id . '771205', 'authority' => 'Thane Traffic Police',
+            'offence' => 'No entry in city hours', 'place' => 'Bhiwandi', 'amount' => 500, 'bears' => 'company'], $owner);
+        $fines->pay($paid, ['paid_on' => now()->subDays(7)->toDateString(), 'mode' => 'bank', 'reference' => 'UPI 4417 2210'], $owner);
+        $fines->record(['truck_id' => $truck->id, 'issued_at' => $local(now()->subDays(70)->setTime(5, 15)), 'challan_no' => 'KA01' . $truck->id . '559031', 'authority' => 'Bengaluru Traffic Police',
+            'offence' => 'Parking on the main road', 'place' => 'Peenya', 'amount' => 300, 'bears' => 'company'], $owner);
     }
 
     /** Leave (M40): one request waiting from the app, one taken, one coming up. */

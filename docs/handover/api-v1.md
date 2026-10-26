@@ -102,7 +102,9 @@ not yet paid), `advance` (an advance against my pay, taken back from a payslip �
 earnings, `given` — money handed to me, `credited` — what counts for me: spent for the
 company, earned, returned, `balance`, `cancelled`), and `payslips[]` of approved pay runs
 (`period`, `from`, `to`, `basis`, `units`, `base`, `additions`, `deductions`, `lines[]`, `net`,
-`status` pending / paid, `paid_amount`, `paid_on`, `paid_mode`). From the books, so it moves
+`status` pending / paid, `paid_amount`, `paid_on`, `paid_mode`); M48: `fines[]` of the last 12 months (`challan_no`,
+`offence`, `place`, `issued_at`, `truck`, `amount`, `points`, `status`, `bears` company / driver, `from_pay` — the pay
+period it was taken from, or null), `points` (my black points of 12 months) and `points_limit` (24). From the books, so it moves
 when the office approves entries, settles a trip, approves a pay run or pays. Office logins
 get `403 not_crew`.
 
@@ -364,6 +366,7 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 | `entry.second` | the other driver | `type: entry`, `entry`, `trip` → the entry with Approve / Reject (`event.second_approve` / `event.second_reject`) |
 | `entry.queried`, `entry.rejected` | who recorded the entry | `type: entry`, `entry`, `trip` → the entry with the office's note; a queried entry can be changed (`PATCH /crew/events/{uuid}`) |
 | `pay.paid` | the person paid | `type: money` → My Khata (`GET /crew/money`) |
+| `fine.recover` (M48) | the driver of a fine they bear | `type: fine`, `fine` (id) → My Khata (`GET /crew/money`, `fines[]`) |
 | `approvals.waiting` | everyone with `event.verify` | `type: approvals` → the approvals list (`GET /approvals`). One notice keeps the count; pushed again only after half an hour |
 | `road.incident` | everyone with `trip.view` | `type: trip`, `trip` → the trip |
 | `papers.due` | everyone with `document.manage` | `type: papers` → papers (`GET /owner/papers`) |
@@ -530,3 +533,26 @@ Every write runs once per `Idempotency-Key` (§12); refusals answer 422 with the
 | `PUT /owner/trips/{uuid}/hire/{id}` | `hire.manage` | a draft changed: the same fields, sent whole → `challan`; an issued challan is refused |
 | `POST /owner/trips/{uuid}/hire/{id}/issue` | `hire.manage` | issued with its number → `challan` |
 | `POST /owner/trips/{uuid}/hire/{id}/lines` | `hire.manage` | money on an issued challan: `kind` (`detention`, `extra` add to what we owe; `advance`, `fuel`, `deduction`, `payment` take from it — never more than the balance), `amount`, `line_date`, `mode` (cash / upi / bank; needed for advance and payment), `paid_to` (owner / broker / driver), `reference`, `note` (needed for a deduction) → `challan`; the balance paid to zero settles it |
+
+## 17. Owner app: fines and e-challans (added in M48)
+
+A fine is recorded against the truck at the time on the challan: the trip on the road then and the driver at the
+wheel (the driving shift covering that moment, else the trip's driver) are found by the server; `person_id` names
+someone else, and is needed when nobody was driving then. `bears` is `company` or `driver`: a fine the driver bears
+comes off their next pay run as a "fine" deduction (`recovery.state` waiting → `in_draft_run` → `taken`, with the
+`period`). Paid by the office (`cash` / `bank`) it is booked as the truck's fine; paid by the crew on the road
+(`road`) it is already in the trip's expenses, so nothing new is booked. Black points (UAE) add up per driver over 12
+months; 24 suspend a licence. Writes run once per `Idempotency-Key` (§12).
+
+A fine row: `id`, `challan_no`, `authority`, `offence`, `place`, `issued_at`, `amount`, `points`, `due_on`, `status`
+(`unpaid` / `paid` / `disputed` / `cancelled`), `late` (unpaid past `due_on`, or 60 days old without one),
+`status_note`, `truck` {`id`, `reg_no`}, `person` {`id`, `name`}, `trip` {`uuid`, `number`}, `bears`, `recovery`
+(driver only), `paid_on`, `paid_mode`, `paid_reference`, `notes`.
+
+| Call | Permission | Sends → gets |
+|---|---|---|
+| `GET /owner/fines?status=&truck_id=&person_id=` | `truck.view` | `fines[]` (`status` open — the default: unpaid and disputed —, paid, cancelled or all), `open` {`count`, `amount`, `late`}, `points[]` ({`person`, `points`, `fines`}, highest first), `points_limit` |
+| `GET /owner/fines/{id}` | `truck.view` | `fine` |
+| `POST /owner/fines` | `truck.manage` | once per key: `truck_id` (or `person_id`), `issued_at` (company time, `2026-10-25 11:45`), `challan_no` (once per company), `authority`, `offence`, `place`, `amount`, `points`, `due_on`, `bears`, `person_id`, `notes` → `fine` (201) |
+| `POST /owner/fines/{id}/pay` | `accounts.post` | once per key: `paid_on`, `mode` (`cash` / `bank` / `road`), `bank_account_id`, `reference` → `fine` |
+| `POST /owner/fines/{id}/status` | `truck.manage` | `action` `dispute` (with `note`), `reopen` (a lost dispute), `cancel` (with `note`; a paid one has its payment reversed; refused while it is in a pay run) → `fine` |

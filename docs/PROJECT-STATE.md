@@ -2,6 +2,29 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M48: fines and e-challans (decision P35)
+
+**Built (in `webapp/`, `Fleet/Services/Fines`, Trucks → Fines):**
+- **The fines register**: each fine with its challan no. (once per company), authority, offence, place, time, amount,
+  black points and pay-by date, against **the truck and the driver at the wheel then** — found from the trip on the
+  road and the driving shift covering that moment (else the trip's driver); the office can name someone else.
+  Tabs Open · Paid · Cancelled · All, search, filters by truck or driver; late fines in red; drivers' **black points**
+  of 12 months against 24; a fine's own page to correct, pay, dispute or cancel it.
+- **Who bears it**: the company, or the driver — **taken from their next pay run** as a "fine" deduction (oldest
+  first while the pay covers it; out of a draft payslip or a cancelled run it waits for the next one); the driver gets
+  a notice. **Paid** from the office (cash or bank) it is booked as the truck's and trip's fine; paid by the crew on
+  the road nothing new is booked. A paid fine cancelled by the authority has its payment reversed.
+- Dashboard alert (unpaid / late fines); a line on the truck and person pages; owner app `GET`/`POST /owner/fines`,
+  `…/pay`, `…/status` (§17); the crew's My Khata lists their fines and points. Migration 000032 `fines`; demo fines.
+  Hindi for every new string.
+
+**Tests:** 300 passing (new `FinesTest`, 2 tests: the co-driver found for an 11:30 fine from their driving shift and
+the driver for a 13:00 one; refused without a driver, twice the same challan or in the future; the company's paid by
+bank — the truck's and trip's cost in the books —, the driver's paid on the road with no voucher; October's pay run
+takes ₹1,000 from the co-driver's payslip, out and back by recalculating, recovered as income on approval, waiting
+again after the run is cancelled; a paid fine cancelled has its voucher reversed; the owner app records once per key,
+lists 12 points, disputes and pays; the crew's My Khata shows both fines and 12 points).
+
 ## 2026-10-26 — Milestone M47: the client's own page (decision P34)
 
 **Built (in `webapp/`, `Parties/Services/ClientPage`, `/c/{token}`):**

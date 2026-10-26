@@ -152,6 +152,16 @@ class Notices
             null, ['type' => 'leave', 'leave' => $leave->uuid]));
     }
 
+    /** A fine the driver bears (M48): they hear it will come off their pay, with the challan. */
+    public function fineToRecover(\App\Modules\Fleet\Models\Fine $fine): void
+    {
+        $fine->loadMissing('truck:id,reg_no');
+        $this->say($this->notifier->accountsOf([$fine->person_id]), fn ($ids) => $this->notifier->tell($ids, 'fine.recover',
+            __('A fine of :amount will come off your pay', ['amount' => \App\Support\Money::company($fine->amount)]),
+            collect([$fine->challan_no, $fine->offence, $fine->issued_at->setTimezone(app(\App\Platform\Tenancy\CompanyContext::class)->company()->timezone ?: 'UTC')->format('d M, H:i'), $fine->truck?->reg_no])->filter()->join(' · '),
+            null, ['type' => 'fine', 'fine' => $fine->id]));
+    }
+
     /** "28 Oct – 30 Oct", or one day. */
     private function span(\App\Modules\People\Models\LeaveRequest $leave): string
     {

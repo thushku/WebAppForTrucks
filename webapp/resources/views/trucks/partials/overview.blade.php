@@ -23,6 +23,9 @@
         @endif
       </dd>@endif
       @if ($truck->branch)<dt class="text-ink-500">{{ __('Branch') }}</dt><dd>{{ $truck->branch->name }}</dd>@endif
+      {{-- Its fines (M48). --}}
+      @php($truckFines = \App\Modules\Fleet\Models\Fine::where('truck_id', $truck->id)->whereIn('status', ['unpaid', 'disputed'])->count())
+      @if ($truckFines)<dt class="text-ink-500">{{ __('Fines') }}</dt><dd><a href="{{ route('trucks.fines', ['truck' => $truck->id]) }}" class="text-brand-700 hover:underline">{{ trans_choice(':count fine open|:count fines open', $truckFines) }}</a></dd>@endif
     </dl>
   </section>
 

@@ -207,6 +207,14 @@ class CrewController extends Controller
                 'given' => round((float) $r->debit, 2), 'credited' => round((float) $r->credit, 2),
                 'balance' => round((float) $r->balance, 2), 'cancelled' => $r->status === 'cancelled',
             ])->values(),
+            // My fines of the last 12 months (M48): those I bear come off my pay; black points add up.
+            'fines' => \App\Modules\Fleet\Models\Fine::with(['truck:id,reg_no', 'payslip.run'])->where('person_id', $person->id)->where('status', '!=', 'cancelled')
+                ->where('issued_at', '>=', now()->subYear())->orderByDesc('issued_at')->limit(50)->get()
+                ->map(fn ($f) => ['challan_no' => $f->challan_no, 'offence' => $f->offence, 'place' => $f->place, 'issued_at' => $f->issued_at->toIso8601String(),
+                    'truck' => $f->truck?->reg_no, 'amount' => (float) $f->amount, 'points' => $f->points, 'status' => $f->status, 'bears' => $f->bears,
+                    'from_pay' => $f->bears === 'driver' ? ($f->payslip?->run ? $f->payslip->run->periodLabel() : null) : null])->values(),
+            'points' => (int) (app(\App\Modules\Fleet\Services\Fines::class)->points($person->id)->first()?->points ?? 0),
+            'points_limit' => \App\Modules\Fleet\Models\Fine::POINTS_LIMIT,
             // My payslips of approved pay runs (M16).
             'payslips' => \App\Modules\Payroll\Models\Payslip::with('run')->where('person_id', $person->id)->where('status', '!=', 'cancelled')
                 ->whereHas('run', fn ($q) => $q->whereIn('status', ['approved', 'paid']))->orderByDesc('id')->limit(12)->get()

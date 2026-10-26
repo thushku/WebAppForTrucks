@@ -180,6 +180,13 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/crew/{person}/trips', [MastersController::class, 'personTrips'])->whereNumber('person')->middleware('permission:trip.view')->name('crew.trips');
                 Route::get('/crew/{person}/driving', [MastersController::class, 'personDriving'])->whereNumber('person')->middleware('permission:trip.view')->name('crew.driving');
 
+                // Fines and e-challans (M48): the register and black points; record and pay once per key.
+                Route::get('/fines', [\App\Http\Controllers\Api\Owner\FinesController::class, 'index'])->middleware('permission:truck.view')->name('fines');
+                Route::get('/fines/{fine}', [\App\Http\Controllers\Api\Owner\FinesController::class, 'show'])->whereNumber('fine')->middleware('permission:truck.view')->name('fines.show');
+                Route::post('/fines', [\App\Http\Controllers\Api\Owner\FinesController::class, 'store'])->middleware('permission:truck.manage')->name('fines.store');
+                Route::post('/fines/{fine}/status', [\App\Http\Controllers\Api\Owner\FinesController::class, 'status'])->whereNumber('fine')->middleware('permission:truck.manage')->name('fines.status');
+                Route::post('/fines/{fine}/pay', [\App\Http\Controllers\Api\Owner\FinesController::class, 'pay'])->whereNumber('fine')->middleware('permission:accounts.post')->name('fines.pay');
+
                 // Tyres (M38): the store, a truck's tyres by position; the workshop's moves once per key.
                 Route::get('/tyres', [TyresController::class, 'index'])->middleware('permission:truck.view')->name('tyres');
                 Route::get('/tyres/{tyre}', [TyresController::class, 'show'])->whereNumber('tyre')->middleware('permission:truck.view')->name('tyres.show');

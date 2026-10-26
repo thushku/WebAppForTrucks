@@ -120,6 +120,16 @@ class Dashboard
             }
         }
 
+        // Unpaid fines, late ones first (M48).
+        if (auth()->user()?->can('truck.view')) {
+            $fines = app(\App\Modules\Fleet\Services\Fines::class)->open();
+            if ($fines['late']) {
+                $alerts[] = ['level' => 'serious', 'text' => trans_choice(':count fine is late: pay or dispute it|:count fines are late: pay or dispute them', $fines['late']), 'url' => route('trucks.fines')];
+            } elseif ($fines['count']) {
+                $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count fine unpaid, :amount|:count fines unpaid, :amount', $fines['count'], ['amount' => \App\Support\Money::company($fines['amount'])]), 'url' => route('trucks.fines')];
+            }
+        }
+
         // Fitted tyres near or past the km expected of them (M38).
         $worn = app(\App\Modules\Fleet\Services\Tyres::class)->nearEnd();
         if ($worn->isNotEmpty()) {
