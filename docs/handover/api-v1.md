@@ -358,7 +358,7 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 Unknown kinds may come later: show them in the list and open the list. After any push, a crew
 app runs `GET /crew/sync` (the push says *that* something changed; sync says *what*).
 
-## 12. Owner app: making things (added in M23; crew cash in M27)
+## 12. Owner app: making things (added in M23; crew cash in M27; masters in M29)
 
 The same rules and permissions as the web: a trip is planned with its load and sent to the crew, a bill is made from
 LRs and issued, money received is set against the oldest bills, a paper is photographed onto a truck or a person.
@@ -383,6 +383,36 @@ Answers to a write are `201`.
 | `POST /owner/crew/{person_id}/cash` | `trip.settle` | quick cash (M27): `direction` (`received` — given to them / `spent` — spent by them for the company), `amount`, `remark` (what for, required), `on` (date, not after today), `trip_id` (one of `trips`), `mode` (`cash_modes`, for `received`), `purpose` (`advance` — against pay, or `dues` — paying what we owe them; for `received` without a trip), `category` (`expense_categories`, required for `spent`), `reference` (required for UPI and bank), `bank_account_id` → `voucher` {`id`, `number`, `date`, `amount`, `narration`}. Given for a trip it is that trip's advance (counted when the trip is settled); spent, it is owed to them with their pay, tagged with the trip and truck when given |
 
 A person limited to a branch sees and uses only that branch's trucks, crew and trips here (decision P17).
+
+**Masters (added in M29):** clients, places, trucks and crew — a card list (`?q=` search, `?status=active` (default) /
+`inactive` / `all`, `?page=`; `next_page` is null on the last page), open one, **add** (`POST`, once per
+`Idempotency-Key` like every add above), **edit** (`PUT`: only the fields sent change — send just what was edited;
+sending it again is harmless) and **deactivate** (never delete). The choices for the forms are in `GET /owner/masters`
+→ `forms` (`truck_types`, `body_types`, `fuel_types`, `ownerships`, `truck_statuses`, `person_types`, `pay_bases`,
+`place_types`, `regions`). Every change is in the audit log, as from the web; the rest of each record is on the web's
+full form.
+
+| Call | Permission | Body → answer |
+|---|---|---|
+| `GET /owner/clients` | `party.view` | `clients[]`: `id`, `name`, `short_code`, `mobile`, `email`, `city`, `state`, `tax_id` (the default GSTIN / TRN), `active`, `due` (billed, not paid) |
+| `GET /owner/clients/{id}` | `party.view` | `client`: the card and `legal_name`, `address_line1`, `address_line2`, `state_code`, `postal_code`, `credit_days`, `notes`, `tax_ids[]` (`number`, `default`), `roles` |
+| `POST /owner/clients` | `party.manage` | `name` (required), `legal_name`, `short_code` (made from the name when left out), `mobile`, `email`, `address_line1`, `address_line2`, `city`, `state_code`, `postal_code`, `credit_days`, `notes`, `tax_id` (GSTIN / TRN, checked; its PAN and state are taken from it) → `client` |
+| `PUT /owner/clients/{id}` | `party.manage` | any of those but `tax_id` (tax numbers are changed on the web) → `client` |
+| `POST /owner/clients/{id}/active` | `party.manage` | `active` (true / false) → `client` |
+| `GET /owner/places` | any of `trip.view`, `trip.create`, `settings.masters` | `places[]`: `id`, `name`, `short_code`, `type`, `type_label`, `address`, `city`, `state_code`, `postal_code`, `lat`, `lng`, `active` |
+| `POST /owner/places` | `settings.masters` | `name` (required), `short_code` (made when left out), `type` (`place_types`; a place with an address is a customer site by default, else a city), `address`, `city`, `state_code`, `postal_code`, `lat` and `lng` (both or neither) → `place` |
+| `PUT /owner/places/{id}` · `POST …/active` | `settings.masters` | the fields sent · `active` → `place` |
+| `GET /owner/trucks/{id}` | `truck.view` | `truck`: `id`, `status`, `status_label`, `reg_no`, `rc_owner_name`, `truck_type`, `body_type`, `vehicle_class`, `make`, `model`, `manufacture_year`, `registration_state`, `registration_date`, `fuel_type`, `ownership`, `owner_party_id`, `payload_mt`, `odometer_km`, `odometer_locked` (typed once; trips move it after), `branch_id`, `notes` (the list is `GET /owner/trucks`, §10) |
+| `POST /owner/trucks` | `truck.manage` | `reg_no` and `rc_owner_name` (required; the registration is checked against the fleet), and any of the fields above; the plan's truck limit holds (`422` with the message) → `truck` |
+| `PUT /owner/trucks/{id}` | `truck.manage` | the fields sent (`odometer_km` only while none is recorded) → `truck` |
+| `POST /owner/trucks/{id}/status` | `truck.manage` | `status`: `idle` (free) / `workshop` / `breakdown` / `out_of_service` / `sold` — refused while it is on a trip → `truck` |
+| `GET /owner/crew?type=` | `people.view` | `crew[]`: `id`, `name`, `type`, `type_label`, `mobile`, `status`, `licence_no`, `licence_expiry`, `licence_state`, `truck`, `app_linked`, `papers` (`state` green / amber / red, `expired`, `due`, `missing`; with `document.view`) — `status=working` (default) / `left` / `all` |
+| `GET /owner/crew/{id}` | `people.view` | `person`: the card and `alt_mobile`, `employee_code`, `licence_class`, `badge_no`, `default_truck_id`, `branch_id`, `address`, `emergency_name`, `emergency_mobile`, `blood_group`, `notes`, `joining_date`, `leaving_date`, and the pay (`pay_basis`, `monthly_salary`, `per_trip_rate`, `per_km_rate`) for those who manage people or see payroll |
+| `POST /owner/crew` | `people.manage` | `name` and `type` (required), and any of the fields above (`mobile` is unique: it is how the crew app signs in) → `person` |
+| `PUT /owner/crew/{id}` | `people.manage` | the fields sent. The mobile of someone using the crew app is changed on the web (that ends the old login); the licence comes from the licence paper when one is on file → `person` |
+| `POST /owner/crew/{id}/active` | `people.manage` | `active` false (left, `leaving_date` default today; refused while on a trip that has not ended) / true (working again) → `person` |
+
+A person limited to a branch adds trucks and crew only in that branch.
 
 
 ## 13. My profile, the company's business details, Help (added in M28)

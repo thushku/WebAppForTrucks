@@ -43,6 +43,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M26 ✅ | Notification priorities (inbox order, push urgency) and My notifications: groups off for the phone, quiet hours — web and both apps | Only what matters rings |
 | M27 ✅ | The crew money desk: quick cash given to or spent by a crew member (person page and owner app) into their khata — a trip's advance, an advance against pay or paying dues; the people list with paper health and Share contact | Crew money in two taps |
 | M28 ✅ | My profile (name, language, birthday, square photo) on the web and both apps; the owner app's Business tab (the company as it prints) and Help (provider's support contacts) | Everyone's own details in one place |
+| M29 ✅ | The owner app's masters: clients, places, trucks and crew — lists, add once per key, edit only what changed, deactivate — with the web's checks and branch limits | The fleet's lists kept from the phone |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

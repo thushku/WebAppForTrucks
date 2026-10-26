@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Owner\CompanyController;
+use App\Http\Controllers\Api\Owner\MastersController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
 use App\Http\Controllers\Api\Owner\WriteController;
@@ -100,7 +101,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/ledgers/{ledger}', [MoneyController::class, 'statement'])->whereNumber('ledger')->middleware('permission:ledger.view')->name('ledgers.show');
 
                 // Making things from the phone (M23, api-v1 §12): each write runs once per Idempotency-Key.
-                Route::get('/masters', [WriteController::class, 'masters'])->middleware('permission:trip.create,invoice.create,payment.record,document.manage,trip.settle')->name('masters');
+                Route::get('/masters', [WriteController::class, 'masters'])->middleware('permission:trip.create,invoice.create,payment.record,document.manage,trip.settle,party.manage,truck.manage,people.manage,settings.masters')->name('masters');
                 Route::post('/trips', [WriteController::class, 'storeTrip'])->middleware('permission:trip.create')->name('trips.store');
                 Route::post('/trips/{uuid}/send', [WriteController::class, 'sendTrip'])->whereUuid('uuid')->middleware('permission:trip.assign')->name('trips.send');
                 Route::get('/unbilled', [WriteController::class, 'unbilled'])->middleware('permission:invoice.create')->name('unbilled');
@@ -108,6 +109,26 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');
                 Route::post('/receipts', [WriteController::class, 'storeReceipt'])->middleware('permission:payment.record')->name('receipts.store');
                 Route::post('/papers', [WriteController::class, 'storePaper'])->middleware('permission:document.manage')->name('papers.store');
+                // The masters (M29, 13-parity #9): list, open, add (once per key), edit (only the fields sent), deactivate.
+                Route::get('/clients', [MastersController::class, 'clients'])->middleware('permission:party.view')->name('clients');
+                Route::get('/clients/{party}', [MastersController::class, 'client'])->whereNumber('party')->middleware('permission:party.view')->name('clients.show');
+                Route::post('/clients', [MastersController::class, 'storeClient'])->middleware('permission:party.manage')->name('clients.store');
+                Route::put('/clients/{party}', [MastersController::class, 'updateClient'])->whereNumber('party')->middleware('permission:party.manage')->name('clients.update');
+                Route::post('/clients/{party}/active', [MastersController::class, 'activeClient'])->whereNumber('party')->middleware('permission:party.manage')->name('clients.active');
+                Route::get('/places', [MastersController::class, 'places'])->middleware('permission:trip.view,trip.create,settings.masters')->name('places');
+                Route::post('/places', [MastersController::class, 'storePlace'])->middleware('permission:settings.masters')->name('places.store');
+                Route::put('/places/{place}', [MastersController::class, 'updatePlace'])->whereNumber('place')->middleware('permission:settings.masters')->name('places.update');
+                Route::post('/places/{place}/active', [MastersController::class, 'activePlace'])->whereNumber('place')->middleware('permission:settings.masters')->name('places.active');
+                Route::get('/trucks/{truck}', [MastersController::class, 'truck'])->whereNumber('truck')->middleware('permission:truck.view')->name('trucks.show');
+                Route::post('/trucks', [MastersController::class, 'storeTruck'])->middleware('permission:truck.manage')->name('trucks.store');
+                Route::put('/trucks/{truck}', [MastersController::class, 'updateTruck'])->whereNumber('truck')->middleware('permission:truck.manage')->name('trucks.update');
+                Route::post('/trucks/{truck}/status', [MastersController::class, 'truckStatus'])->whereNumber('truck')->middleware('permission:truck.manage')->name('trucks.status');
+                Route::get('/crew', [MastersController::class, 'crew'])->middleware('permission:people.view')->name('crew');
+                Route::get('/crew/{person}', [MastersController::class, 'person'])->whereNumber('person')->middleware('permission:people.view')->name('crew.show');
+                Route::post('/crew', [MastersController::class, 'storePerson'])->middleware('permission:people.manage')->name('crew.store');
+                Route::put('/crew/{person}', [MastersController::class, 'updatePerson'])->whereNumber('person')->middleware('permission:people.manage')->name('crew.update');
+                Route::post('/crew/{person}/active', [MastersController::class, 'activePerson'])->whereNumber('person')->middleware('permission:people.manage')->name('crew.active');
+
                 // The Business tab of the profile (M28): the company as it prints; edited with settings.company.
                 Route::get('/company', [CompanyController::class, 'show'])->name('company');
                 Route::post('/company', [CompanyController::class, 'save'])->middleware('permission:settings.company')->name('company.update');

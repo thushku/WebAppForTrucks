@@ -91,7 +91,8 @@ founder's laptop) in `phoneapp/`.
 - The phone API is documented for the phone-app session in `docs/handover/api-v1.md`; keep it in step with
   `routes/api.php` and the tests (`PhoneApiTest`, `ApprovalTest`, `OwnerApiTest`). The owner app's screens are
   `Api/Owner/{Office,Money}Controller` (`/api/v1/owner/*`) and its writes `Api/Owner/WriteController` (M23: trips, bills,
-  receipts, papers — each once per `Idempotency-Key`, `Concerns/RunsOnce`); the crew's My Khata is
+  receipts, papers — each once per `Idempotency-Key`, `Concerns/RunsOnce`), its masters `Api/Owner/MastersController`
+  (M29: clients, places, trucks, crew; an edit changes only the fields sent — rules wrapped in `sometimes`); the crew's My Khata is
   `GET /crew/money`. The rest of the handover pack (read-me, screens, sync design, local set-up) is in
   `docs/handover/`; `php artisan fleet:code <mobile>` prints a demo crew member's activation code.
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`

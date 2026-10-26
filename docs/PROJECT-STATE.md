@@ -2,6 +2,26 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M29: the owner app's masters (13-parity #9)
+
+**Built (in `webapp/`, `Api/Owner/MastersController`; api-v1 §12 "Masters"):**
+- **Clients, places, trucks and crew from the phone**: card lists with search and Active / Inactive (Working / Left
+  for crew), open one, **add** (once per Idempotency-Key), **edit** (only the fields sent change, so the phone sends
+  just what was edited), **deactivate** — never delete. The web's permissions and checks: a client's GSTIN / TRN checked
+  on add (tax numbers otherwise on the web), unique codes made from the name, a truck's registration against the fleet
+  and the plan's truck limit, the odometer typed once, a truck on a trip keeps its status, a crew member's mobile unique
+  and not changed from the phone while they use the crew app, "has left" refused while on a trip that has not ended.
+- Client cards show what is billed and not paid; crew cards the licence and papers chips; the forms' choices are in
+  `GET /owner/masters` → `forms`.
+- A person limited to a branch adds trucks and crew only in that branch (the branch sent is ignored for them).
+- Handover: screens O24 Clients, O25 Places, O26 Truck form, O27 Crew.
+
+**Tests:** 261 passing (new `OwnerMastersTest`, 3 tests: clients — add once per key, the code and GSTIN, a taken
+code, edits of one field, no tax number on edit, deactivate and the lists, search —, places — the code and type, the map
+pin both-or-neither —, a viewer reading only; trucks — add, a duplicate registration, edit, the odometer kept, the
+status —, crew — the list with papers, add with licence and pay, a taken mobile, the app user's mobile, leaving while on
+a trip, leaving and back —, the workshop's rights; the branch limit on adds and edits).
+
 ## 2026-10-26 — Milestone M28: my profile, the company's business details and Help (13-parity #14, #28, #30)
 
 **Built (in `webapp/`, `Platform/Auth/Profile`, `Platform/Tenancy/CompanyProfile`; decision P20):**

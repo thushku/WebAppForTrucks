@@ -68,6 +68,14 @@ class WriteController extends Controller
             // Quick cash for the crew (M27).
             'expense_categories' => MasterItem::ofList('expense_category')->where('active', true)->get(['code', 'name']),
             'cash_directions' => CrewCash::DIRECTIONS, 'cash_modes' => CrewCash::MODES, 'cash_purposes' => CrewCash::PURPOSES,
+            // The masters' forms (M29).
+            'forms' => [
+                'truck_types' => MasterItem::ofList('truck_type')->where('active', true)->get(['code', 'name']),
+                'body_types' => MasterItem::ofList('body_type')->where('active', true)->get(['code', 'name']),
+                'fuel_types' => Truck::FUELS, 'ownerships' => Truck::OWNERSHIP, 'truck_statuses' => Truck::STATUSES,
+                'person_types' => Person::TYPES, 'pay_bases' => Person::PAY_BASES, 'place_types' => Place::TYPES,
+                'regions' => \App\Support\Regions::for($this->context->company()->country),
+            ],
         ]);
     }
 
