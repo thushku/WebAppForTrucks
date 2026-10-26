@@ -94,6 +94,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/trips/{uuid}/route', [OfficeController::class, 'route'])->whereUuid('uuid')->middleware('permission:map.view')->name('trips.route');
                 Route::get('/trucks', [OfficeController::class, 'trucks'])->middleware('permission:truck.view')->name('trucks');
                 Route::get('/papers', [OfficeController::class, 'papers'])->middleware('permission:document.view')->name('papers');
+                Route::get('/reports/routes', [OfficeController::class, 'routes'])->middleware('permission:report.view')->name('reports.routes');
                 Route::get('/papers/{document}/files/{file}', [OfficeController::class, 'paperFile'])->middleware('permission:document.view')->name('papers.file');
                 Route::get('/invoices', [MoneyController::class, 'invoices'])->middleware('permission:invoice.view')->name('invoices');
                 Route::get('/invoices/{invoice}', [MoneyController::class, 'invoice'])->whereNumber('invoice')->middleware('permission:invoice.view')->name('invoices.show');

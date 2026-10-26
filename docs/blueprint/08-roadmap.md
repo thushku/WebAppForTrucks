@@ -47,6 +47,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M30 ✅ | Number series per GSTIN (the main one keeps the company series; a branch with its own GSTIN bills from it) and per branch for LRs, quotations and hire challans; {BR} is the branch code | Numbers each GSTIN and branch can file |
 | M31 ✅ | Owner app quotations (write, send with link and words, answer, copy) and payment vouchers to vendors, suppliers, crew and expenses | Quote and pay from the phone |
 | M32 ✅ | The morning summary at 07:00 company time, by email and to the inbox: yesterday's trips and money, what waits, who owes the most; daily, weekly or off per person (owners daily) | The day's numbers before the first call |
+| M33 ✅ | Routes report: per lane what a trip earns (LR freight), costs (book) and makes, km, per km, days, main costs, last trip — web, CSV and owner app | Know what to quote on a lane |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

@@ -18,6 +18,7 @@ class ReportController extends AccountsController
 {
     public const TABS = [
         'trips' => 'Trip profit',
+        'lanes' => 'Routes',
         'spending' => 'Road spending',
         'no_receipt' => 'Payments without receipt',
         'fuel' => 'Fuel and mileage',
@@ -33,6 +34,7 @@ class ReportController extends AccountsController
             'no_receipt' => $reports->withoutReceipt($from, $to),
             'fuel' => $reports->fuel($from, $to),
             'drivers' => $reports->drivers($from, $to),
+            'lanes' => $reports->lanes($from, $to),
             default => $reports->tripProfit($from, $to),
         };
 
@@ -54,6 +56,9 @@ class ReportController extends AccountsController
                 $data['events']->map(fn ($e) => [$e->event_at?->format('d-m-Y H:i'), $e->person?->name, $e->trip?->trip_number, $e->data['authority'] ?? '', $e->data['reason'] ?? '', $e->data['place'] ?? '', (float) $e->amount, $e->status])),
             'fuel' => $this->csv('Fuel-and-mileage-' . $span, [__('Truck'), __('Fills'), __('Litres'), __('Fuel cost'), __('Trips'), __('Km'), __('Km per litre'), __('Standard'), __('Fuel per km')],
                 $data->map(fn ($r) => [$r->truck->reg_no, $r->fills, $r->litres, $r->cost, $r->trips, $r->km, $r->kmpl, $r->standard, $r->per_km])),
+            'lanes' => $this->csv('Routes-' . $span, [__('Route'), __('Trips'), __('Income per trip'), __('Cost per trip'), __('Profit per trip'), __('Margin %'), __('Km'), __('Income per km'), __('Days'), __('Best trip'), __('Worst trip'), __('Main costs per trip')],
+                $data->map(fn ($r) => [$r->route, $r->trips, $r->income, $r->cost, $r->profit, $r->margin, $r->km, $r->per_km, $r->days, $r->best, $r->worst,
+                    collect($r->main_costs)->map(fn ($v, $k) => $k . ' ' . $v)->join('; ')])),
             'drivers' => $this->csv('Drivers-' . $span, [__('Driver'), __('Trips'), __('Km'), __('Hours at the wheel'), __('Money entries'), __('Rejected'), __('Without receipt')],
                 $data->map(fn ($r) => [$r->person?->name, $r->trips, $r->km, round($r->minutes / 60, 1), $r->entries, $r->rejected, $r->without_receipt])),
             default => $this->csv('Trip-profit-' . $span, [__('Trip'), __('Vehicle'), __('Route'), __('Ended'), __('Income'), __('Cost'), __('Profit'), __('Km'), __('Profit per km'), __('Margin %')],

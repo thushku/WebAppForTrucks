@@ -161,6 +161,21 @@ class OfficeController extends Controller
         return response(Storage::disk('local')->get($file->path), 200, ['Content-Type' => $file->mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
+    /** Routes (M33): what a trip on each lane earns, costs and makes, for trips ended in the period (default: the last 90 days). */
+    public function routes(Request $request, \App\Modules\Reports\Services\Reports $reports): JsonResponse
+    {
+        $f = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        $today = \Carbon\CarbonImmutable::now($this->context->company()->timezone ?: 'UTC')->startOfDay();
+        $to = isset($f['to']) ? \Carbon\CarbonImmutable::parse($f['to']) : $today;
+        $from = isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $to->subDays(90);
+
+        return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'routes' => $reports->lanes($from, $to)->map(fn ($r) => [
+            'route' => $r->route, 'empty' => $r->empty, 'trips' => $r->trips, 'income' => $r->income, 'cost' => $r->cost, 'profit' => $r->profit, 'margin' => $r->margin,
+            'km' => $r->km, 'per_km' => $r->per_km, 'days' => $r->days, 'best' => $r->best, 'worst' => $r->worst, 'main_costs' => $r->main_costs,
+            'last' => ['trip' => $r->last['trip']->trip_number, 'uuid' => $r->last['trip']->uuid, 'date' => $r->last['date']?->toDateString(), 'income' => $r->last['income']],
+        ])->values()]);
+    }
+
     private function tripRow(Trip $t): array
     {
         return [

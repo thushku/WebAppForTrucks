@@ -34,6 +34,32 @@
       </table>
       @break
 
+    @case('lanes')
+      <p class="px-6 pt-5 text-sm text-ink-500">{{ __('Trips that ended in the period, by route: what a trip on it usually earns, costs and makes — what to quote the next client.') }}</p>
+      <table class="table mt-2">
+        <thead><tr><th>{{ __('Route') }}</th><th class="text-end">{{ __('Trips') }}</th><th class="text-end">{{ __('Income per trip') }}</th><th class="text-end">{{ __('Cost per trip') }}</th><th class="text-end">{{ __('Profit per trip') }}</th><th class="text-end">{{ __('Margin') }}</th><th class="text-end">{{ __('Km') }}</th><th class="text-end">{{ __('Per km') }}</th><th class="text-end">{{ __('Days') }}</th><th>{{ __('Main costs per trip') }}</th><th>{{ __('Last trip') }}</th></tr></thead>
+        <tbody>
+          @forelse ($data as $r)
+            <tr>
+              <td class="text-sm font-medium">{{ $r->route ?: '—' }}@if ($r->trips > 1)<div class="text-xs text-ink-500">{{ __('Best :best · worst :worst', ['best' => $m($r->best), 'worst' => $m($r->worst)]) }}</div>@endif</td>
+              <td class="text-end text-sm">{{ $r->trips }}</td>
+              <td class="money text-end text-sm">{{ $m($r->income) }}</td>
+              <td class="money text-end text-sm">{{ $m($r->cost) }}</td>
+              <td class="money text-end text-sm font-semibold {{ $r->profit < 0 ? 'text-overdue' : '' }}">{{ $m($r->profit) }}</td>
+              <td class="text-end text-sm">{{ $r->margin !== null ? $r->margin . '%' : '—' }}</td>
+              <td class="text-end text-sm">{{ $r->km ? number_format($r->km) : '—' }}</td>
+              <td class="money text-end text-sm">{{ $r->per_km !== null ? $m($r->per_km) : '—' }}</td>
+              <td class="text-end text-sm">{{ $r->days ?? '—' }}</td>
+              <td class="text-xs text-ink-600">@forelse ($r->main_costs as $what => $amount)<div class="whitespace-nowrap">{{ $what }} <span class="money">{{ $m($amount) }}</span></div>@empty — @endforelse</td>
+              <td class="whitespace-nowrap text-xs"><a href="{{ route('trips.show', $r->last['trip']) }}" class="font-mono hover:text-brand-700">{{ $r->last['trip']->trip_number }}</a><div class="text-ink-500">{{ $r->last['date']?->format('d M') }} · {{ $m($r->last['income']) }}</div></td>
+            </tr>
+          @empty
+            <tr><td colspan="11" class="py-10 text-center text-ink-500">{{ __('No trip ended in this period.') }}</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+      @break
+
     @case('no_receipt')
       <div class="grid gap-6 p-6 lg:grid-cols-2">
         <div>

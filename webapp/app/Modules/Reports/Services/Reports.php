@@ -133,6 +133,61 @@ class Reports
         })->sortByDesc('km')->values();
     }
 
+    /**
+     * Routes (lanes, M33): the trips that ended in the period grouped by from
+     * → to (an empty run apart), with what a trip on the lane usually earns
+     * (its LRs' freight and charges, or the bill when that is more), costs (the
+     * book) and makes, the km, the days on the road, the main costs and the
+     * last trip — what to quote the next client on it.
+     */
+    public function lanes(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        $rows = $this->tripProfit($from, $to);
+        if ($rows->isEmpty()) {
+            return collect();
+        }
+        $places = \App\Modules\Settings\Models\Place::whereIn('id', $rows->flatMap(fn ($r) => [$r->trip->from_place_id, $r->trip->to_place_id])->filter()->unique())->pluck('name', 'id');
+        // Income is the freight on the trip's LRs, billed or not (the book has it only once billed).
+        $freight = \App\Modules\Trips\Models\Consignment::whereIn('trip_id', $rows->pluck('trip.id'))->where('status', '!=', 'cancelled')
+            ->groupBy('trip_id')->selectRaw('trip_id, sum(coalesce(freight, 0) + coalesce(loading_charge, 0) + coalesce(unloading_charge, 0) + coalesce(other_charges, 0)) as amount')->pluck('amount', 'trip_id');
+        $rows = $rows->map(function ($r) use ($freight) {
+            $r->income = round(max($r->income, (float) ($freight[$r->trip->id] ?? 0)), 2);
+            $r->profit = round($r->income - $r->cost, 2);
+
+            return $r;
+        });
+        // The costs of each trip by ledger (fuel, toll, bata…), for the lane's main costs.
+        $costs = DB::table('voucher_lines as l')->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')->join('account_groups as g', 'g.id', '=', 'a.account_group_id')
+            ->where('l.company_id', $this->context->id())->whereIn('l.trip_id', $rows->pluck('trip.id'))->where('g.nature', 'expense')
+            ->groupBy('l.trip_id', 'a.name')->selectRaw('l.trip_id, a.name, sum(l.debit - l.credit) as amount')->get()->groupBy('trip_id');
+
+        return $rows->groupBy(fn ($r) => $r->trip->from_place_id . '-' . $r->trip->to_place_id . ($r->trip->trip_kind === 'empty' ? '-empty' : ''))
+            ->map(function (Collection $set) use ($places, $costs) {
+                $trip = $set->first()->trip;
+                $n = $set->count();
+                $income = $set->sum('income');
+                $cost = $set->sum('cost');
+                $withKm = $set->filter(fn ($r) => $r->km);
+                $days = $set->filter(fn ($r) => $r->trip->started_at && $r->trip->ended_at)->map(fn ($r) => $r->trip->started_at->diffInMinutes($r->trip->ended_at) / 1440);
+                $last = $set->sortBy(fn ($r) => $r->trip->ended_at)->last();
+                $main = $set->flatMap(fn ($r) => $costs[$r->trip->id] ?? collect())->groupBy('name')
+                    ->map(fn ($c) => round($c->sum(fn ($x) => (float) $x->amount) / $n, 2))->sortDesc()->take(3);
+
+                return (object) [
+                    'route' => collect([$places[$trip->from_place_id] ?? null, $places[$trip->to_place_id] ?? null])->filter()->join(' → ') . ($trip->trip_kind === 'empty' ? ' (' . __('empty') . ')' : ''),
+                    'empty' => $trip->trip_kind === 'empty', 'trips' => $n,
+                    'income' => round($income / $n, 2), 'cost' => round($cost / $n, 2), 'profit' => round(($income - $cost) / $n, 2),
+                    'margin' => $income > 0 ? round(($income - $cost) / $income * 100, 1) : null,
+                    'km' => $withKm->isNotEmpty() ? (int) round($withKm->avg('km')) : null,
+                    'per_km' => $withKm->sum('km') > 0 ? round($withKm->sum('income') / $withKm->sum('km'), 2) : null,
+                    'days' => $days->isNotEmpty() ? round($days->avg(), 1) : null,
+                    'main_costs' => $main->all(),
+                    'last' => ['date' => $last->trip->ended_at, 'income' => $last->income, 'trip' => $last->trip],
+                    'best' => round($set->max('profit'), 2), 'worst' => round($set->min('profit'), 2),
+                ];
+            })->sortByDesc('trips')->values();
+    }
+
     private function startUtc(CarbonImmutable $day): CarbonImmutable
     {
         return CarbonImmutable::parse($day->toDateString(), $this->context->company()->timezone ?: 'UTC')->startOfDay()->utc();

@@ -2,6 +2,18 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M33: the routes report (route analysis)
+
+**Built (in `webapp/`, `Reports::lanes()`, Reports → Routes, `GET /owner/reports/routes`):**
+- The trips that ended in the period **by route** (from → to; an empty run on its own line): trips, and per trip the
+  income (the LRs' freight and charges, billed or not — or the bill when that is more), the cost from the book, the
+  profit and margin, the km, income per km, days on the road, the best and worst trip, the three main costs (fuel, toll,
+  loading…) and the last trip with its freight — what to quote the next client on the lane. Excel (CSV) like every
+  report; the owner app has it (screen O30).
+
+**Tests:** 268 passing (new `RoutesReportTest`: two loaded trips and a toll on one, an empty run back — the lane's
+averages, margin, km and per km, the main cost, the empty line; the CSV row; the owner app's answer).
+
 ## 2026-10-26 — Milestone M32: the morning summary (decision P23)
 
 **Built (in `webapp/`, `Reports/Services/Digest`, `fleet:digest`, view `emails/digest`):**
