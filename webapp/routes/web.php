@@ -96,6 +96,8 @@ Route::post('/d/{token}/answer', [PublicDocumentController::class, 'answer'])->w
 
 // A client's tracking link for an LR (M45; no sign-in).
 Route::get('/t/{token}', [\App\Http\Controllers\Trips\TrackingController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('track');
+// A client's own page: their loads with tracking and their open bills (M47; no sign-in).
+Route::get('/c/{token}', [\App\Http\Controllers\Parties\ClientPageController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('client.page');
 
 // What a phone camera opens when the sign-in QR is scanned outside the app.
 Route::get('/qr/{token}', [QrLoginController::class, 'scan'])->where('token', '[A-Za-z0-9]{40}')->name('login.qr.scan');
@@ -170,6 +172,11 @@ Route::middleware('auth')->group(function () {
             Route::middleware('permission:settings.bank')->group(function () {
                 Route::post('/{party}/banks', [PartyDetailsController::class, 'storeBank'])->name('banks.store');
                 Route::delete('/{party}/banks/{bank}', [PartyDetailsController::class, 'destroyBank'])->name('banks.destroy');
+            });
+            // The client's own page link (M47): made and stopped by whoever sends bills.
+            Route::middleware('permission:invoice.send')->group(function () {
+                Route::post('/{party}/client-page', [\App\Http\Controllers\Parties\ClientPageController::class, 'store'])->name('client-page.store');
+                Route::delete('/{party}/client-page', [\App\Http\Controllers\Parties\ClientPageController::class, 'destroy'])->name('client-page.destroy');
             });
             Route::get('/{party}', [PartyController::class, 'show'])->middleware('permission:party.view')->name('show');
         });

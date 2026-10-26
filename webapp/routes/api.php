@@ -130,6 +130,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');
                 Route::post('/invoices/{invoice}/notes', [WriteController::class, 'storeNote'])->whereNumber('invoice')->middleware('permission:invoice.create')->name('invoices.notes');
                 Route::post('/consignments/{consignment}/track', [WriteController::class, 'trackLoad'])->whereNumber('consignment')->middleware('permission:trip.view')->name('consignments.track');
+                Route::get('/clients/{party}/page', [WriteController::class, 'clientPage'])->whereNumber('party')->middleware('permission:invoice.send')->name('clients.page');
+                Route::post('/clients/{party}/page', [WriteController::class, 'shareClientPage'])->whereNumber('party')->middleware('permission:invoice.send')->name('clients.page.share');
+                Route::delete('/clients/{party}/page', [WriteController::class, 'stopClientPage'])->whereNumber('party')->middleware('permission:invoice.send')->name('clients.page.stop');
                 Route::post('/receipts', [WriteController::class, 'storeReceipt'])->middleware('permission:payment.record')->name('receipts.store');
                 Route::post('/papers', [WriteController::class, 'storePaper'])->middleware('permission:document.manage')->name('papers.store');
                 // The masters (M29, 13-parity #9): list, open, add (once per key), edit (only the fields sent), deactivate.

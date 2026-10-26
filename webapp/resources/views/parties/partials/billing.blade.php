@@ -10,6 +10,30 @@
   <div class="stat"><div class="stat-label">{{ __('Received this year') }}</div><div class="stat-value money text-2xl">{{ $m($b['received']) }}</div><div class="mt-1 text-xs text-ink-500">{{ $b['year']->start->format('d M Y') }} – {{ $b['year']->end->format('d M Y') }}</div></div>
 </div>
 
+@can('invoice.send')
+  {{-- The client's own page (M47): one link with their loads and tracking, and their open bills. --}}
+  @php($page = session('client_page') ?? $b['client_page'])
+  <section class="card p-5" data-client-page>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h3 class="font-semibold">{{ __('Client page') }}</h3>
+        <p class="mt-1 text-sm text-ink-500">{{ __('One link for the client: their loads of the last :days days with tracking, and their open bills. No sign-in; never another client’s.', ['days' => \App\Modules\Parties\Services\ClientPage::DAYS]) }}</p>
+      </div>
+      @unless ($page)
+        <form method="POST" action="{{ route('parties.client-page.store', $party) }}">@csrf<button class="btn-secondary"><x-icon name="send" /> {{ __('Make the link') }}</button></form>
+      @endunless
+    </div>
+    @if ($page)
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <input class="input min-w-0 flex-1 font-mono text-xs" value="{{ $page['url'] }}" readonly aria-label="{{ __('Client page link') }}" onclick="this.select()">
+        <a href="https://wa.me/?text={{ rawurlencode($page['message']) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer"><x-icon name="send" /> {{ __('WhatsApp') }}</a>
+        <a href="{{ $page['url'] }}" class="btn-secondary" target="_blank" rel="noopener">{{ __('Open') }}</a>
+        <form method="POST" action="{{ route('parties.client-page.destroy', $party) }}" onsubmit="return confirm(@js(__('Stop this link? It will no longer open. You can make a new one.')))">@csrf @method('DELETE')<button class="btn-ghost text-overdue">{{ __('Stop the link') }}</button></form>
+      </div>
+    @endif
+  </section>
+@endcan
+
 <section class="card overflow-x-auto">
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-ink-100 px-5 py-3">
     <h3 class="font-semibold">{{ __('LRs to bill') }}</h3>

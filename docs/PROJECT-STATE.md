@@ -2,6 +2,24 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M47: the client's own page (decision P34)
+
+**Built (in `webapp/`, `Parties/Services/ClientPage`, `/c/{token}`):**
+- **One link per client** with everything they ask about: their loads of the last 60 days (as billing party, consignor
+  or consignee) — LR, date, route, status and a **Track** link to each one's tracking page (M45, left out once that has
+  ended) —, their **open bills** (number, date, due date in red when past, balance) each opening its own secure bill
+  page, and what is **due** and **overdue**; the company's phone. No sign-in, never indexed; never another client's
+  loads, never the freight of loads not yet billed, never the crew.
+- Made from the client's **Billing** tab ("Client page": copy, WhatsApp with the words ready, open, **Stop the link**)
+  by whoever may send bills (`invoice.send`); the same link until stopped, then a new one. A stopped or unknown link
+  answers "This link no longer opens" (410).
+- Owner app: `GET`/`POST`/`DELETE /owner/clients/{id}/page`. Hindi for every new string.
+
+**Tests:** 298 passing (new `ClientPageTest`, 2 tests: three loads — one billed, one waiting, one moved to another
+client —, the page shows the two loads with two tracking links and the ₹75,520 bill with its link, not the other
+client's LR nor the unbilled ₹62,900 freight; stopped → 410, a new link differs; the owner app's make, give the same,
+stop, and 404 for a supplier).
+
 ## 2026-10-26 — Milestone M46: a pump's credit statement (decision P33)
 
 **Built (in `webapp/`, `Accounts/Services/CardStatements`):**

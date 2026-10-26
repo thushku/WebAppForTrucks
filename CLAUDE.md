@@ -57,7 +57,9 @@ founder's laptop) in `phoneapp/`.
   their role grants) and the `HasBranch` trait (`->inBranch()` for lists; route binding answers 404 to a limited person
   for another branch's record) on Trip, Truck, Person, Invoice, Quotation. Services and the books never apply it.
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
-  (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
+  (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts; M47 `ClientPage` — a
+  client's own page `/c/{token}` in `document_links` as type `client`: loads of 60 days with tracking, open bills; stopped
+  by setting `expires_at`), `Fleet` (trucks, complaints,
   service, M35 `TruckLoans` — a truck's loan ledger and EMIs, `truck_emis`, Trucks → EMIs; M37 `TruckCosts` — what a truck costs a
   day running or not (papers over their validity, the usual driver's salary, its no-trip bills of 90 days) and a trip's share,
   an estimate shown under the direct profit; an attached truck counts none; M38 `Tyres` — the tyre register: `tyres`,

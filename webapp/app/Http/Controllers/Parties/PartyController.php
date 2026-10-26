@@ -99,6 +99,8 @@ class PartyController extends Controller
         $open = \App\Modules\Invoicing\Models\Invoice::inBranch()->where('party_id', $party->id)->whereIn('status', \App\Modules\Invoicing\Models\Invoice::OPEN_STATUSES);
 
         return [
+            'client_page' => ($url = app(\App\Modules\Parties\Services\ClientPage::class)->current($party))
+                ? ['url' => $url, 'message' => app(\App\Modules\Parties\Services\ClientPage::class)->message($party, $url)] : null,
             'year' => $year,
             'unbilled' => $unbilled,
             'unbilled_total' => round((float) $unbilled->sum(fn ($c) => (float) $c->freight + (float) $c->loading_charge + (float) $c->unloading_charge + (float) $c->other_charges), 2),

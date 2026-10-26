@@ -563,6 +563,18 @@ package), QR codes / amount in words / CSV written in-house. See
 - A charge nobody entered is **booked as the truck's fuel, owed to the
   pump** (its ledger), so the pump's account and the book agree.
 
+### P34. The client's own page (added 26 Oct 2026, M47; extends P32)
+
+- **One secure link per client** (`/c/{token}`, no sign-in, never indexed),
+  made by whoever may send bills (`invoice.send`) from the client's billing
+  tab or the owner app; the same link until it is **stopped**, then a new one.
+- It lists the client's loads of **the last 60 days** (as billing party,
+  consignor or consignee) with each one's **tracking link** (P32), and their
+  **open bills** — number, date, due date, balance — each opening its own
+  secure bill page, with what is due and overdue.
+- Never another client's anything, never the freight of loads not yet
+  billed, never the crew or office notes.
+
 ---
 
 ## 4. Still open

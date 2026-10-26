@@ -19,6 +19,7 @@ use App\Modules\Invoicing\Models\Receipt;
 use App\Modules\Invoicing\Services\InvoiceService;
 use App\Modules\Invoicing\Services\ReceiptService;
 use App\Modules\Parties\Models\Party;
+use App\Modules\Parties\Services\ClientPage;
 use App\Modules\People\Models\Person;
 use App\Modules\Settings\Models\CompanyBankAccount;
 use App\Modules\Settings\Models\MasterItem;
@@ -243,6 +244,33 @@ class WriteController extends Controller
         $url = $tracking->link($consignment);
 
         return response()->json(['url' => $url, 'message' => $tracking->message($consignment, $url)]);
+    }
+
+    /** The client's own page link (M47): the live one, if any, with the words to send it. */
+    public function clientPage(Party $party, ClientPage $pages): JsonResponse
+    {
+        abort_unless(in_array('client', $party->roleCodes(), true), 404);
+        $url = $pages->current($party);
+
+        return response()->json(['url' => $url, 'message' => $url ? $pages->message($party, $url) : null]);
+    }
+
+    /** Make the client's page link (or give the live one). Asking twice gives the same link. */
+    public function shareClientPage(Party $party, ClientPage $pages): JsonResponse
+    {
+        abort_unless(in_array('client', $party->roleCodes(), true), 404);
+        $url = $pages->link($party);
+
+        return response()->json(['url' => $url, 'message' => $pages->message($party, $url)]);
+    }
+
+    /** Stop the client's page link: it no longer opens. */
+    public function stopClientPage(Party $party, ClientPage $pages): JsonResponse
+    {
+        abort_unless(in_array('client', $party->roleCodes(), true), 404);
+        $pages->stop($party);
+
+        return response()->json(['url' => null, 'message' => null]);
     }
 
     /** Money received: cash, UPI, NEFT or cheque, with TDS and deductions, set against the oldest bills. */
