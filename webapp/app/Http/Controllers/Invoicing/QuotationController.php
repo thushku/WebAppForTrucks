@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Invoicing;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Invoicing\Models\Quotation;
-use App\Modules\Invoicing\Models\QuotationLine;
 use App\Modules\Invoicing\Services\DocumentData;
 use App\Modules\Invoicing\Services\DocumentMailer;
 use App\Modules\Invoicing\Services\DocumentRenderer;
@@ -12,7 +11,6 @@ use App\Modules\Invoicing\Services\Messages;
 use App\Modules\Invoicing\Services\Quotations;
 use App\Modules\Parties\Models\Party;
 use App\Modules\Parties\Models\PartyTaxId;
-use App\Modules\Parties\Models\RateContractLine;
 use App\Modules\Settings\Models\MasterItem;
 use App\Modules\Settings\Models\Place;
 use App\Platform\Tenancy\CompanyContext;
@@ -194,45 +192,7 @@ class QuotationController extends Controller
     /** @return array{0: array<string, mixed>, 1: array<int, array<string, mixed>>} */
     private function validated(Request $request): array
     {
-        $companyId = $this->context->id();
-        $place = Rule::exists('places', 'id')->where('company_id', $companyId);
-        $data = $request->validate([
-            'party_id' => ['required', 'integer', Rule::exists('parties', 'id')->where('company_id', $companyId)],
-            'quote_date' => ['required', 'date_format:Y-m-d'],
-            'valid_until' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:quote_date'],
-            'subject' => ['nullable', 'string', 'max:150'],
-            'terms' => ['nullable', 'string', 'max:3000'],
-            'notes' => ['nullable', 'string', 'max:3000'],
-            'lines' => ['nullable', 'array', 'max:200'],
-            'lines.*.from_place_id' => ['nullable', 'integer', $place],
-            'lines.*.to_place_id' => ['nullable', 'integer', $place],
-            'lines.*.material' => ['nullable', 'string', Rule::exists('master_items', 'code')->where('company_id', $companyId)->where('list', 'material')],
-            'lines.*.truck_type' => ['nullable', 'string', Rule::exists('master_items', 'code')->where('company_id', $companyId)->where('list', 'truck_type')],
-            'lines.*.basis' => ['nullable', Rule::in(array_keys(RateContractLine::BASES))],
-            'lines.*.rate' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'lines.*.min_weight_mt' => ['nullable', 'numeric', 'min:0', 'max:200'],
-            'lines.*.detention_free_hours' => ['nullable', 'integer', 'min:0', 'max:720'],
-            'lines.*.detention_rate_per_day' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
-            'lines.*.loading_charge' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
-            'lines.*.unloading_charge' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
-            'lines.*.note' => ['nullable', 'string', 'max:200'],
-        ]);
-
-        $lines = [];
-        foreach ($data['lines'] ?? [] as $i => $line) {
-            // The spare empty row on the form is ignored.
-            if (! filled($line['from_place_id'] ?? null) && ! filled($line['to_place_id'] ?? null) && ! filled($line['rate'] ?? null)) {
-                continue;
-            }
-            foreach (['from_place_id', 'to_place_id', 'rate'] as $required) {
-                if (! filled($line[$required] ?? null)) {
-                    throw ValidationException::withMessages(["lines.{$i}.{$required}" => __('Row :n: give from, to and the rate.', ['n' => count($lines) + 1])]);
-                }
-            }
-            $lines[] = array_merge(array_map(fn ($v) => $v === '' ? null : $v, collect($line)->only(array_merge(QuotationLine::CONTRACT_FIELDS, ['note']))->all()), ['basis' => $line['basis'] ?? 'trip']);
-        }
-
-        return [collect($data)->except('lines')->all(), $lines];
+        return $this->quotations->input($request->validate($this->quotations->rules()));
     }
 
     private function today(): CarbonImmutable

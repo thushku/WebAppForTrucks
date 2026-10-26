@@ -45,6 +45,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M28 ✅ | My profile (name, language, birthday, square photo) on the web and both apps; the owner app's Business tab (the company as it prints) and Help (provider's support contacts) | Everyone's own details in one place |
 | M29 ✅ | The owner app's masters: clients, places, trucks and crew — lists, add once per key, edit only what changed, deactivate — with the web's checks and branch limits | The fleet's lists kept from the phone |
 | M30 ✅ | Number series per GSTIN (the main one keeps the company series; a branch with its own GSTIN bills from it) and per branch for LRs, quotations and hire challans; {BR} is the branch code | Numbers each GSTIN and branch can file |
+| M31 ✅ | Owner app quotations (write, send with link and words, answer, copy) and payment vouchers to vendors, suppliers, crew and expenses | Quote and pay from the phone |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

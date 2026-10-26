@@ -358,7 +358,7 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 Unknown kinds may come later: show them in the list and open the list. After any push, a crew
 app runs `GET /crew/sync` (the push says *that* something changed; sync says *what*).
 
-## 12. Owner app: making things (added in M23; crew cash in M27; masters in M29)
+## 12. Owner app: making things (added in M23; crew cash in M27; masters in M29; quotations and payments in M31)
 
 The same rules and permissions as the web: a trip is planned with its load and sent to the crew, a bill is made from
 LRs and issued, money received is set against the oldest bills, a paper is photographed onto a truck or a person.
@@ -413,6 +413,20 @@ full form.
 | `POST /owner/crew/{id}/active` | `people.manage` | `active` false (left, `leaving_date` default today; refused while on a trip that has not ended) / true (working again) → `person` |
 
 A person limited to a branch adds trucks and crew only in that branch.
+
+**Quotations and payments (added in M31):**
+
+| Call | Permission | Body → answer |
+|---|---|---|
+| `GET /owner/quotations?tab=&q=` | `invoice.view` | `tab` `open` (default: drafts and sent) / `accepted` / `closed` (declined, cancelled) / `all`; `quotations[]`: `id`, `number` (null for a draft), `label`, `status` (`draft` / `issued` / `expired` / `accepted` / `declined` / `cancelled`), `status_label`, `party` {`id`, `name`}, `quote_date`, `valid_until`, `subject`, `routes`; `next_page` |
+| `GET /owner/quotations/{id}` | `invoice.view` | `quotation`: the card and `terms`, `notes`, `decision_note`, `answered_by_name` (answered on the client's link), `viewed_at`, `issued_at`, `lines[]` (`from`, `to` {`id`, `name`, `short_code`}, `material`, `truck_type`, `basis`, `rate`, `min_weight_mt`, `detention_free_hours`, `detention_rate_per_day`, `loading_charge`, `unloading_charge`, `note`), `share_url` and `whatsapp_text` (once sent: the client's link and the words to send — open WhatsApp to `party_mobile` with them) |
+| `POST /owner/quotations` | `invoice.create` | `party_id`, `quote_date` (default today), `valid_until` (default 15 days on), `subject`, `terms` (the usual terms when left out), `notes`, `lines[]` (each: `from_place_id`, `to_place_id`, `rate` required, and the fields above; `basis` `trip` by default), `issue` (true: send it now — a refusal makes nothing) → `quotation` |
+| `PUT /owner/quotations/{id}` | `invoice.create` | a draft saved again as a whole (its routes become those sent); a sent quotation is never changed — copy it → `quotation` |
+| `POST /owner/quotations/{id}/issue` | `invoice.create` | → `quotation` with its `QT/` number, `share_url`, `whatsapp_text` |
+| `POST /owner/quotations/{id}/decide` | `invoice.create` | `decision` `accepted` / `declined` / `cancelled` (cancelled needs `note`, why), `note` (how it was accepted: "PO 4512") → `quotation` |
+| `POST /owner/quotations/{id}/copy` | `invoice.create` | once per key → a new draft `quotation` with the same routes |
+| `GET /owner/payees?q=` | `accounts.post` | `payees[]` (up to 200): `id` (the ledger), `name`, `kind` (`party` / `person` / `general`), `group`, `balance` (positive: they owe us; negative: we owe them). Suppliers, vendors, brokers and the working crew are there before anything is posted to them |
+| `POST /owner/payments` | `accounts.post` | once per key: `ledger_account_id` (a payee), `amount`, `paid_on` (default today, not ahead), `mode` (`cash` / `bank`), `bank_account_id`, `reference` (required for bank: UTR, cheque no.), `narration` (what for, required) → `voucher` {`id`, `number` (`PV/…`), `date`, `amount`, `narration`} — paid to a crew member, it clears their earnings |
 
 
 ## 13. My profile, the company's business details, Help (added in M28)

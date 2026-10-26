@@ -383,6 +383,18 @@ package), QR codes / amount in words / CSV written in-house. See
   starts as "BOM/LR/…"; a document with no branch keeps the company series.
 - `{BR}` in a format is the branch's code (the head office's when none).
 
+### P22. Quotations and payments from the owner app (added 26 Oct 2026, M31; extends P18)
+
+- P18 kept payments on the web. **Changed:** the owner app now also writes,
+  sends (the client's link and the WhatsApp words), answers and copies
+  quotations, and posts **payment vouchers** to vendors, suppliers, crew and
+  expenses — with the web's rules and rights (`invoice.create`;
+  `accounts.post` for payments, as on the web), each add once per key.
+- Still web only: hire challans, credit and debit notes, journals, settlement.
+- Suppliers, vendors, brokers and working crew can be paid before anything
+  is posted to them (their ledger is made when the payee list is shown) —
+  on the web too.
+
 ---
 
 ## 4. Still open

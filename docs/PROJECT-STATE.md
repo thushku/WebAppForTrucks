@@ -2,6 +2,25 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M31: quotations and payments in the owner app (decision P22)
+
+**Built (in `webapp/`, `Api/Owner/DealsController`; api-v1 §12):**
+- **Quotations from the phone**: the list by tab (open, accepted, closed, all), one with its routes, **new** (once per
+  key; today's date, 15 days' validity and the usual terms by default; `issue` sends it at once), a draft saved again,
+  **send** (the `QT/` number, the client's link and the WhatsApp words with it), the answer (accepted with how, declined,
+  cancelled with why), **copy** for a new offer. The rules moved into `Quotations::rules()` / `input()`, shared with the web.
+- **Payments from the phone**: the payees with what we owe them, a payment voucher (`PV/`) from cash or the bank (UTR for
+  the bank), once per key, `accounts.post` as on the web. The posting moved into `Accounts/Services/Payments`, shared
+  with Accounts → Payment.
+- Fixed on the way: a new vendor, supplier, broker or crew member could not be paid until something had been posted to
+  them (no ledger yet); the payee list now makes their ledger, on the web too.
+- Handover: screens O28 Quotations, O29 Pay.
+
+**Tests:** 265 passing (new `OwnerDealsTest`, 2 tests: a quotation refused without a destination, made once per key with
+the defaults, saved again with a second route, sent with its number, link and words, not changed once sent, listed by
+tab, cancelled only with a reason, accepted, copied, a viewer reading only; payees found by name, a bank payment needing
+its UTR, paid once per key, the vendor's balance, no cash or bank payees, a manager without the right).
+
 ## 2026-10-26 — Milestone M30: number series per GSTIN and per branch (decision P21)
 
 **Built (in `webapp/`, `Settings/Services/DocumentNumbering`, Settings → Numbering):**

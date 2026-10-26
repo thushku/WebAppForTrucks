@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Owner\CompanyController;
+use App\Http\Controllers\Api\Owner\DealsController;
 use App\Http\Controllers\Api\Owner\MastersController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
@@ -128,6 +129,19 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/crew', [MastersController::class, 'storePerson'])->middleware('permission:people.manage')->name('crew.store');
                 Route::put('/crew/{person}', [MastersController::class, 'updatePerson'])->whereNumber('person')->middleware('permission:people.manage')->name('crew.update');
                 Route::post('/crew/{person}/active', [MastersController::class, 'activePerson'])->whereNumber('person')->middleware('permission:people.manage')->name('crew.active');
+
+                // Quotations and payments (M31).
+                Route::get('/quotations', [DealsController::class, 'quotations'])->middleware('permission:invoice.view')->name('quotations');
+                Route::get('/quotations/{quotation}', [DealsController::class, 'quotation'])->whereNumber('quotation')->middleware('permission:invoice.view')->name('quotations.show');
+                Route::middleware('permission:invoice.create')->group(function () {
+                    Route::post('/quotations', [DealsController::class, 'storeQuotation'])->name('quotations.store');
+                    Route::put('/quotations/{quotation}', [DealsController::class, 'updateQuotation'])->whereNumber('quotation')->name('quotations.update');
+                    Route::post('/quotations/{quotation}/issue', [DealsController::class, 'issueQuotation'])->whereNumber('quotation')->name('quotations.issue');
+                    Route::post('/quotations/{quotation}/decide', [DealsController::class, 'decideQuotation'])->whereNumber('quotation')->name('quotations.decide');
+                    Route::post('/quotations/{quotation}/copy', [DealsController::class, 'copyQuotation'])->whereNumber('quotation')->name('quotations.copy');
+                });
+                Route::get('/payees', [DealsController::class, 'payees'])->middleware('permission:accounts.post')->name('payees');
+                Route::post('/payments', [DealsController::class, 'storePayment'])->middleware('permission:accounts.post')->name('payments.store');
 
                 // The Business tab of the profile (M28): the company as it prints; edited with settings.company.
                 Route::get('/company', [CompanyController::class, 'show'])->name('company');
