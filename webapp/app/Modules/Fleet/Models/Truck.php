@@ -29,7 +29,7 @@ class Truck extends Model
     }
 
     public const STATUSES = [
-        'idle'           => 'Free',
+        'idle'           => 'Available',
         'on_trip'        => 'On trip',
         'workshop'       => 'In workshop',
         'breakdown'      => 'Breakdown',

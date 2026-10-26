@@ -436,6 +436,17 @@ package), QR codes / amount in words / CSV written in-house. See
 - Overdue and coming EMIs show on the dashboard (three days ahead), in the
   morning summary (a week ahead) and on Trucks → EMIs.
 
+### P26. The screens in Hindi (added 26 Oct 2026, M36; Q1 still open for more languages)
+
+- Hindi is the first language besides English (D20): **every web screen,
+  email and notice is in `lang/hi.json`** — a first translation in everyday
+  office Hindi (English words people use, like ट्रिप, बिल, LR, GST, stay),
+  **to be read and corrected by a Hindi speaker before launch**.
+- Each person picks it under My profile; notices, pushes and the morning
+  summary go out in each reader's own language.
+- A new screen string must come with its Hindi (`TranslationsTest`).
+- Documents (bills, LRs) keep their own language, set on the template.
+
 ---
 
 ## 4. Still open

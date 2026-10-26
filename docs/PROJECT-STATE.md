@@ -2,6 +2,23 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M36: the screens in Hindi (decision P26 — a first translation, to be reviewed)
+
+**Built (in `webapp/`, `lang/hi.json`):**
+- **Every web screen, email and notice in Hindi** — 3,973 strings (the screens' words and the labels kept in code: statuses,
+  types, lists), in everyday office Hindi with the English words offices use (ट्रिप, बिल, LR, GST, EMI…), from one glossary.
+  Choose it under My profile (or `?lang=hi`). **A first translation: a Hindi speaker should read it before launch.**
+- **Each reader in their own language**: inbox notices and pushes are written once per reader language (a Hindi driver and
+  an English co-driver of the same trip each read theirs), the morning summary likewise, and the phone API answers in the
+  person's chosen language (`Locales::using()`).
+- Context slips fixed on the way: a free truck now reads **Available** (it read like "free of charge"), unused LR leaves
+  **Unused**, two "Open" links **View**.
+- `TranslationsTest`: every `__()` / `trans_choice()` string has its Hindi with the same placeholders and plural parts — a
+  new string without its Hindi fails the suite.
+
+**Tests:** 274 passing (new `TranslationsTest`, 2 tests: coverage and placeholders of every string; a Hindi screen, a trip
+notice in Hindi and in English to two crew, the owner app's labels in Hindi).
+
 ## 2026-10-26 — Milestone M35: truck loans and EMIs (decision P25)
 
 **Built (in `webapp/`, `Fleet/Services/TruckLoans`, Trucks → EMIs):**

@@ -134,9 +134,13 @@ class Digest
             if ($wanted->isEmpty()) {
                 continue;
             }
-            $summary = $this->build($from, $to);
-            foreach ($wanted as $member) {
-                $sent += (int) $this->deliver($member, $period, $from, $summary);
+            // Each reader's own language (M36): the summary is made once per language.
+            foreach ($wanted->groupBy(fn (CompanyUser $m) => $m->account?->locale ?: 'en') as $locale => $readers) {
+                $sent += \App\Support\Locales::using($locale, function () use ($readers, $period, $from, $to) {
+                    $summary = $this->build($from, $to);
+
+                    return $readers->sum(fn (CompanyUser $member) => (int) $this->deliver($member, $period, $from, $summary));
+                });
             }
         }
 

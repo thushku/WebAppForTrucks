@@ -30,6 +30,26 @@ final class Locales
         return array_values(array_intersect(array_keys(self::NATIVE), $enabled ?: ['en']));
     }
 
+    /**
+     * Run $work in another screen language — a notice or an email in the
+     * reader's own language (M36) — and come back to the current one.
+     */
+    public static function using(?string $code, \Closure $work): mixed
+    {
+        $before = app()->getLocale();
+        $code = in_array($code, self::enabled(), true) ? $code : 'en';
+        app()->setLocale($code);
+        \Carbon\Carbon::setLocale($code);
+        \Carbon\CarbonImmutable::setLocale($code);
+        try {
+            return $work();
+        } finally {
+            app()->setLocale($before);
+            \Carbon\Carbon::setLocale($before);
+            \Carbon\CarbonImmutable::setLocale($before);
+        }
+    }
+
     public static function isRtl(?string $code): bool
     {
         return in_array($code, self::RTL, true);

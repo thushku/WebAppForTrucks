@@ -104,6 +104,9 @@ founder's laptop) in `phoneapp/`.
   `docs/handover/`; `php artisan fleet:code <mobile>` prints a demo crew member's activation code.
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`
   (`settings/` pages extend `layouts/settings`, whose side list comes from `SettingsController::PAGES`).
+- Languages (M36): every new `__()` / `trans_choice()` string needs its Hindi in `lang/hi.json` with the same
+  placeholders and plural parts (`TranslationsTest`). Notices go out in each reader's language (`Notices::say`,
+  `Locales::using`); the phone API answers in the person's language (`ResolveApiCompany`).
 - Test helpers shared by several files live in `tests/Pest.php`; a helper inside one test file needs a name no other
   file uses (Pest loads them all into one process).
 

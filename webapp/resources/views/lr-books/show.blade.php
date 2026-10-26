@@ -4,7 +4,7 @@
 @php
   $r = $report;
   $tones = ['used' => 'bg-emerald-50 text-paid border-emerald-200', 'cancelled' => 'bg-ink-100 text-ink-500 border-ink-200 line-through', 'lost' => 'bg-red-50 text-overdue border-red-200', 'gap' => 'bg-amber-50 text-partial border-amber-300', 'free' => 'bg-white text-ink-500 border-ink-100'];
-  $words = ['used' => __('Used'), 'cancelled' => __('Cancelled'), 'lost' => __('Lost'), 'gap' => __('Skipped'), 'free' => __('Free')];
+  $words = ['used' => __('Used'), 'cancelled' => __('Cancelled'), 'lost' => __('Lost'), 'gap' => __('Skipped'), 'free' => __('Unused')];
 @endphp
 <div class="flex flex-wrap items-start justify-between gap-3">
   <div>

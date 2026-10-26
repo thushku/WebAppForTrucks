@@ -26,18 +26,18 @@ class Notices
     public function tripSent(Trip $trip): void
     {
         $trip->loadMissing(['crew', 'from', 'to', 'truck']);
-        $this->notifier->tell($this->notifier->accountsOf($trip->crew->pluck('person_id')), 'trip.sent',
+        $this->say($this->notifier->accountsOf($trip->crew->pluck('person_id')), fn ($ids) => $this->notifier->tell($ids, 'trip.sent',
             __('New trip :number', ['number' => $trip->trip_number]),
             collect([($trip->from?->name ?? '') . ' → ' . ($trip->to?->name ?? ''), $trip->truck?->reg_no, $trip->trip_date?->format('d M')])->filter()->join(' · '),
-            null, ['type' => 'trip', 'trip' => $trip->uuid]);
+            null, ['type' => 'trip', 'trip' => $trip->uuid]));
     }
 
     /** A trip the crew had is called off. */
     public function tripCancelled(Trip $trip, string $reason): void
     {
         $trip->loadMissing('crew');
-        $this->notifier->tell($this->notifier->accountsOf($trip->crew->pluck('person_id')), 'trip.cancelled',
-            __('Trip :number is cancelled', ['number' => $trip->label]), $reason, null, ['type' => 'trip', 'trip' => $trip->uuid]);
+        $this->say($this->notifier->accountsOf($trip->crew->pluck('person_id')), fn ($ids) => $this->notifier->tell($ids, 'trip.cancelled',
+            __('Trip :number is cancelled', ['number' => $trip->label]), $reason, null, ['type' => 'trip', 'trip' => $trip->uuid]));
     }
 
     /** The crew's entry was just saved (or changed): the other driver approves it, or the office checks it. */
@@ -46,17 +46,17 @@ class Notices
         $event->loadMissing(['trip.crew', 'person:id,name']);
         if ($event->status === 'waiting_2nd') {
             $others = $event->trip->crew->filter(fn ($c) => in_array($c->role, ['driver', 'co_driver'], true) && $c->person_id !== $event->person_id)->pluck('person_id');
-            $this->notifier->tell($this->notifier->accountsOf($others), 'entry.second',
+            $this->say($this->notifier->accountsOf($others), fn ($ids) => $this->notifier->tell($ids, 'entry.second',
                 __(':name asks you to approve', ['name' => $event->person?->name]), $this->what($event) . ' · ' . $event->trip->label,
-                null, ['type' => 'entry', 'entry' => $event->uuid, 'trip' => $event->trip->uuid]);
+                null, ['type' => 'entry', 'entry' => $event->uuid, 'trip' => $event->trip->uuid]));
         } elseif (in_array($event->status, ['waiting_check', 'disputed'], true)) {
             $this->approvalsWaiting($event);
         }
         if ($new && $event->type === 'incident') {
-            $this->notifier->tell($this->notifier->accountsWith('trip.view'), 'road.incident',
+            $this->say($this->notifier->accountsWith('trip.view'), fn ($ids) => $this->notifier->tell($ids, 'road.incident',
                 __('Incident on :trip', ['trip' => $event->trip->label]),
                 collect([$event->data['kind'] ?? null, $event->data['description'] ?? null, $event->person?->name])->filter()->join(' — '),
-                route('trips.show', $event->trip, false), ['type' => 'trip', 'trip' => $event->trip->uuid]);
+                route('trips.show', $event->trip, false), ['type' => 'trip', 'trip' => $event->trip->uuid]));
         }
     }
 
@@ -72,9 +72,9 @@ class Notices
             return;
         }
         $event->loadMissing('trip');
-        $this->notifier->tell($this->notifier->accountsOf([$event->person_id]), $decision === 'query' ? 'entry.queried' : 'entry.rejected',
+        $this->say($this->notifier->accountsOf([$event->person_id]), fn ($ids) => $this->notifier->tell($ids, $decision === 'query' ? 'entry.queried' : 'entry.rejected',
             $decision === 'query' ? __('Question on your :what', ['what' => $this->what($event)]) : __('Your :what was not accepted', ['what' => $this->what($event)]),
-            trim((string) $note) . ' · ' . $event->trip->label, null, ['type' => 'entry', 'entry' => $event->uuid, 'trip' => $event->trip->uuid]);
+            trim((string) $note) . ' · ' . $event->trip->label, null, ['type' => 'entry', 'entry' => $event->uuid, 'trip' => $event->trip->uuid]));
     }
 
     /**
@@ -89,20 +89,20 @@ class Notices
             return;
         }
         $latest?->loadMissing(['trip', 'person:id,name']);
-        $this->notifier->tell($this->notifier->accountsWith('event.verify'), 'approvals.waiting',
+        $this->say($this->notifier->accountsWith('event.verify'), fn ($ids) => $this->notifier->tell($ids, 'approvals.waiting',
             trans_choice(':count entry waits for your approval|:count entries wait for your approval', $waiting),
             $latest ? ($latest->status === 'disputed' ? __('Disputed: ') : '') . ($latest->person?->name ?? '') . ': ' . $this->what($latest) . ' · ' . $latest->trip->label : null,
-            route('approvals.index', [], false), ['type' => 'approvals'], 'approvals');
+            route('approvals.index', [], false), ['type' => 'approvals'], 'approvals'));
     }
 
     /** A payslip paid: the person hears how much, how and the reference. */
     public function payslipPaid(Payslip $slip): void
     {
         $slip->loadMissing(['run', 'person']);
-        $this->notifier->tell($this->notifier->accountsOf([$slip->person_id]), 'pay.paid',
+        $this->say($this->notifier->accountsOf([$slip->person_id]), fn ($ids) => $this->notifier->tell($ids, 'pay.paid',
             __('Your pay for :period is paid', ['period' => $slip->run->periodLabel()]),
             collect([Money::company($slip->paid_amount), __(Payslip::PAY_MODES[$slip->paid_mode] ?? $slip->paid_mode), $slip->paid_reference])->filter()->join(' · '),
-            null, ['type' => 'money']);
+            null, ['type' => 'money']));
     }
 
     /**
@@ -116,9 +116,9 @@ class Notices
         if ($names->isEmpty()) {
             return;
         }
-        $this->notifier->tell($this->notifier->accountsWith('document.manage'), 'papers.due',
+        $this->say($this->notifier->accountsWith('document.manage'), fn ($ids) => $this->notifier->tell($ids, 'papers.due',
             trans_choice(':count paper needs attention|:count papers need attention', $names->count()),
-            $names->take(3)->join('; ') . ($names->count() > 3 ? ' …' : ''), route('documents.index', [], false), ['type' => 'papers'], 'papers');
+            $names->take(3)->join('; ') . ($names->count() > 3 ? ' …' : ''), route('documents.index', [], false), ['type' => 'papers'], 'papers'));
     }
 
     /** A client answered a quotation on its link (M24): whoever makes bills hears it. */
@@ -126,11 +126,20 @@ class Notices
     {
         $quotation->loadMissing('party:id,name');
         $accepted = $quotation->status === 'accepted';
-        $this->notifier->tell($this->notifier->accountsWith('invoice.create'), $accepted ? 'quotation.accepted' : 'quotation.declined',
+        $this->say($this->notifier->accountsWith('invoice.create'), fn ($ids) => $this->notifier->tell($ids, $accepted ? 'quotation.accepted' : 'quotation.declined',
             $accepted ? __(':party accepted quotation :number', ['party' => $quotation->party->name, 'number' => $quotation->number])
                 : __(':party declined quotation :number', ['party' => $quotation->party->name, 'number' => $quotation->number]),
             collect([$quotation->answered_by_name, $quotation->decision_note])->filter()->join(' — '),
-            route('quotations.show', $quotation, false), ['type' => 'quotation', 'quotation' => (string) $quotation->id]);
+            route('quotations.show', $quotation, false), ['type' => 'quotation', 'quotation' => (string) $quotation->id]));
+    }
+
+    /** Tell each reader in their own language (M36): the words are made once per language. */
+    private function say(iterable $accountIds, \Closure $tell): void
+    {
+        $locales = \App\Models\Account::whereIn('id', collect($accountIds)->all())->pluck('locale', 'id');
+        foreach ($locales->groupBy(fn ($locale) => $locale ?: 'en', true) as $locale => $ids) {
+            \App\Support\Locales::using($locale, fn () => $tell($ids->keys()->all()));
+        }
     }
 
     /** "Diesel ₹5,000" — the entry's kind and amount. */

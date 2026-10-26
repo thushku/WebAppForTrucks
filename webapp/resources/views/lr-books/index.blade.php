@@ -25,7 +25,7 @@
 
 <section class="card overflow-x-auto">
   <table class="table">
-    <thead><tr><th>{{ __('Book') }}</th><th>{{ __('Leaves') }}</th><th>{{ __('Given to') }}</th><th class="text-end">{{ __('Used') }}</th><th class="text-end">{{ __('Cancelled or lost') }}</th><th class="text-end">{{ __('Free') }}</th><th>{{ __('Status') }}</th></tr></thead>
+    <thead><tr><th>{{ __('Book') }}</th><th>{{ __('Leaves') }}</th><th>{{ __('Given to') }}</th><th class="text-end">{{ __('Used') }}</th><th class="text-end">{{ __('Cancelled or lost') }}</th><th class="text-end">{{ __('Unused') }}</th><th>{{ __('Status') }}</th></tr></thead>
     <tbody>
       @forelse ($books as $b)
         <tr class="{{ $b->status === 'closed' ? 'opacity-70' : '' }}">

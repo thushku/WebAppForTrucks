@@ -30,6 +30,12 @@ class ResolveApiCompany
     {
         $account = $request->user();
         $wanted  = (string) $request->header('X-Company', '');
+        // The person's own language for the answers' words (M36), as on the web.
+        if ($account && $account->locale && $account->locale !== app()->getLocale() && in_array($account->locale, \App\Support\Locales::enabled(), true)) {
+            app()->setLocale($account->locale);
+            \Carbon\Carbon::setLocale($account->locale);
+            \Carbon\CarbonImmutable::setLocale($account->locale);
+        }
 
         $query = CompanyUser::with('company')
             ->where('account_id', $account->id)

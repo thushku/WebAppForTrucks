@@ -20,7 +20,7 @@
 
 <div class="grid gap-6 xl:grid-cols-2">
   <section class="card p-6">
-    <div class="flex items-center justify-between"><h2 class="text-lg font-semibold">{{ __('Trial balance') }}</h2><a href="{{ route('accounts.trial-balance', ['to' => $to->toDateString()]) }}" class="text-sm text-brand-700 hover:underline">{{ __('Open') }}</a></div>
+    <div class="flex items-center justify-between"><h2 class="text-lg font-semibold">{{ __('Trial balance') }}</h2><a href="{{ route('accounts.trial-balance', ['to' => $to->toDateString()]) }}" class="text-sm text-brand-700 hover:underline">{{ __('View') }}</a></div>
     <p class="mt-2 text-sm {{ $tb['balanced'] ? 'text-emerald-700' : 'text-overdue' }}">
       {{ $tb['balanced'] ? __('Debits and credits agree: :amount on each side.', ['amount' => $m($tb['debit'])]) : __('Debits :d and credits :c do not agree — tell support.', ['d' => $m($tb['debit']), 'c' => $m($tb['credit'])]) }}</p>
     <dl class="mt-3 space-y-1 text-sm">

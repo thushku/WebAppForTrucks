@@ -22,7 +22,7 @@
                 @default<span class="pill bg-ink-100 text-ink-500">{{ __('Cancelled') }}</span>
               @endswitch
             </td>
-            <td class="text-end">@can('party.manage')<a href="{{ route('parties.rates.edit', [$party, $c]) }}" class="text-sm font-semibold text-brand-700 hover:underline">{{ $c->isEditable() ? __('Edit') : __('Open') }}</a>@endcan</td>
+            <td class="text-end">@can('party.manage')<a href="{{ route('parties.rates.edit', [$party, $c]) }}" class="text-sm font-semibold text-brand-700 hover:underline">{{ $c->isEditable() ? __('Edit') : __('View') }}</a>@endcan</td>
           </tr>
         @empty
           <tr><td colspan="5" class="py-10 text-center text-ink-500">{{ __('No rates yet. Add the routes and prices you agreed.') }}</td></tr>

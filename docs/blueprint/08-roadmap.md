@@ -50,6 +50,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M33 ✅ | Routes report: per lane what a trip earns (LR freight), costs (book) and makes, km, per km, days, main costs, last trip — web, CSV and owner app | Know what to quote on a lane |
 | M34 ✅ | Odometer against GPS per trip: GPS km and coverage, flagged when far apart, on the trip, dashboard, trip filter and owner app; re-measured nightly | Catch a tampered odometer or an unentered run |
 | M35 ✅ | Truck loans and EMIs: loan ledger with its opening, EMIs due and overdue, EMI paid as principal and interest, alerts, owner app | No missed EMI, interest in the truck's cost |
+| M36 ✅ | The screens in Hindi (a first translation for review): every screen, email and notice; notices and the summary in each reader's language; the phone API too | Office staff work in Hindi |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

@@ -22,6 +22,10 @@ Errors are JSON: `{"message": "…", "code": "…"}` and, for form errors (422),
 `409` with `code: company_required`: show the company switcher.
 `423` with `code: read_only`: the company's plan has ended; nothing is lost (see §8).
 
+Words in the answers (labels, messages, notices) are in the person's chosen language (`GET /profile` → `locale`; M36):
+English or Hindi today. Codes (`status`, `kind`, `type`) never change with the language — show the label, decide on the code.
+
+
 ## 2. Signing in
 
 ### Crew: activation code (no SMS)
