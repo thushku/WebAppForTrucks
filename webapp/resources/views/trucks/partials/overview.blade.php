@@ -82,6 +82,25 @@
       </ul>
     </section>
 
+    @if ($costs)
+    {{-- What the truck costs a day, running or not (M37): each trip's profit carries its share. --}}
+    <section class="card p-6" data-truck-costs>
+      <div class="flex items-baseline justify-between gap-3">
+        <h3 class="font-semibold">{{ __('Fixed costs a day') }}</h3>
+        <span class="money text-lg font-semibold">{{ \App\Support\Money::company($costs['per_day']) }}</span>
+      </div>
+      <p class="mt-1 text-xs text-ink-500">{{ __('What the truck costs whether it runs or not — an estimate. Each trip’s profit takes its share for the days it was on the road.') }}</p>
+      <ul class="mt-3 space-y-1.5 text-sm">
+        @foreach ($costs['papers'] as $paper)
+          <li class="flex justify-between gap-3"><span class="text-ink-500">{{ $paper['name'] }}</span><span class="money">{{ \App\Support\Money::company($paper['per_day']) }}</span></li>
+        @endforeach
+        @if ($costs['parts']['salary'] > 0)<li class="flex justify-between gap-3"><span class="text-ink-500">{{ __('Usual driver’s salary') }}</span><span class="money">{{ \App\Support\Money::company($costs['parts']['salary']) }}</span></li>@endif
+        @if ($costs['parts']['book'] > 0)<li class="flex justify-between gap-3"><span class="text-ink-500">{{ __('Its bills of the last 90 days (repairs, EMI interest…)') }}</span><span class="money">{{ \App\Support\Money::company($costs['parts']['book']) }}</span></li>@endif
+        @if ($costs['per_day'] <= 0)<li class="text-ink-500">{{ __('Nothing yet: add the premium or fee to the truck’s papers, the usual driver’s salary, or book its bills to the truck.') }}</li>@endif
+      </ul>
+    </section>
+    @endif
+
     {{-- Share the truck's details as text (Trucksarthi parity #18). --}}
     @php($shareFields = [
       ['k' => 'number', 'label' => __('Number'), 'value' => $truck->reg_no, 'on' => true],

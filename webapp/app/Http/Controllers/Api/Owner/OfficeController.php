@@ -79,7 +79,7 @@ class OfficeController extends Controller
 
     public function trip(Request $request, string $uuid, Statements $statements): JsonResponse
     {
-        $trip = Trip::inBranch()->with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'supplier:id,name', 'from:id,name', 'to:id,name', 'crew.person:id,name,mobile', 'stops.place:id,name',
+        $trip = Trip::inBranch()->with(['truck:id,reg_no,ownership', 'supplierVehicle:id,reg_no', 'supplier:id,name', 'from:id,name', 'to:id,name', 'crew.person:id,name,mobile', 'stops.place:id,name',
             'consignments' => fn ($q) => $q->with(['billingParty:id,name', 'consignor:id,name', 'consignee:id,name'])])->where('uuid', $uuid)->firstOrFail();
         $user = $request->user();
         $freight = $user->can('trip.freight_view');
@@ -105,6 +105,8 @@ class OfficeController extends Controller
                 'spent' => round($events->where('status', '!=', 'rejected')->where('type', '!=', 'money_received')->sum(fn ($e) => (float) $e->amount), 2),
             ],
             'profit' => $user->canAny(['report.view', 'accounts.view', 'ledger.view']) ? $statements->tripProfit($trip->id) : null,
+            // The truck's costs whether it runs or not for the trip's days (M37), an estimate: {days, per_day, share}; null for a hired truck.
+            'fixed_costs' => $freight ? app(\App\Modules\Fleet\Services\TruckCosts::class)->tripShare($trip) : null,
             'route_url' => $user->can('map.view') ? route('api.owner.trips.route', $trip->uuid) : null,
         ]);
     }
@@ -173,7 +175,7 @@ class OfficeController extends Controller
         $from = isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $to->subDays(90);
 
         return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'routes' => $reports->lanes($from, $to)->map(fn ($r) => [
-            'route' => $r->route, 'empty' => $r->empty, 'trips' => $r->trips, 'income' => $r->income, 'cost' => $r->cost, 'profit' => $r->profit, 'margin' => $r->margin,
+            'route' => $r->route, 'empty' => $r->empty, 'trips' => $r->trips, 'income' => $r->income, 'cost' => $r->cost, 'profit' => $r->profit, 'fixed' => $r->fixed, 'net' => $r->net, 'margin' => $r->margin,
             'km' => $r->km, 'per_km' => $r->per_km, 'days' => $r->days, 'best' => $r->best, 'worst' => $r->worst, 'main_costs' => $r->main_costs,
             'last' => ['trip' => $r->last['trip']->trip_number, 'uuid' => $r->last['trip']->uuid, 'date' => $r->last['date']?->toDateString(), 'income' => $r->last['income']],
         ])->values()]);

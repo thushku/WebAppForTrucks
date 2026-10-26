@@ -5,6 +5,7 @@ namespace App\Modules\Accounts\Services;
 use App\Models\Account;
 use App\Modules\Accounts\Models\LedgerAccount;
 use App\Modules\Accounts\Models\Voucher;
+use App\Modules\Fleet\Models\Truck;
 use App\Modules\Parties\Models\Party;
 use App\Modules\People\Models\Person;
 use App\Platform\Tenancy\CompanyContext;
@@ -54,19 +55,29 @@ class Payments
             'bank_account_id' => ['nullable', 'integer', Rule::exists('company_bank_accounts', 'id')->where('company_id', $company)],
             'reference' => ['nullable', 'string', 'max:60', 'required_if:mode,bank'],
             'narration' => ['required', 'string', 'min:3', 'max:255'],
+            'truck_id' => ['nullable', 'integer', Rule::exists('trucks', 'id')->where('company_id', $company)],
         ];
     }
 
-    /** @param array{ledger_account_id: int, amount: mixed, paid_on: string, mode: string, bank_account_id?: ?int, reference?: ?string, narration: string} $data */
+    /**
+     * An expense paid for one truck (a repair, a spare part) can say which:
+     * the payee's line then carries the truck, so the truck's profit and its
+     * fixed costs a day (M37) count it. A paper's premium typed on the paper
+     * is counted from the paper, so it should not be tagged as well.
+     *
+     * @param array{ledger_account_id: int, amount: mixed, paid_on: string, mode: string, bank_account_id?: ?int, reference?: ?string, narration: string, truck_id?: ?int} $data
+     */
     public function pay(array $data, Account $by): Voucher
     {
         $payee = LedgerAccount::findOrFail($data['ledger_account_id']);
+        $truck = ! empty($data['truck_id']) ? Truck::findOrFail($data['truck_id']) : null;
+        $centres = $truck ? ['truck_id' => $truck->id, 'branch_id' => $truck->branch_id] : [];
 
         return $this->books->post([
             'type' => 'payment', 'series' => 'payment_voucher', 'date' => $data['paid_on'], 'reference' => $data['reference'] ?? null,
             'narration' => __('Paid to :name: :what', ['name' => $payee->name, 'what' => $data['narration']]), 'created_by' => $by->id,
         ], [
-            ['ledger' => $payee, 'debit' => (float) $data['amount'], 'bucket' => $payee->kind === 'person' ? 'earnings' : null],
+            ['ledger' => $payee, 'debit' => (float) $data['amount'], 'bucket' => $payee->kind === 'person' ? 'earnings' : null] + $centres,
             ['ledger' => $this->chart->money($data['mode'], $data['bank_account_id'] ?? null), 'credit' => (float) $data['amount']],
         ]);
     }

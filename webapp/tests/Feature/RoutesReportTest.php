@@ -32,7 +32,7 @@ it('groups the ended trips by route with income, cost, profit, km and the main c
 
     $csv = $this->get(route('reports.index', ['tab' => 'lanes', 'from' => '2026-10-01', 'to' => '2026-10-31', 'format' => 'csv']))->assertOk()->streamedContent();
     $rows = array_map('str_getcsv', explode("\n", trim(str_replace("\xEF\xBB\xBF", '', $csv))));
-    expect($rows[0][0])->toBe('Route')->and($rows[1])->toBe(['Kochi → Mumbai', '2', '64000', '1000', '63000', '98.4', '1400', '45.71', '0', '64000', '62000', 'Toll 1000'])
+    expect($rows[0][0])->toBe('Route')->and($rows[1])->toBe(['Kochi → Mumbai', '2', '64000', '1000', '63000', '0', '63000', '98.4', '1400', '45.71', '0', '64000', '62000', 'Toll 1000'])
         ->and($rows[2][0])->toBe('Mumbai → Kochi (empty)')->and($rows[2][2])->toBe('0');
 
     // The owner app has it too.

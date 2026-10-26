@@ -10,7 +10,7 @@
   <div class="flex flex-wrap items-start gap-4">
     <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700"><x-icon name="truck" class="size-6" /></span>
     <div class="min-w-0 flex-1">
-      <h2 class="docno font-mono text-2xl font-semibold">{{ $truck->reg_no }}</h2>
+      <h2 class="docno break-all font-mono text-xl font-semibold sm:text-2xl">{{ $truck->reg_no }}</h2>
       <p class="mt-0.5 text-sm text-ink-500">{{ collect([$truck->make, $truck->model, $types[$truck->truck_type] ?? null, $truck->payload_mt ? rtrim(rtrim((string) $truck->payload_mt, '0'), '.') . ' MT' : null])->filter()->join(' · ') }}</p>
       <div class="mt-2 flex flex-wrap gap-1.5">
         <span class="pill {{ $tones[$truck->status] ?? '' }}">{{ __(\App\Modules\Fleet\Models\Truck::STATUSES[$truck->status]) }}</span>

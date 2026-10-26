@@ -22,6 +22,9 @@
   <div><label class="label" for="pv_bank">{{ __('Bank account') }}</label>
     <select id="pv_bank" name="bank_account_id" class="input"><option value="">{{ __('The default one') }}</option>@foreach ($banks as $b)<option value="{{ $b->id }}" @selected(old('bank_account_id') == $b->id)>{{ $b->label }} {{ $b->masked() }}</option>@endforeach</select></div>
   <div><label class="label" for="pv_ref">{{ __('UTR / cheque no.') }}</label><input id="pv_ref" name="reference" value="{{ old('reference') }}" class="input" maxlength="60">@error('reference')<span class="error">{{ $message }}</span>@enderror</div>
+  <div><label class="label" for="pv_truck">{{ __('For truck') }}</label>
+    <select id="pv_truck" name="truck_id" class="input"><option value="">{{ __('No truck') }}</option>@foreach ($trucks as $t)<option value="{{ $t->id }}" @selected((int) old('truck_id') === $t->id)>{{ $t->reg_no }}</option>@endforeach</select>
+    <span class="hint">{{ __('An expense of one truck (a repair, a spare part) counts in its profit and its costs a day — not a paper’s premium already on the paper.') }}</span>@error('truck_id')<span class="error">{{ $message }}</span>@enderror</div>
   <div class="sm:col-span-2"><label class="label" for="pv_narr">{{ __('For') }}</label><input id="pv_narr" name="narration" value="{{ old('narration') }}" class="input" maxlength="255" required placeholder="{{ __('e.g. Diesel bill for October') }}">@error('narration')<span class="error">{{ $message }}</span>@enderror</div>
   <div class="text-end sm:col-span-2 xl:col-span-3"><button class="btn-primary"><x-icon name="check" /> {{ __('Post the payment') }}</button></div>
 </form>

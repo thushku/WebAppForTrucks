@@ -58,7 +58,9 @@ founder's laptop) in `phoneapp/`.
   for another branch's record) on Trip, Truck, Person, Invoice, Quotation. Services and the books never apply it.
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
-  service, M35 `TruckLoans` — a truck's loan ledger and EMIs, `truck_emis`, Trucks → EMIs), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
+  service, M35 `TruckLoans` — a truck's loan ledger and EMIs, `truck_emis`, Trucks → EMIs; M37 `TruckCosts` — what a truck costs a
+  day running or not (papers over their validity, the usual driver's salary, its no-trip bills of 90 days) and a trip's share,
+  an estimate shown under the direct profit; an attached truck counts none), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
   broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
   LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events

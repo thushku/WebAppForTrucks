@@ -245,6 +245,7 @@ class TripController extends Controller
             'accounts'  => in_array($trip->status, ['ended', 'settled', 'closed'], true) ? $this->settlements->accounts($trip) : collect(),
             'blockers'  => $trip->status === 'ended' ? $this->settlements->blockers($trip) : [],
             'profit'    => app(TripProfit::class)->forTrip($trip),
+            'fixed'     => app(\App\Modules\Fleet\Services\TruckCosts::class)->tripShare($trip),
             'office'    => TripOfficeEntry::with('party:id,name')->where('trip_id', $trip->id)->orderBy('entry_date')->orderBy('id')->get(),
             'expenseCategories' => MasterItem::ofList('expense_category')->where('active', true)->pluck('name', 'code'),
             'legs'      => $this->loadPlan->legs($trip),

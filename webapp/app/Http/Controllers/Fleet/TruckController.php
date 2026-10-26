@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Fleet\Models\Complaint;
 use App\Modules\Fleet\Models\Truck;
 use App\Modules\Fleet\Services\FleetService;
+use App\Modules\Fleet\Services\TruckCosts;
 use App\Modules\Parties\Models\Party;
 use App\Modules\Settings\Models\Branch;
 use App\Modules\Settings\Models\MasterItem;
@@ -79,6 +80,7 @@ class TruckController extends Controller
             'documents'  => $documents,
             'missing'    => $compliance->missing($truck),
             'health'     => $compliance->health($truck),
+            'costs'      => $request->user()->can('trip.freight_view') && app(TruckCosts::class)->counts($truck) ? app(TruckCosts::class)->perDay($truck) : null,
         ]);
     }
 

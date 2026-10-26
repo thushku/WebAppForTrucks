@@ -2,6 +2,26 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M37: a truck's fixed costs a day and each trip's share (decision P27)
+
+**Built (in `webapp/`, `Fleet/Services/TruckCosts`):**
+- **What a truck costs a day, running or not** — worked out from what is already entered, nothing new to type: each current
+  paper with its cost (insurance, permits, fitness, PUC) spread over the days it is valid, the usual driver's monthly
+  salary over 30 days (drivers paid per trip or km are the trip's own cost), and what the books hold for the truck but for
+  no trip in the last 90 days (repairs, service, EMI interest). A card on the truck page with the parts.
+- **Each trip's share** for its calendar days on the road, under the trip's direct profit: "Truck's fixed costs, 3 days
+  (estimate)" and **Profit after fixed costs**. The direct profit is unchanged. A hired or attached truck counts none.
+- **Routes report**: "after fixed" under each lane's profit per trip, and two more CSV columns; the owner app has
+  `fixed` and `net` per route, `fixed_costs` on the trip and on the truck (api-v1 §10, §12; screens O6, O26, O30).
+- **A payment voucher may name its truck** (web and owner app), so a repair paid straight from cash counts in that
+  truck's profit and costs a day.
+- On the way: long trip, bill, receipt and truck numbers in page headings wrap on a phone (the trip page was 12 px too
+  wide at 390 px); the trip page's old line "shared costs are not spread to trips yet" is gone.
+
+**Tests:** 277 passing (new `TruckCostsTest`, 3 tests: papers, salary and 90 days of the truck's own bills — not older ones
+nor a trip's — to ₹1,200 a day, a three-day trip's ₹3,600 on the trip page, the truck page, the routes report and the owner
+app, a payment tagged to the truck, an attached truck counting none, a trip's days in the company's time zone).
+
 ## 2026-10-26 — Milestone M36: the screens in Hindi (decision P26 — a first translation, to be reviewed)
 
 **Built (in `webapp/`, `lang/hi.json`):**

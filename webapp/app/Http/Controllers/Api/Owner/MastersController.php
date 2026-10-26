@@ -131,9 +131,13 @@ class MastersController extends Controller
 
     // ---- Trucks (the list is GET /owner/trucks) -------------------------------------------
 
-    public function truck(Truck $truck): JsonResponse
+    /** A truck in full; with its fixed costs a day (M37) for those who see money, null for an attached truck. */
+    public function truck(Request $request, Truck $truck): JsonResponse
     {
-        return response()->json(['truck' => $this->truckFull($truck)]);
+        $costs = app(\App\Modules\Fleet\Services\TruckCosts::class);
+
+        return response()->json(['truck' => $this->truckFull($truck),
+            'fixed_costs' => $request->user()->can('trip.freight_view') && $costs->counts($truck) ? $costs->perDay($truck) : null]);
     }
 
     public function storeTruck(Request $request): JsonResponse

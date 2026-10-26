@@ -9,8 +9,9 @@ use App\Modules\Trips\Models\TripSettlement;
 
 /**
  * The trip's direct profit so far (blueprint 03 §9): income less the costs
- * that belong to this trip. Shared costs (salary share, EMI, tyre wear) come
- * with accounting and reports.
+ * that belong to this trip. The truck's standing costs (papers, the usual
+ * driver's salary, its own bills) are shown under it as an estimate —
+ * `Fleet\Services\TruckCosts` (M37); tyre wear is not spread yet.
  *
  *   income = freight and charges of its loads + other charges billed
  *            + office income + commission earned

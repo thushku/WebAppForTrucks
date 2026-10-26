@@ -9,7 +9,7 @@
   <div class="flex flex-wrap items-start gap-4">
     <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-violet-50 text-violet-700"><x-icon name="receipt" class="size-6" /></span>
     <div class="min-w-0 flex-1">
-      <h2 class="docno font-mono text-2xl font-semibold">{{ $inv->number }}</h2>
+      <h2 class="docno break-all font-mono text-xl font-semibold sm:text-2xl">{{ $inv->number }}</h2>
       <p class="mt-0.5 text-sm text-ink-500">{{ $inv->kindLabel() }} · {{ $inv->party->name }} · {{ $inv->issue_date->format('d M Y') }}@unless ($inv->isCreditNote()) · {{ __('due :d', ['d' => $inv->due_date->format('d M Y')]) }}@endunless</p>
       <div class="mt-2 flex flex-wrap items-center gap-1.5">
         @include('invoices._status')

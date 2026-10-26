@@ -18,6 +18,7 @@ class PaymentController extends AccountsController
             'banks' => CompanyBankAccount::where('active', true)->orderByDesc('is_default')->get(),
             'today' => $this->today(),
             'payee' => (int) $request->query('ledger'),
+            'trucks' => \App\Modules\Fleet\Models\Truck::inBranch()->where('status', '!=', 'sold')->orderBy('reg_no')->get(['id', 'reg_no']),
         ]);
     }
 

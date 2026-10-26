@@ -447,6 +447,27 @@ package), QR codes / amount in words / CSV written in-house. See
 - A new screen string must come with its Hindi (`TranslationsTest`).
 - Documents (bills, LRs) keep their own language, set on the template.
 
+### P27. A truck's fixed costs a day and a trip's share (added 26 Oct 2026, M37)
+
+- A trip's **direct profit stays as it was** (its freight against what it
+  spent); under it the trip page, the routes report and the owner app also
+  show **the truck's fixed costs for the trip's days** and the profit after
+  them, **always marked as an estimate**.
+- A truck's fixed costs a day are worked out from what is already there,
+  nothing new to type: each current paper with its cost (insurance, permit,
+  road tax, fitness) over the days it is valid; its usual driver's monthly
+  salary over 30 days (drivers paid per trip or km are a trip's own cost);
+  and what the books hold for the truck but for no trip in the last 90 days
+  (repairs and service, EMI interest, a payment tagged to the truck), over
+  90 days.
+- A trip's days are its calendar days on the road, start and end counted, in
+  the company's time zone, at least one. The figure is today's for every
+  trip in a report (an estimate, not history).
+- A hired or **attached truck counts none** (its papers and driver are its
+  owner's); a leased one does.
+- A payment voucher may name the truck it was for. A paper's premium typed on
+  the paper should not also be tagged to the truck, or it counts twice.
+
 ---
 
 ## 4. Still open

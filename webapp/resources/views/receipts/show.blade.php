@@ -5,7 +5,7 @@
 <section class="card p-6">
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div>
-      <h2 class="docno font-mono text-2xl font-semibold">{{ $receipt->number }}</h2>
+      <h2 class="docno break-all font-mono text-xl font-semibold sm:text-2xl">{{ $receipt->number }}</h2>
       <p class="text-sm text-ink-500">{{ __('Money receipt') }} · {{ $receipt->party->name }} · {{ $receipt->receipt_date->format('d M Y') }}</p>
       @if ($receipt->isVoid())<p class="mt-2 rounded-xl bg-ink-100 px-3 py-2 text-sm">{{ __('Void: :reason', ['reason' => $receipt->void_reason]) }}</p>@endif
     </div>

@@ -13,7 +13,7 @@
   <div class="flex flex-wrap items-start gap-4">
     <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-700"><x-icon name="route" class="size-6" /></span>
     <div class="min-w-0 flex-1">
-      <h2 class="docno font-mono text-2xl font-semibold">{{ $t->trip_number ?? __('Draft trip') }}</h2>
+      <h2 class="docno break-all font-mono text-xl font-semibold sm:text-2xl">{{ $t->trip_number ?? __('Draft trip') }}</h2>
       <p class="mt-0.5 text-sm text-ink-500">{{ $t->trip_date->format('d M Y') }} · {{ $t->from->name }} → {{ $t->to->name }}{{ $t->planned_km ? ' · ' . number_format($t->planned_km) . ' km' : '' }} · {{ __(\App\Modules\Trips\Models\Trip::LOAD_TYPES[$t->load_type]) }}{{ $t->trip_kind !== 'loaded' ? ' · ' . __(\App\Modules\Trips\Models\Trip::KINDS[$t->trip_kind]) : '' }}</p>
       <div class="mt-2 flex flex-wrap items-center gap-1.5">
         @include('trips._status', ['status' => $t->status])
@@ -250,6 +250,12 @@
           @endforeach
           <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Trip profit (direct)') }}</dt><dd class="money">{{ \App\Support\Money::company($p['profit']) }}</dd></div>
           @if ($p['per_km'])<div class="flex justify-between text-xs text-ink-500"><dt>{{ __('per km') }}</dt><dd class="money">{{ \App\Support\Money::company($p['per_km']) }}</dd></div>@endif
+          @if ($fixed && $fixed['share'] > 0)
+            {{-- The truck's costs whether it runs or not, for the trip's days (M37) — an estimate. --}}
+            <div class="flex justify-between gap-3 pt-1.5"><dt class="text-ink-500">{{ trans_choice('Truck’s fixed costs, :count day (estimate)|Truck’s fixed costs, :count days (estimate)', $fixed['days']) }}</dt><dd class="money">− {{ \App\Support\Money::company($fixed['share']) }}</dd></div>
+            <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] - $fixed['share'] >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Profit after fixed costs') }}</dt><dd class="money">{{ \App\Support\Money::company(round($p['profit'] - $fixed['share'], 2)) }}</dd></div>
+            <p class="text-xs text-ink-500">{{ __(':amount a day: what the truck’s papers, usual driver’s salary and its own bills cost — see the truck.', ['amount' => \App\Support\Money::company($fixed['per_day'])]) }}</p>
+          @endif
         </dl>
         @if ($trip->ended_at && ($trip->end_odometer || $trip->gps_km !== null))
           {{-- Odometer against GPS (M34). --}}
@@ -266,8 +272,7 @@
           </div>
         @endif
         @if ($p['waiting'] > 0)<p class="mt-3 text-xs text-partial">{{ __(':amount of crew entries still wait for approval and are not counted yet.', ['amount' => \App\Support\Money::company($p['waiting'])]) }}</p>@endif
-        <p class="mt-3 text-xs text-ink-500">{{ __('Shared costs (salary share, EMI, insurance, tyres) are not spread to trips yet.') }}
-          @can('accounts.view')<a href="{{ route('accounts.profit-loss', ['trip_id' => $trip->id, 'from' => '2000-01-01']) }}" class="text-brand-700 hover:underline">{{ __('This trip in the books') }}</a>@endcan</p>
+        @can('accounts.view')<p class="mt-3 text-xs"><a href="{{ route('accounts.profit-loss', ['trip_id' => $trip->id, 'from' => '2000-01-01']) }}" class="text-brand-700 hover:underline">{{ __('This trip in the books') }}</a></p>@endcan
       </section>
     @endif
 
