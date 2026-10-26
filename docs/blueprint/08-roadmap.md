@@ -52,6 +52,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M35 ✅ | Truck loans and EMIs: loan ledger with its opening, EMIs due and overdue, EMI paid as principal and interest, alerts, owner app | No missed EMI, interest in the truck's cost |
 | M36 ✅ | The screens in Hindi (a first translation for review): every screen, email and notice; notices and the summary in each reader's language; the phone API too | Office staff work in Hindi |
 | M37 ✅ | A truck's fixed costs a day (its papers over their validity, the usual driver's salary, its own bills of 90 days) and each trip's share under its direct profit, an estimate: trip page, truck page, routes report, owner app; a payment may name its truck | Quote and judge a trip on what it really makes |
+| M38 ✅ | Tyres: the store and register by serial number, fitting by wheel position on the truck's axle map, take off, move or swap, retread, scrap; km run and cost per km, what each brand gives, tyres near their end, each trip's tyre wear; owner app | Tyres are the second cost after diesel |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

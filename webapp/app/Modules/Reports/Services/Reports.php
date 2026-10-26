@@ -150,10 +150,11 @@ class Reports
         // Income is the freight on the trip's LRs, billed or not (the book has it only once billed).
         $freight = \App\Modules\Trips\Models\Consignment::whereIn('trip_id', $rows->pluck('trip.id'))->where('status', '!=', 'cancelled')
             ->groupBy('trip_id')->selectRaw('trip_id, sum(coalesce(freight, 0) + coalesce(loading_charge, 0) + coalesce(unloading_charge, 0) + coalesce(other_charges, 0)) as amount')->pluck('amount', 'trip_id');
-        // Each trip's share of its truck's fixed costs (M37), the truck's figure worked out once.
+        // Each trip's share of its truck's fixed costs (M37), the truck's figure worked out once, and its tyres' wear (M38).
         $fixedCosts = app(\App\Modules\Fleet\Services\TruckCosts::class);
+        $wear = app(\App\Modules\Fleet\Services\Tyres::class)->wearForTrips($rows->pluck('trip'));
         $perDay = [];
-        $rows = $rows->map(function ($r) use ($freight, $fixedCosts, &$perDay) {
+        $rows = $rows->map(function ($r) use ($freight, $fixedCosts, $wear, &$perDay) {
             $r->income = round(max($r->income, (float) ($freight[$r->trip->id] ?? 0)), 2);
             $r->profit = round($r->income - $r->cost, 2);
             $truck = $r->trip->truck;
@@ -161,6 +162,7 @@ class Reports
                 $perDay[$truck->id] ??= $fixedCosts->perDay($truck)['per_day'];
             }
             $r->fixed = $truck ? ($fixedCosts->tripShare($r->trip, $perDay[$truck->id] ?? 0.0)['share'] ?? 0.0) : 0.0;
+            $r->tyres = (float) ($wear[$r->trip->id]['amount'] ?? 0);
 
             return $r;
         });
@@ -185,8 +187,9 @@ class Reports
                     'route' => collect([$places[$trip->from_place_id] ?? null, $places[$trip->to_place_id] ?? null])->filter()->join(' → ') . ($trip->trip_kind === 'empty' ? ' (' . __('empty') . ')' : ''),
                     'empty' => $trip->trip_kind === 'empty', 'trips' => $n,
                     'income' => round($income / $n, 2), 'cost' => round($cost / $n, 2), 'profit' => round(($income - $cost) / $n, 2),
-                    // The trucks' fixed costs for the trip's days, and the profit after them (an estimate).
-                    'fixed' => round($set->sum('fixed') / $n, 2), 'net' => round(($income - $cost - $set->sum('fixed')) / $n, 2),
+                    // The trucks' fixed costs for the trip's days and their tyres' wear for its km, and the profit after them (estimates).
+                    'fixed' => round($set->sum('fixed') / $n, 2), 'tyres' => round($set->sum('tyres') / $n, 2),
+                    'net' => round(($income - $cost - $set->sum('fixed') - $set->sum('tyres')) / $n, 2),
                     'margin' => $income > 0 ? round(($income - $cost) / $income * 100, 1) : null,
                     'km' => $withKm->isNotEmpty() ? (int) round($withKm->avg('km')) : null,
                     'per_km' => $withKm->sum('km') > 0 ? round($withKm->sum('income') / $withKm->sum('km'), 2) : null,

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Owner\DealsController;
 use App\Http\Controllers\Api\Owner\MastersController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
+use App\Http\Controllers\Api\Owner\TyresController;
 use App\Http\Controllers\Api\Owner\WriteController;
 use App\Http\Controllers\Api\WebLoginController;
 use App\Http\Controllers\ProfileController;
@@ -145,6 +146,20 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/payments', [DealsController::class, 'storePayment'])->middleware('permission:accounts.post')->name('payments.store');
                 Route::get('/emis', [DealsController::class, 'emis'])->middleware('permission:truck.view')->name('emis');
                 Route::post('/trucks/{truck}/emis', [DealsController::class, 'payEmi'])->whereNumber('truck')->middleware('permission:accounts.post')->name('emis.pay');
+
+                // Tyres (M38): the store, a truck's tyres by position; the workshop's moves once per key.
+                Route::get('/tyres', [TyresController::class, 'index'])->middleware('permission:truck.view')->name('tyres');
+                Route::get('/tyres/{tyre}', [TyresController::class, 'show'])->whereNumber('tyre')->middleware('permission:truck.view')->name('tyres.show');
+                Route::get('/trucks/{truck}/tyres', [TyresController::class, 'truck'])->whereNumber('truck')->middleware('permission:truck.view')->name('trucks.tyres');
+                Route::middleware('permission:complaint.manage')->group(function () {
+                    Route::post('/tyres', [TyresController::class, 'store'])->name('tyres.store');
+                    Route::post('/tyres/{tyre}/retread', [TyresController::class, 'retread'])->whereNumber('tyre')->name('tyres.retread');
+                    Route::post('/tyres/{tyre}/returned', [TyresController::class, 'returned'])->whereNumber('tyre')->name('tyres.returned');
+                    Route::post('/tyres/{tyre}/scrap', [TyresController::class, 'scrap'])->whereNumber('tyre')->name('tyres.scrap');
+                    Route::post('/trucks/{truck}/tyres', [TyresController::class, 'fit'])->whereNumber('truck')->name('trucks.tyres.fit');
+                    Route::post('/trucks/{truck}/tyres/{tyre}/off', [TyresController::class, 'off'])->whereNumber('truck')->whereNumber('tyre')->name('trucks.tyres.off');
+                    Route::post('/trucks/{truck}/tyres/{tyre}/move', [TyresController::class, 'move'])->whereNumber('truck')->whereNumber('tyre')->name('trucks.tyres.move');
+                });
 
                 // The Business tab of the profile (M28): the company as it prints; edited with settings.company.
                 Route::get('/company', [CompanyController::class, 'show'])->name('company');

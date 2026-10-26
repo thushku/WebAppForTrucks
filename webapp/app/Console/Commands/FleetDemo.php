@@ -80,6 +80,7 @@ class FleetDemo extends Command
             $this->parties($parties, $owner->id);
             $this->tax($company);
             $this->fleet($owner->id);
+            $this->tyres($owner, $parties);
             $this->trips($owner->id);
             $this->payroll($owner);
             $this->bankStatement($owner);
@@ -314,6 +315,55 @@ class FleetDemo extends Command
     }
 
     /** A running full load, a part-load draft, a hired truck with its challan, and an ended trip waiting for settlement. */
+    /**
+     * The tyre register (M38): the Eicher and the BharatBenz on full sets —
+     * two of the Eicher's rear tyres near the end of their km —, two worn
+     * ones scrapped before them, a new set in the store and one tyre at the
+     * retreader.
+     */
+    private function tyres(Account $owner, PartyService $parties): void
+    {
+        $tyres = app(\App\Modules\Fleet\Services\Tyres::class);
+        $dealer = $parties->save(null, ['name' => 'Cochin Tyre House', 'country' => 'IN', 'city' => 'Kochi', 'state_code' => '32', 'vendor_category' => 'tyres',
+            'payment_days' => 15, 'created_by' => $owner->id], ['vendor'], null);
+        $truck = \App\Modules\Fleet\Models\Truck::pluck('id', 'reg_no');
+        $eicher = \App\Modules\Fleet\Models\Truck::find($truck['MH-04-JK-3345']);
+        $benz = \App\Modules\Fleet\Models\Truck::find($truck['KL-43-D-7702']);
+        $add = fn (array $serials, string $brand, string $model, string $size, float $cost, int $km, string $on, string $kind = 'new') => $tyres->add(['serials' => implode("\n", $serials),
+            'brand' => $brand, 'model' => $model, 'size' => $size, 'kind' => $kind, 'cost' => $cost, 'expected_km' => $km, 'purchased_on' => $on, 'vendor_party_id' => $dealer->id], $owner);
+
+        // Two worn MRFs that ran the Eicher's rear axle from 40,000 km, scrapped in February.
+        foreach ($add(['MRF2502R0411', 'MRF2502R0412'], 'MRF', 'Steel Muscle S3C8', '10.00 R20', 20500, 80000, '2025-02-01') as $i => $old) {
+            $tyres->fit($old, $eicher, ['R2-LO', 'R2-RO'][$i], '2025-02-01', 40000, $owner);
+            $tyres->remove($old, '2026-02-25', 119800, 'worn', $owner, 1200);
+        }
+        // The Eicher's set: two rear tyres since 82,000 km (near their end), the rest since March.
+        $set = $add(['MRF2603R1101', 'MRF2603R1102', 'MRF2603R1103', 'MRF2603R1104', 'MRF2603R1105', 'MRF2603R1106', 'MRF2603R1107', 'MRF2603R1108'], 'MRF', 'Steel Muscle S3C8', '10.00 R20', 21500, 90000, '2026-02-28');
+        foreach (['F1-L', 'F1-R', 'R1-LO', 'R1-LI', 'R1-RI', 'R1-RO', 'R2-LO', 'R2-RO'] as $i => $pos) {
+            $tyres->fit($set[$i], $eicher, $pos, '2026-03-01', 120000, $owner);
+        }
+        foreach ($add(['APL2507E0901', 'APL2507E0902'], 'Apollo', 'EnduRace RD', '10.00 R20', 19800, 80000, '2025-07-10') as $i => $worn) {
+            $tyres->fit($worn, $eicher, ['R2-LI', 'R2-RI'][$i], '2025-07-12', 82000, $owner);
+        }
+        $spare = $add(['MRF2408R0077'], 'MRF', 'Steel Muscle S3C8', '10.00 R20', 20500, 80000, '2024-08-01', 'retread')->first();
+        $spare->forceFill(['retreads' => 1, 'cost' => 26700, 'expected_km' => 120000, 'km_run' => 76000])->save();
+        $tyres->fit($spare, $eicher, \App\Modules\Fleet\Services\Tyres::SPARE, '2026-03-01', 120000, $owner);
+
+        // The BharatBenz on Apollo radials since January.
+        $radials = $add(array_map(fn ($n) => 'APL2601X' . str_pad((string) $n, 4, '0', STR_PAD_LEFT), range(1, 12)), 'Apollo', 'EnduRace RA', '295/80 R22.5', 24800, 100000, '2026-01-14');
+        foreach ($tyres->positions($benz) as $i => $pos) {
+            if ($pos !== \App\Modules\Fleet\Services\Tyres::SPARE) {
+                $tyres->fit($radials[$i], $benz, $pos, '2026-01-15', 61000, $owner);
+            }
+        }
+
+        // A new set in the store, and one tyre at the retreader.
+        $add(['JKT2610J0301', 'JKT2610J0302', 'JKT2610J0303', 'JKT2610J0304'], 'JK Tyre', 'Jetway JUH5', '10.00 R20', 19800, 80000, now()->subDays(5)->toDateString());
+        $away = $add(['MRF2409R0150'], 'MRF', 'Steel Muscle S3C8', '10.00 R20', 20500, 80000, '2024-09-01')->first();
+        $away->forceFill(['km_run' => 81500])->save();
+        $tyres->sendForRetread($away, now()->subDays(7)->toDateString(), $dealer->id, $owner);
+    }
+
     private function trips(int $ownerId): void
     {
         auth()->setUser(\App\Models\Account::find($ownerId));

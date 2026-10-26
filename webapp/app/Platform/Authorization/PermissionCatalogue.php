@@ -42,7 +42,7 @@ final class PermissionCatalogue
         'document.view'         => ['See documents', false],
         'document.manage'       => ['Add, renew and share documents', false],
         'complaint.raise'       => ['Raise a truck complaint', false],
-        'complaint.manage'      => ['Work on complaints and service jobs', false],
+        'complaint.manage'      => ['Work on complaints, service jobs and tyres', false],
 
         // ---- People -----------------------------------------------------------
         'people.view'           => ['See crew and staff', false],

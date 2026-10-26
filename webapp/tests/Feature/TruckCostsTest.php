@@ -64,12 +64,12 @@ it('works out a truck’s fixed costs a day and takes a trip’s share off its p
         ->and($costs->tripShare($w['trip']))->toBe(['days' => 3, 'per_day' => 1200.0, 'share' => 3600.0]);
 
     $this->get(route('trips.show', $w['trip']))->assertOk()->assertSeeText('Trip profit (direct)')->assertSeeText('Truck’s fixed costs, 3 days (estimate)')
-        ->assertSeeText('₹3,600.00')->assertSeeText('Profit after fixed costs')->assertSeeText('₹60,400.00');
+        ->assertSeeText('₹3,600.00')->assertSeeText('Profit after the truck’s costs')->assertSeeText('₹60,400.00');
     $this->get(route('trucks.show', $truck))->assertOk()->assertSeeText('Fixed costs a day')->assertSeeText('₹1,200.00')->assertSeeText('Usual driver’s salary')
         ->assertSeeText('₹1,000.00');
 
     // The routes report takes each trip's share off too (its profit there is after the ₹1,500 toll in the book).
-    $this->get(route('reports.index', ['tab' => 'lanes', 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()->assertSeeText('after fixed ₹58,900.00');
+    $this->get(route('reports.index', ['tab' => 'lanes', 'from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()->assertSeeText('after truck costs ₹58,900.00');
 
     // And the owner app.
     phoneReset();
@@ -84,7 +84,7 @@ it('leaves an attached truck’s costs to its owner', function () {
     app(CompanyContext::class)->runAs($w['company'], fn () => $w['trip']->truck->update(['ownership' => 'attached']));
 
     expect(app(CompanyContext::class)->runAs($w['company'], fn () => app(TruckCosts::class)->tripShare($w['trip']->fresh())))->toBeNull();
-    $this->get(route('trips.show', $w['trip']))->assertOk()->assertSeeText('Trip profit (direct)')->assertDontSeeText('Profit after fixed costs');
+    $this->get(route('trips.show', $w['trip']))->assertOk()->assertSeeText('Trip profit (direct)')->assertDontSeeText('Profit after the truck’s costs');
     $this->get(route('trucks.show', $w['trip']->truck_id))->assertOk()->assertDontSeeText('Fixed costs a day');
 });
 

@@ -107,6 +107,8 @@ class OfficeController extends Controller
             'profit' => $user->canAny(['report.view', 'accounts.view', 'ledger.view']) ? $statements->tripProfit($trip->id) : null,
             // The truck's costs whether it runs or not for the trip's days (M37), an estimate: {days, per_day, share}; null for a hired truck.
             'fixed_costs' => $freight ? app(\App\Modules\Fleet\Services\TruckCosts::class)->tripShare($trip) : null,
+            // Its tyres' wear for the trip's km (M38), an estimate: {km, tyres, amount}; null without odometer readings or tyres with a cost per km.
+            'tyre_wear' => $freight ? app(\App\Modules\Fleet\Services\Tyres::class)->wearFor($trip) : null,
             'route_url' => $user->can('map.view') ? route('api.owner.trips.route', $trip->uuid) : null,
         ]);
     }
@@ -175,7 +177,7 @@ class OfficeController extends Controller
         $from = isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $to->subDays(90);
 
         return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'routes' => $reports->lanes($from, $to)->map(fn ($r) => [
-            'route' => $r->route, 'empty' => $r->empty, 'trips' => $r->trips, 'income' => $r->income, 'cost' => $r->cost, 'profit' => $r->profit, 'fixed' => $r->fixed, 'net' => $r->net, 'margin' => $r->margin,
+            'route' => $r->route, 'empty' => $r->empty, 'trips' => $r->trips, 'income' => $r->income, 'cost' => $r->cost, 'profit' => $r->profit, 'fixed' => $r->fixed, 'tyres' => $r->tyres, 'net' => $r->net, 'margin' => $r->margin,
             'km' => $r->km, 'per_km' => $r->per_km, 'days' => $r->days, 'best' => $r->best, 'worst' => $r->worst, 'main_costs' => $r->main_costs,
             'last' => ['trip' => $r->last['trip']->trip_number, 'uuid' => $r->last['trip']->uuid, 'date' => $r->last['date']?->toDateString(), 'income' => $r->last['income']],
         ])->values()]);

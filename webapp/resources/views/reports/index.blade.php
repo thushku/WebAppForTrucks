@@ -35,7 +35,7 @@
       @break
 
     @case('lanes')
-      <p class="px-6 pt-5 text-sm text-ink-500">{{ __('Trips that ended in the period, by route: what a trip on it usually earns, costs and makes — what to quote the next client.') }} {{ __('“After fixed” also takes off the trucks’ costs a day for the trip’s days (an estimate).') }}</p>
+      <p class="px-6 pt-5 text-sm text-ink-500">{{ __('Trips that ended in the period, by route: what a trip on it usually earns, costs and makes — what to quote the next client.') }} {{ __('“After truck costs” also takes off the trucks’ costs a day for the trip’s days and their tyres’ wear for its km (an estimate).') }}</p>
       <table class="table mt-2">
         <thead><tr><th>{{ __('Route') }}</th><th class="text-end">{{ __('Trips') }}</th><th class="text-end">{{ __('Income per trip') }}</th><th class="text-end">{{ __('Cost per trip') }}</th><th class="text-end">{{ __('Profit per trip') }}</th><th class="text-end">{{ __('Margin') }}</th><th class="text-end">{{ __('Km') }}</th><th class="text-end">{{ __('Per km') }}</th><th class="text-end">{{ __('Days') }}</th><th>{{ __('Main costs per trip') }}</th><th>{{ __('Last trip') }}</th></tr></thead>
         <tbody>
@@ -45,7 +45,7 @@
               <td class="text-end text-sm">{{ $r->trips }}</td>
               <td class="money text-end text-sm">{{ $m($r->income) }}</td>
               <td class="money text-end text-sm">{{ $m($r->cost) }}</td>
-              <td class="money text-end text-sm font-semibold {{ $r->profit < 0 ? 'text-overdue' : '' }}">{{ $m($r->profit) }}@if ($r->fixed > 0)<div class="whitespace-nowrap text-xs font-normal {{ $r->net < 0 ? 'text-overdue' : 'text-ink-500' }}" title="{{ __('Fixed costs per trip: :amount', ['amount' => $m($r->fixed)]) }}">{{ __('after fixed :amount', ['amount' => $m($r->net)]) }}</div>@endif</td>
+              <td class="money text-end text-sm font-semibold {{ $r->profit < 0 ? 'text-overdue' : '' }}">{{ $m($r->profit) }}@if ($r->fixed + $r->tyres > 0)<div class="whitespace-nowrap text-xs font-normal {{ $r->net < 0 ? 'text-overdue' : 'text-ink-500' }}" title="{{ __('Per trip: fixed costs :fixed, tyre wear :tyres', ['fixed' => $m($r->fixed), 'tyres' => $m($r->tyres)]) }}">{{ __('after truck costs :amount', ['amount' => $m($r->net)]) }}</div>@endif</td>
               <td class="text-end text-sm">{{ $r->margin !== null ? $r->margin . '%' : '—' }}</td>
               <td class="text-end text-sm">{{ $r->km ? number_format($r->km) : '—' }}</td>
               <td class="money text-end text-sm">{{ $r->per_km !== null ? $m($r->per_km) : '—' }}</td>

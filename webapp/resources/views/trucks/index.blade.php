@@ -14,6 +14,7 @@
     @endforeach
   </div>
   <div class="flex flex-wrap gap-2">
+    <a href="{{ route('trucks.tyres') }}" class="btn-secondary"><x-icon name="tyre" /> {{ __('Tyres') }}</a>
     <a href="{{ route('trucks.emis') }}" class="btn-secondary"><x-icon name="wallet" /> {{ __('EMIs') }}</a>
     @can('truck.manage')<a href="{{ route('trucks.create') }}" class="btn-primary"><x-icon name="plus" /> {{ __('Add truck') }}</a>@endcan
   </div>

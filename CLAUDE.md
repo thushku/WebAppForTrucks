@@ -60,7 +60,9 @@ founder's laptop) in `phoneapp/`.
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service, M35 `TruckLoans` — a truck's loan ledger and EMIs, `truck_emis`, Trucks → EMIs; M37 `TruckCosts` — what a truck costs a
   day running or not (papers over their validity, the usual driver's salary, its no-trip bills of 90 days) and a trip's share,
-  an estimate shown under the direct profit; an attached truck counts none), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
+  an estimate shown under the direct profit; an attached truck counts none; M38 `Tyres` — the tyre register: `tyres`,
+  `tyre_fitments` by wheel position from the truck's wheel count, `tyre_retreads`; cost ÷ expected km is a tyre's wear, a trip's
+  tyre wear is its km on the truck within the trip's odometer readings; Trucks → Tyres and the truck's Tyres tab), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
   broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
   LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events

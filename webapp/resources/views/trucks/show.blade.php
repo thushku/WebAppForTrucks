@@ -4,7 +4,7 @@
 @php
   $tones = ['idle' => 'bg-emerald-50 text-paid', 'on_trip' => 'bg-brand-50 text-brand-700', 'workshop' => 'bg-amber-50 text-partial',
             'breakdown' => 'bg-red-50 text-overdue', 'out_of_service' => 'bg-ink-100 text-ink-500', 'sold' => 'bg-ink-100 text-ink-500'];
-  $tabs = ['overview' => __('Overview'), 'complaints' => __('Complaints'), 'service' => __('Service')];
+  $tabs = ['overview' => __('Overview'), 'complaints' => __('Complaints'), 'service' => __('Service'), 'tyres' => __('Tyres')];
 @endphp
 <section class="card p-6">
   <div class="flex flex-wrap items-start gap-4">
@@ -39,7 +39,7 @@
       <a href="{{ route('trucks.show', [$truck, 'tab' => $key]) }}" class="-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium {{ $tab === $key ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900' }}" @if ($tab === $key) aria-current="page" @endif>{{ $label }}</a>
     @endforeach
     @can('document.view')<a href="{{ route('documents.owner', ['truck', $truck->id]) }}" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Documents') }}</a>@endcan
-    @foreach ([__('Trips'), __('Fuel'), __('Tyres'), __('Costs')] as $soon)
+    @foreach ([__('Trips'), __('Fuel'), __('Costs')] as $soon)
       <span class="whitespace-nowrap px-3 py-2 text-sm text-ink-300" title="{{ __('Coming in a later milestone') }}">{{ $soon }}</span>
     @endforeach
   </nav>

@@ -468,6 +468,27 @@ package), QR codes / amount in words / CSV written in-house. See
 - A payment voucher may name the truck it was for. A paper's premium typed on
   the paper should not also be tagged to the truck, or it counts twice.
 
+### P28. The tyre register (added 26 Oct 2026, M38)
+
+- **Each tyre by its serial number**, bought into the store with its cost and
+  the km it is expected to run; fitted to a truck at a **wheel position**
+  (laid out from the truck's wheel count: front axles, twin rear axles, the
+  spare) from an odometer reading; taken off at another, with a reason that
+  says where it goes — the store (repair, rotation), the retreader, or scrap
+  (worn out, burst, sold). Moving on the same truck onto a taken position is
+  a swap. The spare runs no km.
+- **A retread adds its cost and the km it is good for** to the tyre's, so
+  cost ÷ expected km stays what each km of the tyre costs.
+- **A trip is charged its tyres' wear**: for each tyre on its truck within the
+  trip's odometer readings, those km × the tyre's cost per km — shown with
+  the truck's fixed costs (P27) under the direct profit, as an estimate, and
+  in the routes report.
+- The register **keeps no books**: the tyre dealer's bill is paid or booked
+  as any other. Seen with `truck.view`, changed with `complaint.manage` (the
+  workshop's permission, now "complaints, service jobs and tyres").
+- Tyres near 90 % of their expected km are flagged on the dashboard and the
+  tyre store.
+
 ---
 
 ## 4. Still open

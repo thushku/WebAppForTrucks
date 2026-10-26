@@ -112,6 +112,13 @@ class Dashboard
             $alerts[] = ['level' => 'warning', 'text' => __('EMI of :truck, :amount, due :date', ['truck' => $emi['truck']->reg_no, 'amount' => \App\Support\Money::company($emi['amount']), 'date' => $emi['due_on']->format('d M')]), 'url' => route('trucks.emis')];
         }
 
+        // Fitted tyres near or past the km expected of them (M38).
+        $worn = app(\App\Modules\Fleet\Services\Tyres::class)->nearEnd();
+        if ($worn->isNotEmpty()) {
+            $alerts[] = ['level' => $worn->contains(fn ($r) => $r['used'] >= 1) ? 'serious' : 'warning',
+                'text' => trans_choice(':count tyre is near the end of its expected km|:count tyres are near the end of their expected km', $worn->count()), 'url' => route('trucks.tyres')];
+        }
+
         // Odometer and GPS apart on a trip of the last 30 days (M34).
         $apart = Trip::inBranch()->where('km_check', 'differs')->where('ended_at', '>=', now()->subDays(30))->count();
         if ($apart) {

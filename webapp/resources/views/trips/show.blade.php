@@ -250,11 +250,13 @@
           @endforeach
           <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Trip profit (direct)') }}</dt><dd class="money">{{ \App\Support\Money::company($p['profit']) }}</dd></div>
           @if ($p['per_km'])<div class="flex justify-between text-xs text-ink-500"><dt>{{ __('per km') }}</dt><dd class="money">{{ \App\Support\Money::company($p['per_km']) }}</dd></div>@endif
-          @if ($fixed && $fixed['share'] > 0)
-            {{-- The truck's costs whether it runs or not, for the trip's days (M37) — an estimate. --}}
-            <div class="flex justify-between gap-3 pt-1.5"><dt class="text-ink-500">{{ trans_choice('Truck’s fixed costs, :count day (estimate)|Truck’s fixed costs, :count days (estimate)', $fixed['days']) }}</dt><dd class="money">− {{ \App\Support\Money::company($fixed['share']) }}</dd></div>
-            <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] - $fixed['share'] >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Profit after fixed costs') }}</dt><dd class="money">{{ \App\Support\Money::company(round($p['profit'] - $fixed['share'], 2)) }}</dd></div>
-            <p class="text-xs text-ink-500">{{ __(':amount a day: what the truck’s papers, usual driver’s salary and its own bills cost — see the truck.', ['amount' => \App\Support\Money::company($fixed['per_day'])]) }}</p>
+          @php($truckCosts = round(($fixed['share'] ?? 0) + ($tyreWear['amount'] ?? 0), 2))
+          @if ($truckCosts > 0)
+            {{-- The truck's costs whether it runs or not for the trip's days (M37) and its tyres' wear for the trip's km (M38) — estimates. --}}
+            @if ($fixed && $fixed['share'] > 0)<div class="flex justify-between gap-3 pt-1.5"><dt class="text-ink-500">{{ trans_choice('Truck’s fixed costs, :count day (estimate)|Truck’s fixed costs, :count days (estimate)', $fixed['days']) }}</dt><dd class="money">− {{ \App\Support\Money::company($fixed['share']) }}</dd></div>@endif
+            @if ($tyreWear)<div class="flex justify-between gap-3"><dt class="text-ink-500">{{ __('Tyre wear, :km km (estimate)', ['km' => number_format($tyreWear['km'])]) }}</dt><dd class="money">− {{ \App\Support\Money::company($tyreWear['amount']) }}</dd></div>@endif
+            <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] - $truckCosts >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Profit after the truck’s costs') }}</dt><dd class="money">{{ \App\Support\Money::company(round($p['profit'] - $truckCosts, 2)) }}</dd></div>
+            @if ($fixed && $fixed['share'] > 0)<p class="text-xs text-ink-500">{{ __(':amount a day: what the truck’s papers, usual driver’s salary and its own bills cost — see the truck.', ['amount' => \App\Support\Money::company($fixed['per_day'])]) }}</p>@endif
           @endif
         </dl>
         @if ($trip->ended_at && ($trip->end_odometer || $trip->gps_km !== null))

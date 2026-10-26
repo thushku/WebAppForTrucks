@@ -20,6 +20,7 @@ use App\Http\Controllers\Fleet\ComplaintController;
 use App\Http\Controllers\Fleet\EmiController;
 use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
+use App\Http\Controllers\Fleet\TyreController;
 use App\Http\Controllers\Parties\PartyController;
 use App\Http\Controllers\People\PersonController;
 use App\Http\Controllers\Trips\ApprovalController;
@@ -407,6 +408,19 @@ Route::middleware('auth')->group(function () {
                 Route::put('/{truck}/service/{job}', [ServiceController::class, 'update'])->name('service.update');
                 Route::post('/{truck}/service/{job}/done', [ServiceController::class, 'complete'])->name('service.complete');
                 Route::post('/{truck}/service/{job}/cancel', [ServiceController::class, 'cancel'])->name('service.cancel');
+            });
+            // Tyres (M38): the store and register; fit, take off and move by position on the truck's Tyres tab.
+            Route::get('/tyres', [TyreController::class, 'index'])->middleware('permission:truck.view')->name('tyres');
+            Route::get('/tyres/{tyre}', [TyreController::class, 'show'])->middleware('permission:truck.view')->name('tyres.show');
+            Route::middleware('permission:complaint.manage')->group(function () {
+                Route::post('/tyres', [TyreController::class, 'store'])->name('tyres.store');
+                Route::put('/tyres/{tyre}', [TyreController::class, 'update'])->name('tyres.update');
+                Route::post('/tyres/{tyre}/retread', [TyreController::class, 'retread'])->name('tyres.retread');
+                Route::post('/tyres/{tyre}/returned', [TyreController::class, 'returned'])->name('tyres.returned');
+                Route::post('/tyres/{tyre}/scrap', [TyreController::class, 'scrap'])->name('tyres.scrap');
+                Route::post('/{truck}/tyres', [TyreController::class, 'fit'])->name('tyres.fit');
+                Route::post('/{truck}/tyres/{tyre}/off', [TyreController::class, 'off'])->name('tyres.off');
+                Route::post('/{truck}/tyres/{tyre}/move', [TyreController::class, 'move'])->name('tyres.move');
             });
             Route::get('/{truck}', [TruckController::class, 'show'])->middleware('permission:truck.view')->name('show');
         });

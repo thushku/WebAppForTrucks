@@ -2,6 +2,33 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M38: tyres (decision P28)
+
+**Built (in `webapp/`, `Fleet/Services/Tyres`, Trucks → Tyres, the truck's Tyres tab):**
+- **The tyre store and register**: tyres added as a set (one serial number per line, the same brand, size, cost and
+  expected km), each with its status — in the store, fitted, at the retreader, scrapped —, km run, cost and cost per km;
+  tabs, search, the tyres near the end of their km on top, and **what each brand gives** (km a finished tyre gave, its
+  actual cost per km after the scrap money, against the expected).
+- **The truck's Tyres tab**: its axles drawn front to back from its wheel count (10 wheels: front pair, two twin rear
+  axles, the spare), the tyre at each position with a km bar (amber at 90 %, red past 100 %); **fit** a tyre from the
+  store, **take off** (worn out, burst, sold → scrapped with the scrap money; retread → the retreader; repair, rotation →
+  the store), **move or swap** (on the same truck or to another); the truck's tyre history.
+- A tyre's page: its runs on each truck, its retreads, **send for retreading**, **back from the retreader** (cost and km
+  added), **scrap**, edit the details.
+- **Each trip's tyre wear**: the km each tyre was on the truck within the trip's odometer readings × its cost per km,
+  under the direct profit with the truck's fixed costs (now "Profit after the truck's costs"), in the routes report
+  ("after truck costs", CSV column) and the owner app (`tyre_wear`, `tyres`).
+- Dashboard alert for tyres near their end; the owner app's tyres (§14, screens O32, O33), each write once per key.
+- The workshop permission now reads "Work on complaints, service jobs and tyres". The demo has two trucks on full sets,
+  two worn tyres scrapped, a new set in the store and one at the retreader (Cochin Tyre House).
+- Migration 000028: `tyres`, `tyre_fitments`, `tyre_retreads`. Hindi for every new string.
+
+**Tests:** 281 passing (new `TyresTest`, 4 tests: positions for 4–22 wheels and their names; a set added, a repeat serial
+refused, fit, a taken or unknown position refused, a move with a low reading refused, a move and a swap with each
+fitment's km, off for retreading, back with its cost and km, scrapped with the actual cost per km; a trip's wear of
+₹1,225 for four tyres — one fitted halfway, the spare none — on the trip page, the routes report and the owner app, the
+near-the-end alert; the owner app's add, fit and off once per key, a taken position refused).
+
 ## 2026-10-26 — Milestone M37: a truck's fixed costs a day and each trip's share (decision P27)
 
 **Built (in `webapp/`, `Fleet/Services/TruckCosts`):**

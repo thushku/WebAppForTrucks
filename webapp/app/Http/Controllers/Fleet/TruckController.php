@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Fleet;
 use App\Http\Controllers\Controller;
 use App\Modules\Fleet\Models\Complaint;
 use App\Modules\Fleet\Models\Truck;
+use App\Modules\Fleet\Models\Tyre;
+use App\Modules\Fleet\Models\TyreFitment;
 use App\Modules\Fleet\Services\FleetService;
 use App\Modules\Fleet\Services\TruckCosts;
+use App\Modules\Fleet\Services\Tyres;
 use App\Modules\Parties\Models\Party;
 use App\Modules\Settings\Models\Branch;
 use App\Modules\Settings\Models\MasterItem;
@@ -62,7 +65,7 @@ class TruckController extends Controller
 
     public function show(Request $request, Truck $truck): View
     {
-        $tab = in_array($request->query('tab'), ['overview', 'complaints', 'service'], true) ? $request->query('tab') : 'overview';
+        $tab = in_array($request->query('tab'), ['overview', 'complaints', 'service', 'tyres'], true) ? $request->query('tab') : 'overview';
         $truck->load(['owner', 'branch']);
         $compliance = app(\App\Modules\Documents\Services\Compliance::class);
         $documents  = \App\Modules\Documents\Models\Document::where('owner_type', 'truck')->where('owner_id', $truck->id)->whereNotNull('expires_on')->orderBy('expires_on')->get();
@@ -80,8 +83,25 @@ class TruckController extends Controller
             'documents'  => $documents,
             'missing'    => $compliance->missing($truck),
             'health'     => $compliance->health($truck),
-            'costs'      => $request->user()->can('trip.freight_view') && app(TruckCosts::class)->counts($truck) ? app(TruckCosts::class)->perDay($truck) : null,
-        ]);
+            'costs'      => $tab === 'overview' && $request->user()->can('trip.freight_view') && app(TruckCosts::class)->counts($truck) ? app(TruckCosts::class)->perDay($truck) : null,
+        ] + ($tab === 'tyres' ? $this->tyreTab($truck) : []));
+    }
+
+    /** The truck's Tyres tab (M38): its axles with the tyre at each position, tyres in the store to fit, its fitments. */
+    private function tyreTab(Truck $truck): array
+    {
+        $tyres = app(Tyres::class);
+
+        return [
+            'tyreService' => $tyres,
+            'axles'       => $tyres->axles($truck),
+            'fitted'      => $tyres->onTruck($truck),
+            'store'       => Tyre::inBranch()->where('status', 'in_store')->orderBy('brand')->orderBy('serial_no')->get(['id', 'serial_no', 'brand', 'size', 'kind']),
+            'otherTrucks' => Truck::inBranch()->where('status', '!=', 'sold')->whereKeyNot($truck->id)->orderBy('reg_no')->pluck('reg_no', 'id'),
+            'history'     => TyreFitment::with('tyre:id,serial_no,brand,size')->where('truck_id', $truck->id)->orderByDesc('fitted_on')->orderByDesc('id')->limit(60)->get(),
+            'vendors'     => Party::active()->withRole('vendor')->orderBy('name')->pluck('name', 'id'),
+            'today'       => \Carbon\CarbonImmutable::now(app(CompanyContext::class)->company()->timezone ?: 'UTC')->startOfDay(),
+        ];
     }
 
     public function edit(Truck $truck): View
