@@ -70,7 +70,7 @@ class DocumentData
     public function forInvoice(Invoice $invoice, ?array $design = null): array
     {
         $design ??= $this->invoiceDesign($invoice);
-        $invoice->loadMissing(['lines.consignment.trip', 'lines.consignment.consignor', 'lines.consignment.consignee', 'lines.consignment.pickupStop.place', 'lines.consignment.dropStop.place',
+        $invoice->loadMissing(['lines.consignment.trip', 'lines.consignment.trip.truck:id,reg_no', 'lines.consignment.trip.supplierVehicle:id,reg_no', 'lines.consignment.trip.crew.person:id,name', 'lines.consignment.consignor', 'lines.consignment.consignee', 'lines.consignment.pickupStop.place', 'lines.consignment.dropStop.place',
             'taxes', 'party.taxIds', 'registration', 'related']);
         $frozen  = $invoice->snapshot ?: $this->snapshot($invoice);
         $company = $this->context->company();
@@ -90,6 +90,7 @@ class DocumentData
 
             return [
                 'lr' => $c->lr_number, 'date' => $c->lr_date?->format('d-m-Y'), 'vehicle' => $c->trip?->vehicleLabel(),
+                'driver' => $c->trip?->relationLoaded('crew') ? $c->trip->crew->firstWhere('role', 'driver')?->person?->name : null,
                 'from' => $c->pickupStop?->place?->name, 'to' => $c->dropStop?->place?->name,
                 'goods' => $c->description ?: ucfirst(str_replace('_', ' ', (string) $c->material)),
                 'weight' => $c->weight() ? rtrim(rtrim(number_format($c->weight(), 3), '0'), '.') . ' MT' : null,

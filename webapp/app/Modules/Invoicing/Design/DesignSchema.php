@@ -60,7 +60,7 @@ final class DesignSchema
         'invoice' => [
             'logo' => true, 'address' => true, 'contact' => true, 'tax_registration' => true, 'pan' => true, 'sac' => true,
             'tax_summary' => true, 'words' => true, 'bank' => true, 'qr' => true, 'signature' => true, 'notes' => true, 'terms' => true,
-            'annexure' => true, 'annexure_vehicle' => true, 'tds_note' => true, 'computer_generated' => true,
+            'annexure' => true, 'annexure_vehicle' => true, 'annexure_driver' => false, 'tds_note' => true, 'computer_generated' => true,
         ],
         'lr' => [
             'logo' => true, 'address' => true, 'tax_registration' => true, 'trip' => true, 'driver' => true, 'ewaybill' => true,
@@ -74,7 +74,7 @@ final class DesignSchema
         'logo' => 'Logo', 'address' => 'Our address', 'contact' => 'Phone, email, website', 'tax_registration' => 'GSTIN / TRN', 'pan' => 'PAN',
         'sac' => 'SAC / item code column', 'tax_summary' => 'Tax summary table', 'words' => 'Amount in words', 'bank' => 'Bank details',
         'qr' => 'UPI QR for the amount due', 'signature' => 'Signature block', 'notes' => 'Note', 'terms' => 'Terms', 'annexure' => 'LR annexure (consolidated bills)',
-        'annexure_vehicle' => 'Vehicle column in the annexure', 'tds_note' => 'TDS line', 'computer_generated' => '“Computer-generated” line',
+        'annexure_vehicle' => 'Vehicle column in the annexure', 'annexure_driver' => 'Driver column in the annexure', 'tds_note' => 'TDS line', 'computer_generated' => '“Computer-generated” line',
         'trip' => 'Trip number', 'driver' => 'Driver name and mobile', 'ewaybill' => 'E-way bills', 'consignor_invoice' => 'Consignor invoice',
         'declared_value' => 'Declared value', 'gst_payable_by' => 'GST payable by', 'risk_banner' => 'Owner’s / carrier’s risk', 'pod_box' => 'Proof of delivery box',
         'carriage_note' => 'Carriage by Road Act line', 'applied' => 'Bills settled',

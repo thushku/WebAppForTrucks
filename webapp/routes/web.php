@@ -101,6 +101,14 @@ Route::middleware('auth')->group(function () {
     Route::middleware('company')->group(function () {
         Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
 
+        // "+ New" inside the trip form (M25).
+        Route::prefix('quick-add')->name('quick.')->middleware('throttle:60,1')->group(function () {
+            Route::post('/client', [Trips\QuickAddController::class, 'client'])->middleware('permission:party.manage')->name('client');
+            Route::post('/person', [Trips\QuickAddController::class, 'person'])->middleware('permission:people.manage')->name('person');
+            Route::post('/truck', [Trips\QuickAddController::class, 'truck'])->middleware('permission:truck.manage')->name('truck');
+            Route::post('/place', [Trips\QuickAddController::class, 'place'])->middleware('permission:settings.masters')->name('place');
+        });
+
         // The branch the lists show (M22).
         Route::post('/branch', function (\Illuminate\Http\Request $request, \App\Platform\Tenancy\BranchContext $branches) {
             $branches->select($request->filled('branch') ? (int) $request->input('branch') : null);
@@ -199,6 +207,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{trip}/photos/{photo}', [TripController::class, 'photo'])->middleware('permission:trip.view')->name('photo');
             Route::get('/{trip}/loads/{consignment}/lr', [ConsignmentController::class, 'printLr'])->middleware('permission:lr.view,trip.view')->name('loads.lr');
             Route::get('/{trip}/loads/{consignment}/lr.pdf', [ConsignmentController::class, 'pdfLr'])->middleware('permission:lr.view,trip.view')->name('loads.lr.pdf');
+            Route::get('/report', [TripController::class, 'report'])->middleware('permission:trip.view')->name('report');
             Route::get('/{trip}', [TripController::class, 'show'])->middleware('permission:trip.view')->name('show');
         });
 

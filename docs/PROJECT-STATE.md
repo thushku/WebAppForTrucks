@@ -2,6 +2,26 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M25: the trip desk (13-parity #3–5, #25)
+
+**Built (in `webapp/`):**
+- **"+ New" inside the trip form** (#3): client (name, mobile), driver (name, mobile), truck (registration, RC owner),
+  place (name, full address → a customer site) in a dialog; the new record joins every list it belongs in and is
+  chosen at once (a new place fills From when empty, else To); the rest is completed later on its own page. Each needs
+  its own right (`party.manage`, `people.manage`, `truck.manage`, `settings.masters`); the plan's truck limit holds.
+- **Trip list → Billing filter** (#4): Not invoiced / Invoiced, unpaid / Paid, with the other filters and the totals bar.
+- **Trip report** (#5) of the filtered list: **Report** (the letterhead, when it was made, the period and the filters in
+  words, one row per trip — date, number, route, truck, driver, client, freight, other charges, total, office note —
+  and the totals; landscape A4 to print or save), **PDF** (server Chromium, else the page) and **Excel** (CSV with a BOM;
+  cells that would run as formulas made plain).
+- **Annexure driver column** (#25), off by default, switched on in the bill template; "Total trips / LRs" and
+  "Subtotal (N LRs)" were there already.
+- Fixed on the way: a consolidated bill with several LRs read each trip's truck one by one (now loaded with the bill).
+
+**Tests:** 249 passing (new `TripDeskTest`, 3 tests: the four quick adds and their refusals, a trip planned with them,
+who may; the billing filter on three trips (paid, billed, not billed), the report's rows, words and totals, the PDF
+fallback, the spreadsheet's rows; the annexure without and with the driver column).
+
 ## 2026-10-26 — Milestone M24: the client's billing desk, quotations answered online
 
 **Built (in `webapp/`; 13-parity #20–21; decision P16 extended):**

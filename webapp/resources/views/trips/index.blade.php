@@ -30,8 +30,14 @@
   <div><label class="label" for="t_truck">{{ __('Truck') }}</label><select id="t_truck" name="truck" class="input w-40"><option value="">{{ __('Any') }}</option>@foreach ($trucks as $id => $reg)<option value="{{ $id }}" @selected((int) ($f['truck'] ?? 0) === $id)>{{ $reg }}</option>@endforeach</select></div>
   <div><label class="label" for="t_party">{{ __('Client') }}</label><select id="t_party" name="party" class="input w-44"><option value="">{{ __('Any') }}</option>@foreach ($parties as $id => $name)<option value="{{ $id }}" @selected((int) ($f['party'] ?? 0) === $id)>{{ $name }}</option>@endforeach</select></div>
   <div><label class="label" for="t_q">{{ __('Trip no.') }}</label><input id="t_q" name="q" value="{{ $f['q'] ?? '' }}" class="input w-40" maxlength="40"></div>
+  <div><label class="label" for="t_billing">{{ __('Billing') }}</label><select id="t_billing" name="billing" class="input w-40"><option value="">{{ __('Any') }}</option>@foreach (['not_invoiced' => __('Not invoiced'), 'invoiced' => __('Invoiced, unpaid'), 'paid' => __('Paid')] as $k => $label)<option value="{{ $k }}" @selected(($f['billing'] ?? '') === $k)>{{ $label }}</option>@endforeach</select></div>
   <button class="btn-secondary"><x-icon name="search" /> {{ __('Show') }}</button>
   <a href="{{ route('trips.index') }}" class="btn-ghost text-sm">{{ __('Reset filters') }}</a>
+  <span class="ms-auto flex gap-2">
+    <a href="{{ route('trips.report', array_filter($f)) }}" target="_blank" rel="noopener" class="btn-secondary text-sm"><x-icon name="printer" class="size-4" /> {{ __('Report') }}</a>
+    <a href="{{ route('trips.report', array_filter($f) + ['format' => 'pdf']) }}" class="btn-secondary text-sm">{{ __('PDF') }}</a>
+    <a href="{{ route('trips.report', array_filter($f) + ['format' => 'csv']) }}" class="btn-secondary text-sm"><x-icon name="download" class="size-4" /> {{ __('Excel') }}</a>
+  </span>
 </form>
 
 {{-- Totals that follow the filters (13 §A #4). --}}

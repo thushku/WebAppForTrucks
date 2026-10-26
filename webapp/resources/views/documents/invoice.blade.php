@@ -156,13 +156,13 @@
   <h1 class="mid">{{ __('Annexure to :doc :no', ['doc' => $d['title'], 'no' => $d['number'] ?? __('Draft')]) }}</h1>
   <p class="small">{{ __('Total trips / LRs: :n', ['n' => $d['lr_count']]) }}</p>
   <table class="grid small">
-    <thead><tr><th>{{ __('LR no.') }}</th><th>{{ __('Date') }}</th>@if ($f['annexure_vehicle'])<th>{{ __('Vehicle') }}</th>@endif<th>{{ __('From – to') }}</th><th>{{ __('Goods') }}</th><th class="r">{{ __('Weight') }}</th><th class="r">{{ __('Freight') }}</th><th class="r">{{ __('Other') }}</th><th class="r">{{ $L('total') }}</th></tr></thead>
+    <thead><tr><th>{{ __('LR no.') }}</th><th>{{ __('Date') }}</th>@if ($f['annexure_vehicle'])<th>{{ __('Vehicle') }}</th>@endif @if ($f['annexure_driver'] ?? false)<th>{{ __('Driver') }}</th>@endif<th>{{ __('From – to') }}</th><th>{{ __('Goods') }}</th><th class="r">{{ __('Weight') }}</th><th class="r">{{ __('Freight') }}</th><th class="r">{{ __('Other') }}</th><th class="r">{{ $L('total') }}</th></tr></thead>
     <tbody>
       @foreach ($d['annexure'] as $row)
-        <tr><td class="num">{{ $row['lr'] }}</td><td class="num">{{ $row['date'] }}</td>@if ($f['annexure_vehicle'])<td class="num">{{ $row['vehicle'] }}</td>@endif<td>{{ $row['from'] }} – {{ $row['to'] }}</td><td>{{ $row['goods'] }}</td><td class="r num">{{ $row['weight'] }}</td><td class="r num">{{ $row['freight'] }}</td><td class="r num">{{ $row['other'] }}</td><td class="r num strong">{{ $row['total'] }}</td></tr>
+        <tr><td class="num">{{ $row['lr'] }}</td><td class="num">{{ $row['date'] }}</td>@if ($f['annexure_vehicle'])<td class="num">{{ $row['vehicle'] }}</td>@endif @if ($f['annexure_driver'] ?? false)<td>{{ $row['driver'] ?? '' }}</td>@endif<td>{{ $row['from'] }} – {{ $row['to'] }}</td><td>{{ $row['goods'] }}</td><td class="r num">{{ $row['weight'] }}</td><td class="r num">{{ $row['freight'] }}</td><td class="r num">{{ $row['other'] }}</td><td class="r num strong">{{ $row['total'] }}</td></tr>
       @endforeach
     </tbody>
-    <tfoot><tr class="total-row"><td colspan="{{ $f['annexure_vehicle'] ? 8 : 7 }}" class="r strong">{{ __('Subtotal (:n LRs)', ['n' => $d['lr_count']]) }}</td><td class="r num strong">{{ $d['taxable_total'] }}</td></tr></tfoot>
+    <tfoot><tr class="total-row"><td colspan="{{ 7 + ($f['annexure_vehicle'] ? 1 : 0) + (($f['annexure_driver'] ?? false) ? 1 : 0) }}" class="r strong">{{ __('Subtotal (:n LRs)', ['n' => $d['lr_count']]) }}</td><td class="r num strong">{{ $d['taxable_total'] }}</td></tr></tfoot>
   </table>
 </div>
 @endif

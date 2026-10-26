@@ -93,6 +93,11 @@ class Consignment extends Model
             ->whereNotIn('id', \App\Modules\Invoicing\Models\InvoiceLine::query()->whereNotNull('consignment_id')->whereHas('invoice', fn ($q) => $q->where('status', 'draft'))->select('consignment_id'));
     }
 
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Invoicing\Models\Invoice::class);
+    }
+
     /** The printed LR book its typed number is from (M21); null for the automatic series. */
     public function lrBook(): BelongsTo
     {

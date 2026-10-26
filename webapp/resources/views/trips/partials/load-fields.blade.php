@@ -19,6 +19,7 @@
       <option value="">—</option>
       @foreach ($clients as $p)<option value="{{ $p->id }}" @selected((int) $old('billing_party_id') === $p->id)>{{ $p->name }}{{ $p->short_code ? ' (' . $p->short_code . ')' : '' }}</option>@endforeach
     </select>
+    @if ($n === 'load')@can('party.manage')<button type="button" class="mt-1 text-xs font-semibold text-brand-700 hover:underline" data-quick-open="client">+ {{ __('New client') }}</button>@endcan @endif
     @error($err('billing_party_id'))<span class="error">{{ $message }}</span>@enderror
   </div>
   <div>

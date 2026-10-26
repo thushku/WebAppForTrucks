@@ -53,27 +53,7 @@ class TripController extends Controller
 
     public function index(Request $request): View
     {
-        $f = $request->validate([
-            'status' => ['nullable', 'string', 'max:12'],
-            'from'   => ['nullable', 'date_format:Y-m-d'],
-            'to'     => ['nullable', 'date_format:Y-m-d'],
-            'place'  => ['nullable', 'integer'],
-            'truck'  => ['nullable', 'integer'],
-            'party'  => ['nullable', 'integer'],
-            'q'      => ['nullable', 'string', 'max:40'],
-        ]);
-        $status = $f['status'] ?? 'active';
-
-        $query = Trip::query()->inBranch()
-            ->when($status === 'active', fn ($q) => $q->whereNotIn('status', ['closed', 'cancelled']))
-            ->when(isset(Trip::STATUSES[$status]), fn ($q) => $q->where('status', $status))
-            ->when($f['from'] ?? null, fn ($q, $d) => $q->where('trip_date', '>=', $d))
-            ->when($f['to'] ?? null, fn ($q, $d) => $q->where('trip_date', '<=', $d))
-            ->when($f['truck'] ?? null, fn ($q, $id) => $q->where('truck_id', $id))
-            // A place matches the origin, the destination or any stop.
-            ->when($f['place'] ?? null, fn ($q, $id) => $q->where(fn ($w) => $w->where('from_place_id', $id)->orWhere('to_place_id', $id)->orWhereHas('stops', fn ($s) => $s->where('place_id', $id))))
-            ->when($f['party'] ?? null, fn ($q, $id) => $q->whereHas('consignments', fn ($c) => $c->where('billing_party_id', $id)->orWhere('consignor_party_id', $id)->orWhere('consignee_party_id', $id)))
-            ->when(filled($f['q'] ?? null), fn ($q) => $q->where('trip_number', 'like', '%' . addcslashes(strtoupper($f['q']), '%_\\') . '%'));
+        [$query, $f] = $this->filtered($request);
 
         // The totals follow the filters: N trips · freight + other charges.
         $ids   = (clone $query)->pluck('id');
@@ -86,13 +66,120 @@ class TripController extends Controller
 
         return view('trips.index', [
             'trips'   => $trips,
-            'filters' => $f + ['status' => $status],
+            'filters' => $f,
             'totals'  => ['count' => $ids->count(), 'freight' => (float) $money->freight, 'other' => (float) $money->extra + (float) Trip::whereIn('id', $ids)->sum('other_charges')],
             'places'  => Place::active()->orderBy('name')->pluck('name', 'id'),
             'trucks'  => Truck::inService()->orderBy('reg_no')->pluck('reg_no', 'id'),
             'parties' => Party::active()->withRole('client')->orderBy('name')->pluck('name', 'id'),
             'counts'  => Trip::inBranch()->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status'),
         ]);
+    }
+
+    /**
+     * The trip list's filters (13-parity #4), shared by the list and its
+     * report: status, dates, a place anywhere on the route, truck, client,
+     * number, and billing — not invoiced, invoiced (unpaid) or paid.
+     *
+     * @return array{0: \Illuminate\Database\Eloquent\Builder, 1: array<string, mixed>}
+     */
+    private function filtered(Request $request): array
+    {
+        $f = $request->validate([
+            'status'  => ['nullable', 'string', 'max:12'],
+            'from'    => ['nullable', 'date_format:Y-m-d'],
+            'to'      => ['nullable', 'date_format:Y-m-d'],
+            'place'   => ['nullable', 'integer'],
+            'truck'   => ['nullable', 'integer'],
+            'party'   => ['nullable', 'integer'],
+            'q'       => ['nullable', 'string', 'max:40'],
+            'billing' => ['nullable', Rule::in(['not_invoiced', 'invoiced', 'paid'])],
+        ]);
+        $f['status'] = $f['status'] ?? 'active';
+        $status = $f['status'];
+        $unbilled = fn ($c) => $c->where('status', '!=', 'cancelled')->whereNull('invoice_id');
+
+        $query = Trip::query()->inBranch()
+            ->when($status === 'active', fn ($q) => $q->whereNotIn('status', ['closed', 'cancelled']))
+            ->when(isset(Trip::STATUSES[$status]), fn ($q) => $q->where('status', $status))
+            ->when($f['from'] ?? null, fn ($q, $d) => $q->where('trip_date', '>=', $d))
+            ->when($f['to'] ?? null, fn ($q, $d) => $q->where('trip_date', '<=', $d))
+            ->when($f['truck'] ?? null, fn ($q, $id) => $q->where('truck_id', $id))
+            // A place matches the origin, the destination or any stop.
+            ->when($f['place'] ?? null, fn ($q, $id) => $q->where(fn ($w) => $w->where('from_place_id', $id)->orWhere('to_place_id', $id)->orWhereHas('stops', fn ($s) => $s->where('place_id', $id))))
+            ->when($f['party'] ?? null, fn ($q, $id) => $q->whereHas('consignments', fn ($c) => $c->where('billing_party_id', $id)->orWhere('consignor_party_id', $id)->orWhere('consignee_party_id', $id)))
+            ->when(filled($f['q'] ?? null), fn ($q) => $q->where('trip_number', 'like', '%' . addcslashes(strtoupper($f['q']), '%_\\') . '%'))
+            // Billing: a load still to bill; every load billed with something unpaid; every load billed and paid.
+            ->when(($f['billing'] ?? null) === 'not_invoiced', fn ($q) => $q->whereHas('consignments', $unbilled))
+            ->when(($f['billing'] ?? null) === 'invoiced', fn ($q) => $q->whereDoesntHave('consignments', $unbilled)
+                ->whereHas('consignments', fn ($c) => $c->whereHas('invoice', fn ($i) => $i->whereIn('status', \App\Modules\Invoicing\Models\Invoice::OPEN_STATUSES))))
+            ->when(($f['billing'] ?? null) === 'paid', fn ($q) => $q->whereHas('consignments', fn ($c) => $c->whereHas('invoice', fn ($i) => $i->where('status', 'paid')))
+                ->whereDoesntHave('consignments', fn ($c) => $c->where('status', '!=', 'cancelled')->where(fn ($w) => $w->whereNull('invoice_id')->orWhereHas('invoice', fn ($i) => $i->where('status', '!=', 'paid')))));
+
+        return [$query, $f];
+    }
+
+    /**
+     * The trip report of the filtered list (13-parity #5): on the letterhead
+     * with when it was made and the filters, one row per trip; to print or
+     * save as PDF, or as a spreadsheet (CSV, opens in Excel).
+     */
+    public function report(Request $request, \App\Modules\Invoicing\Services\DocumentData $data, \App\Modules\Invoicing\Services\DocumentRenderer $renderer): Response|\Symfony\Component\HttpFoundation\StreamedResponse|RedirectResponse
+    {
+        [$query, $f] = $this->filtered($request);
+        $trips = $query->with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'from:id,name', 'to:id,name', 'crew.person:id,name', 'consignments.billingParty:id,name'])
+            ->orderBy('trip_date')->orderBy('id')->limit(2000)->get();
+        $rows = $trips->map(function (Trip $t) {
+            $loads = $t->consignments->where('status', '!=', 'cancelled');
+            $freight = round((float) $loads->sum('freight'), 2);
+            $other = round((float) $t->other_charges + (float) $loads->sum(fn ($c) => (float) $c->other_charges + (float) $c->loading_charge + (float) $c->unloading_charge), 2);
+
+            return [
+                'date' => $t->trip_date?->format('d-m-Y'), 'number' => $t->label, 'route' => ($t->from?->name ?? '') . ' → ' . ($t->to?->name ?? ''),
+                'truck' => $t->truck?->reg_no ?? $t->supplierVehicle?->reg_no, 'driver' => $t->crew->firstWhere('role', 'driver')?->person?->name,
+                'client' => $loads->pluck('billingParty.name')->filter()->unique()->join(', '), 'freight' => $freight, 'other' => $other, 'total' => round($freight + $other, 2),
+                'note' => $t->office_note,
+            ];
+        });
+        $company = $this->context->company();
+        $label = __('Trips') . '-' . ($f['from'] ?? $trips->first()?->trip_date?->toDateString() ?? 'all') . '-' . ($f['to'] ?? $trips->last()?->trip_date?->toDateString() ?? 'all');
+
+        if ($request->query('format') === 'csv') {
+            return response()->streamDownload(function () use ($rows) {
+                $out = fopen('php://output', 'w');
+                fwrite($out, "\xEF\xBB\xBF");
+                fputcsv($out, [__('Date'), __('Trip no.'), __('Route'), __('Truck'), __('Driver'), __('Client'), __('Freight'), __('Other charges'), __('Total'), __('Office note')], ',', '"', '');
+                foreach ($rows as $r) {
+                    // A cell that would run as a spreadsheet formula is made plain text.
+                    fputcsv($out, array_map(fn ($v) => is_string($v) && preg_match('/^[=+\-@]/', $v) ? "'" . $v : $v, array_values($r)), ',', '"', '');
+                }
+                fclose($out);
+            }, \Illuminate\Support\Str::slug($label) . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        $html = view('documents.trip-report', [
+            'rows' => $rows, 'seller' => $data->letterhead(), 'filters' => $this->filterWords($f), 'tz' => $company->timezone ?: 'UTC',
+            'totals' => ['freight' => $rows->sum('freight'), 'other' => $rows->sum('other'), 'total' => $rows->sum('total')],
+            'period' => trim(($f['from'] ?? '') . ' – ' . ($f['to'] ?? ''), ' –'),
+        ])->render();
+        if ($request->query('format') === 'pdf') {
+            return $renderer->canPdf() ? \App\Modules\Invoicing\Services\DocumentRenderer::pdfResponse($renderer->pdf($html), \Illuminate\Support\Str::slug($label))
+                : redirect()->route('trips.report', collect($f)->except('format')->all());
+        }
+
+        return response($html);
+    }
+
+    /** The filters in words, for the report's heading. */
+    private function filterWords(array $f): array
+    {
+        return array_values(array_filter([
+            ($f['status'] ?? 'active') === 'active' ? null : __('Status: :s', ['s' => __(Trip::STATUSES[$f['status']] ?? $f['status'])]),
+            isset($f['place']) ? __('Place: :p', ['p' => Place::whereKey($f['place'])->value('name')]) : null,
+            isset($f['truck']) ? __('Truck: :t', ['t' => Truck::whereKey($f['truck'])->value('reg_no')]) : null,
+            isset($f['party']) ? __('Client: :c', ['c' => Party::whereKey($f['party'])->value('name')]) : null,
+            isset($f['billing']) ? ['not_invoiced' => __('Not invoiced'), 'invoiced' => __('Invoiced, unpaid'), 'paid' => __('Paid')][$f['billing']] : null,
+            filled($f['q'] ?? null) ? __('Number: :q', ['q' => $f['q']]) : null,
+        ]));
     }
 
     public function create(Request $request): View

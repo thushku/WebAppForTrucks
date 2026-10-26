@@ -98,3 +98,58 @@ document.querySelectorAll('[data-office-form]').forEach((form) => {
   kind.addEventListener('change', sync);
   sync();
 });
+
+// "+ New" inside the trip form (M25): a short form in a dialog; the new
+// record joins every list it belongs in and is chosen in the one it was
+// opened from (a new place fills From when empty, else To).
+const quickTargets = {
+  client: ['#load_billing_party_id', '#load_consignor_party_id', '#load_consignee_party_id'],
+  person: ['#driver_id', '#co_driver_id', '#helper_ids'],
+  truck: ['#truck_id'],
+  place: ['#from_place_id', '#to_place_id'],
+};
+const quickChoose = {
+  client: () => '#load_billing_party_id',
+  person: () => '#driver_id',
+  truck: () => '#truck_id',
+  place: () => (document.querySelector('#from_place_id')?.value ? '#to_place_id' : '#from_place_id'),
+};
+document.querySelectorAll('[data-quick-open]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const dialog = document.querySelector(`[data-quick-dialog="${button.dataset.quickOpen}"]`);
+    if (!dialog) return;
+    dialog.querySelector('form').reset();
+    dialog.querySelector('[data-quick-error]').classList.add('hidden');
+    dialog.showModal();
+    dialog.querySelector('input:not([type=hidden])')?.focus();
+  });
+});
+document.querySelectorAll('[data-quick-dialog]').forEach((dialog) => {
+  const kind = dialog.dataset.quickDialog;
+  const form = dialog.querySelector('[data-quick-form]');
+  const error = dialog.querySelector('[data-quick-error]');
+  dialog.querySelector('[data-quick-close]').addEventListener('click', () => dialog.close());
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+    fetch(form.dataset.url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json', 'X-CSRF-TOKEN': token },
+      body: new URLSearchParams(new FormData(form)),
+    }).then(async (r) => {
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        error.textContent = Object.values(body.errors ?? {})[0]?.[0] ?? body.message ?? 'Could not add it.';
+        error.classList.remove('hidden');
+        return;
+      }
+      quickTargets[kind].forEach((sel) => {
+        const list = document.querySelector(sel);
+        if (list) list.add(new Option(body.label, body.id));
+      });
+      const chosen = document.querySelector(quickChoose[kind]());
+      if (chosen) { chosen.value = String(body.id); chosen.dispatchEvent(new Event('change', { bubbles: true })); }
+      dialog.close();
+    }).catch(() => { error.textContent = 'No connection. Try again.'; error.classList.remove('hidden'); });
+  });
+});

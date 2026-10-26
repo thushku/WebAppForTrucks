@@ -46,6 +46,7 @@
             <option value="{{ $tr->id }}" @selected((int) old('truck_id', $t->truck_id) === $tr->id)>{{ $tr->reg_no }}{{ $busy ? ' — ' . __('on :trip', ['trip' => $busy]) : ($tr->status !== 'idle' ? ' — ' . __(\App\Modules\Fleet\Models\Truck::STATUSES[$tr->status]) : '') }}</option>
           @endforeach
         </select>
+        @can('truck.manage')<button type="button" class="mt-1 text-xs font-semibold text-brand-700 hover:underline" data-quick-open="truck">+ {{ __('New truck') }}</button>@endcan
         @error('truck_id')<span class="error">{{ $message }}</span>@enderror
       </div>
       <div class="{{ $source === 'hired' ? '' : 'hidden' }}" data-source-hired>
@@ -70,6 +71,7 @@
           <option value="">{{ $source === 'hired' ? __('The supplier’s driver') : '—' }}</option>
           @foreach ($drivers as $p)<option value="{{ $p->id }}" @selected((int) old('driver_id', $crewNow['driver']) === $p->id)>{{ $p->name }}{{ $p->licence_expiry && $p->licence_expiry->isPast() ? ' — ' . __('licence expired') : '' }}</option>@endforeach
         </select>
+        @can('people.manage')<button type="button" class="mt-1 text-xs font-semibold text-brand-700 hover:underline" data-quick-open="person" data-quick-type="driver">+ {{ __('New driver') }}</button>@endcan
         @error('driver_id')<span class="error">{{ $message }}</span>@enderror
       </div>
       <div>
@@ -93,6 +95,7 @@
       <div>
         <label class="label" for="from_place_id">{{ __('From') }}</label>
         <select id="from_place_id" name="from_place_id" class="input" data-rate-from required><option value="">—</option>@foreach ($places as $p)<option value="{{ $p->id }}" @selected((int) old('from_place_id', $t->from_place_id) === $p->id)>{{ $p->name }} ({{ $p->short_code }})</option>@endforeach</select>
+        @can('settings.masters')<button type="button" class="mt-1 text-xs font-semibold text-brand-700 hover:underline" data-quick-open="place">+ {{ __('New place') }}</button>@endcan
         @error('from_place_id')<span class="error">{{ $message }}</span>@enderror
       </div>
       <div>
@@ -134,4 +137,5 @@
     <button type="submit" class="btn-primary"><x-icon name="check" /> {{ $creating ? __('Save draft') : __('Save') }}</button>
   </div>
 </form>
+@include('trips.partials.quick-add')
 @endsection
