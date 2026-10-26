@@ -12,7 +12,10 @@
       <a href="{{ route('people.index', ['type' => $key]) }}" role="tab" aria-selected="{{ $type === $key ? 'true' : 'false' }}" class="rounded-xl border px-3 py-2 text-sm font-medium {{ $type === $key ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-ink-100 bg-white text-ink-700' }}">{{ __($label) }} @if ($counts[$key] ?? 0)<span class="text-xs text-ink-400">{{ $counts[$key] }}</span>@endif</a>
     @endforeach
   </div>
-  @can('people.manage')<a href="{{ route('people.create', $type ? ['type' => $type] : []) }}" class="btn-primary"><x-icon name="plus" /> {{ __('Add person') }}</a>@endcan
+  <div class="flex flex-wrap gap-2">
+    @canany(['leave.approve', 'people.manage'])<a href="{{ route('people.leave') }}" class="btn-secondary"><x-icon name="calendar" /> {{ __('Leave') }}@if ($leaveWaiting) <span class="rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-partial">{{ $leaveWaiting }}</span>@endif</a>@endcanany
+    @can('people.manage')<a href="{{ route('people.create', $type ? ['type' => $type] : []) }}" class="btn-primary"><x-icon name="plus" /> {{ __('Add person') }}</a>@endcan
+  </div>
 </div>
 
 <section class="card overflow-hidden">
@@ -38,7 +41,8 @@
                 <span class="grid size-9 shrink-0 place-items-center rounded-full bg-indigo-50 font-display text-xs font-bold text-indigo-700">{{ $p->initials() }}</span>
                 <div class="min-w-0">
                   <a href="{{ route('people.show', $p) }}" class="font-medium text-ink-900 hover:text-brand-700">{{ $p->name }}</a>
-                  <div class="text-xs text-ink-500">{{ __(\App\Modules\People\Models\Person::TYPES[$p->type]) }}{{ $p->employee_code ? ' · ' . $p->employee_code : '' }}{{ $p->status === 'on_leave' ? ' · ' . __('On leave') : '' }}</div>
+                  <div class="text-xs text-ink-500">{{ __(\App\Modules\People\Models\Person::TYPES[$p->type]) }}{{ $p->employee_code ? ' · ' . $p->employee_code : '' }}{{ $p->status === 'on_leave' && ! isset($onLeave[$p->id]) ? ' · ' . __('On leave') : '' }}</div>
+                  @if (isset($onLeave[$p->id]))<span class="pill mt-0.5 bg-amber-50 text-partial">{{ __('On leave till :date', ['date' => $onLeave[$p->id]->to_on->format('d M')]) }}</span>@endif
                 </div>
               </div>
             </td>

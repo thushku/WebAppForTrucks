@@ -172,8 +172,15 @@ class TripService
             }
         }
 
+        // Crew on approved leave on the trip's day (M40).
+        $day = \Carbon\CarbonImmutable::parse(($trip->trip_date ?? now())->toDateString());
+        $onLeave = app(\App\Modules\People\Services\Leave::class)->onLeave($trip->crew->pluck('person_id'), $day, $day);
+
         foreach ($trip->crew as $member) {
             $person = $member->person;
+            if ($leave = $onLeave[$person->id] ?? null) {
+                $busy[] = __(':name is on leave from :from to :to.', ['name' => $person->name, 'from' => $leave->from_on->format('d M'), 'to' => $leave->to_on->format('d M')]);
+            }
             $other  = Trip::open()->where('id', '!=', $trip->id)->whereHas('crew', fn ($q) => $q->where('person_id', $person->id))->first();
             if ($other) {
                 $busy[] = __(':name is on trip :trip.', ['name' => $person->name, 'trip' => $other->label]);

@@ -106,6 +106,12 @@ company, earned, returned, `balance`, `cancelled`), and `payslips[]` of approved
 when the office approves entries, settles a trip, approves a pay run or pays. Office logins
 get `403 not_crew`.
 
+**Leave** (M40, the Leave tab): `GET /crew/leave` → `year` {`from`, `to`} (the financial year), `types[]` (`code`,
+`name`, `paid`, `entitled` — this year's days, for the part of the year I work; null for unpaid leave —, `taken`
+(approved), `waiting` (asked for), `left`), `requests[]` (`uuid`, `type`, `type_name`, `from`, `to`, `days`, `reason`,
+`status` waiting / approved / rejected / cancelled, `status_label`, `note` — the office's —, `can_cancel`). Asking and
+cancelling are the commands `leave.apply` and `leave.cancel` (§6).
+
 ## 4. Entries (push)
 
 Every entry is made on the phone with a **UUID** and kept in the phone's queue until the
@@ -239,6 +245,8 @@ photos to `/crew/events/<command uuid>/photos`.
 | `event.second_reject` | drivers | `event_uuid`, `reason` | disputed |
 | `duty.start` / `duty.stop` | crew | `at`, `uptime_ms` | location sharing on / off |
 | `complaint.raise` | crew | `trip`, `title`, `description`, `priority` (low / normal / high / urgent), `odometer` | a truck complaint for the workshop |
+| `leave.apply` (M40) | crew with `leave.apply` | `type` (a `code` from `GET /crew/leave`), `from`, `to` (dates; calendar days, both counted, at most 60), `reason` — no `trip` | asks for leave: `leave` (the command's uuid), `status: waiting`, `days`; refused (422) when it overlaps leave asked for or approved, or a paid type has fewer days left |
+| `leave.cancel` (M40) | crew | `leave` (the request's uuid) | cancels my request while it waits |
 
 "Recorders" = drivers, and helpers when the owner allows it (`settings.helpers_record_events`).
 
@@ -359,6 +367,8 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 | `approvals.waiting` | everyone with `event.verify` | `type: approvals` → the approvals list (`GET /approvals`). One notice keeps the count; pushed again only after half an hour |
 | `road.incident` | everyone with `trip.view` | `type: trip`, `trip` → the trip |
 | `papers.due` | everyone with `document.manage` | `type: papers` → papers (`GET /owner/papers`) |
+| `leave.asked` (M40) | everyone with `leave.approve` | `type: leave`, `leave` (uuid) → the owner app's leave list (`GET /owner/leave`) |
+| `leave.decided` (M40) | the person | `type: leave`, `leave` → the Leave tab (`GET /crew/leave`) |
 | `digest.ready` (M32, low) | each person who chose the morning summary (07:00 company time; weekly on Mondays) — also by email | the summary's headline ("Sunday 25 Oct: 2 trips ended · ₹50,000.00 received") → the dashboard (`GET /owner/dashboard`) |
 | `test` | one person (`php artisan fleet:push <mobile>`) | `type: test` |
 
@@ -486,3 +496,14 @@ left outer"), `fitted_on`, `fitted_odo`, `km_run` (a fitted tyre's includes the 
 | `POST /owner/tyres/{id}/scrap` | `complaint.manage` | once per key, a tyre not on a truck: `scrapped_on`, `scrap_value` → `tyre` |
 
 The register keeps no books: the tyre dealer's bill is paid (`POST /owner/payments`) or booked as usual.
+
+## 15. Owner app: leave (added in M40)
+
+| Call | Permission | Sends → gets |
+|---|---|---|
+| `GET /owner/leave?status=` | `leave.approve` | `requests[]` (default the waiting ones, soonest first): `id`, `uuid`, `person` {`id`, `name`}, `type`, `type_name`, `from`, `to`, `days`, `reason`, `via` (app / office), `status`, `status_label`, `note` |
+| `POST /owner/leave/{id}/decide` | `leave.approve` | once per key: `decision` (`approve` / `reject`), `note` → `leave`; the person hears it (`leave.decided`) |
+| `GET /owner/crew/{person}/leave` | `people.view` | `person`, `types[]` (as `GET /crew/leave`), `requests[]` |
+
+A trip whose crew is on approved leave on its day is refused by the dispatch check (`busy`: "Ravi Kumar is on leave from
+26 Oct to 28 Oct.") unless sent with an `override_reason`. Approved unpaid leave comes off a monthly salary in the pay run.

@@ -54,6 +54,9 @@ class PersonController extends Controller
             // Each person's papers as one chip (M27, 13-parity #19), for those who may see papers.
             'papers' => $request->user()->can('document.view') ? app(\App\Modules\Documents\Services\Compliance::class)->healthMany($people->getCollection()) : [],
             'counts' => Person::inBranch()->where('status', '!=', 'left')->selectRaw('type, count(*) as n')->groupBy('type')->pluck('n', 'type'),
+            // Who is on approved leave today, and how many requests wait (M40).
+            'onLeave' => app(\App\Modules\People\Services\Leave::class)->onLeave($people->getCollection()->pluck('id'), $this->today(), $this->today()),
+            'leaveWaiting' => $request->user()->can('leave.approve') ? \App\Modules\People\Models\LeaveRequest::where('status', 'waiting')->whereIn('person_id', Person::inBranch()->select('id'))->count() : 0,
         ]);
     }
 
@@ -87,7 +90,15 @@ class PersonController extends Controller
             // The khata in short and the quick cash form, and the papers as one chip (M27).
             'khata' => $this->khata($person),
             'papers' => auth()->user()->can('document.view') ? app(\App\Modules\Documents\Services\Compliance::class)->healthMany([$person])[$person->id] : null,
+            // Leave this year by type and the latest requests (M40).
+            'leave' => app(\App\Modules\People\Services\Leave::class)->balances($person),
+            'leaveRequests' => \App\Modules\People\Models\LeaveRequest::with('decider:id,name')->where('person_id', $person->id)->orderByDesc('from_on')->orderByDesc('id')->limit(8)->get(),
         ]);
+    }
+
+    private function today(): \Carbon\CarbonImmutable
+    {
+        return \Carbon\CarbonImmutable::now($this->context->company()->timezone ?: 'UTC')->startOfDay();
     }
 
     /** The person's buckets for those who see ledgers or give cash, and the form's choices for those who give cash. */

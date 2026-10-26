@@ -57,6 +57,8 @@ class CrewCommands
         'duty.start'           => [null, 'trip.view_own'],
         'duty.stop'            => [null, 'trip.view_own'],
         'complaint.raise'      => [null, 'complaint.raise'],
+        'leave.apply'          => [null, 'leave.apply'],
+        'leave.cancel'         => [null, 'leave.apply'],
     ];
 
     public function __construct(
@@ -412,6 +414,30 @@ class CrewCommands
         $complaint->forceFill(['uuid' => $c['uuid']])->save();
 
         return ['complaint' => $complaint->number];
+    }
+
+    // ---- Leave (M40) ---------------------------------------------------------------
+
+    /** Ask for leave: {type, from, to, reason}; the request takes the command's UUID. */
+    private function leaveApply(Person $person, array $c): array
+    {
+        $leave = app(\App\Modules\People\Services\Leave::class);
+        $data = Validator::make(['leave_type' => $c['type'] ?? null, 'from_on' => $c['from'] ?? null, 'to_on' => $c['to'] ?? null, 'reason' => $c['reason'] ?? null],
+            $leave->rules(), $leave->messages())->validate();
+        $request = $leave->apply($person, $data, auth()->user(), 'app', $c['uuid']);
+
+        return ['leave' => $request->uuid, 'status' => $request->status, 'days' => $request->days];
+    }
+
+    /** Cancel my waiting request: {leave: uuid}. */
+    private function leaveCancel(Person $person, array $c): array
+    {
+        $request = \App\Modules\People\Models\LeaveRequest::where('uuid', (string) ($c['leave'] ?? ''))->where('person_id', $person->id)->first();
+        if (! $request) {
+            throw ValidationException::withMessages(['leave' => __('No such leave request of yours.')]);
+        }
+
+        return ['leave' => app(\App\Modules\People\Services\Leave::class)->cancel($request, false)->uuid, 'status' => 'cancelled'];
     }
 
     // ---- Helpers -----------------------------------------------------------------

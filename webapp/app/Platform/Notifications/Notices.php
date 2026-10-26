@@ -133,6 +133,31 @@ class Notices
             route('quotations.show', $quotation, false), ['type' => 'quotation', 'quotation' => (string) $quotation->id]));
     }
 
+    /** A crew member asked for leave (M40): those who approve leave hear it. */
+    public function leaveAsked(\App\Modules\People\Models\LeaveRequest $leave): void
+    {
+        $leave->loadMissing('person:id,name');
+        $this->say($this->notifier->accountsWith('leave.approve'), fn ($ids) => $this->notifier->tell($ids, 'leave.asked',
+            trans_choice(':name asks for :count day of leave|:name asks for :count days of leave', $leave->days, ['name' => $leave->person->name]),
+            collect([app(\App\Modules\People\Services\Leave::class)->typeName($leave->leave_type), $this->span($leave), $leave->reason])->filter()->join(' · '),
+            route('people.leave', [], false), ['type' => 'leave', 'leave' => $leave->uuid], 'leave.asked'));
+    }
+
+    /** Leave approved, turned down or recorded by the office: the person hears it. */
+    public function leaveDecided(\App\Modules\People\Models\LeaveRequest $leave): void
+    {
+        $this->say($this->notifier->accountsOf([$leave->person_id]), fn ($ids) => $this->notifier->tell($ids, 'leave.decided',
+            $leave->status === 'approved' ? __('Your leave :span is approved', ['span' => $this->span($leave)]) : __('Your leave :span is not approved', ['span' => $this->span($leave)]),
+            collect([app(\App\Modules\People\Services\Leave::class)->typeName($leave->leave_type), $leave->decision_note])->filter()->join(' · '),
+            null, ['type' => 'leave', 'leave' => $leave->uuid]));
+    }
+
+    /** "28 Oct – 30 Oct", or one day. */
+    private function span(\App\Modules\People\Models\LeaveRequest $leave): string
+    {
+        return $leave->from_on->isSameDay($leave->to_on) ? $leave->from_on->format('d M') : $leave->from_on->format('d M') . ' – ' . $leave->to_on->format('d M');
+    }
+
     /** Tell each reader in their own language (M36): the words are made once per language. */
     private function say(iterable $accountIds, \Closure $tell): void
     {

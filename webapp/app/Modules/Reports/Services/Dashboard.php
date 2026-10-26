@@ -112,6 +112,14 @@ class Dashboard
             $alerts[] = ['level' => 'warning', 'text' => __('EMI of :truck, :amount, due :date', ['truck' => $emi['truck']->reg_no, 'amount' => \App\Support\Money::company($emi['amount']), 'date' => $emi['due_on']->format('d M')]), 'url' => route('trucks.emis')];
         }
 
+        // Leave waiting for a decision (M40), for those who decide it.
+        if (auth()->user()?->can('leave.approve')) {
+            $asked = \App\Modules\People\Models\LeaveRequest::where('status', 'waiting')->whereIn('person_id', \App\Modules\People\Models\Person::inBranch()->select('id'))->count();
+            if ($asked) {
+                $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count leave request waits for you|:count leave requests wait for you', $asked), 'url' => route('people.leave')];
+            }
+        }
+
         // Fitted tyres near or past the km expected of them (M38).
         $worn = app(\App\Modules\Fleet\Services\Tyres::class)->nearEnd();
         if ($worn->isNotEmpty()) {

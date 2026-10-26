@@ -157,6 +157,26 @@ class CrewController extends Controller
      * Amounts are from the person's side: `holding` is cash they carry for
      * the company, `owed_to_me` what the company owes them.
      */
+    /**
+     * My leave (M40, 05 §2.12): each type with this year's days and what is
+     * left, and my requests. Asking and cancelling are commands
+     * (`leave.apply`, `leave.cancel`), so a retry never asks twice.
+     */
+    public function leave(\App\Modules\People\Services\Leave $leave): JsonResponse
+    {
+        $person = $this->person();
+        $fy = $leave->year();
+
+        return response()->json([
+            'year' => ['from' => $fy->start->toDateString(), 'to' => $fy->end->toDateString()],
+            'types' => array_values($leave->balances($person)),
+            'requests' => \App\Modules\People\Models\LeaveRequest::where('person_id', $person->id)->orderByDesc('from_on')->orderByDesc('id')->limit(30)->get()
+                ->map(fn ($r) => ['uuid' => $r->uuid, 'type' => $r->leave_type, 'type_name' => $leave->typeName($r->leave_type), 'from' => $r->from_on->toDateString(), 'to' => $r->to_on->toDateString(),
+                    'days' => $r->days, 'reason' => $r->reason, 'status' => $r->status, 'status_label' => __(\App\Modules\People\Models\LeaveRequest::STATUSES[$r->status]),
+                    'note' => $r->decision_note, 'can_cancel' => $r->status === 'waiting'])->values(),
+        ]);
+    }
+
     public function money(Request $request, Statements $statements): JsonResponse
     {
         $person = $this->person();

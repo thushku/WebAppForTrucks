@@ -2,6 +2,29 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M40: leave (decision P30)
+
+**Built (in `webapp/`, `People/Services/Leave`, People → Leave):**
+- **Leave types** are the company's list (India: casual 12, sick 12, earned 15 days a year; UAE: annual, sick, unpaid) and
+  always an unpaid one. **Balances** per financial year — the year's days for the part of it the person works, less
+  approved and asked-for days — on the person page (a card per type: "9 of 12 left") and in both apps.
+- **Ask from the crew app** (`GET /crew/leave`, commands `leave.apply` / `leave.cancel`, screen C28) or **record in the
+  office** (approved at once for someone who may approve). Overlaps, more than 60 days, too far back or ahead, and a paid
+  type beyond what is left are refused with the reason.
+- **People → Leave**: waiting requests first with **Approve** / **Turn down** (and a note) and **Cancel**; tabs by status;
+  who is on leave today; the dashboard counts the waiting ones for those who decide; the people list shows "On leave till".
+- Notices: `leave.asked` to those who approve, `leave.decided` to the person — a new "Leave" group in My notifications.
+- **Unpaid leave comes off a monthly salary** in the pay run (those days are not paid), and **a trip whose crew is on
+  leave that day needs an override** to be sent (the dispatch check).
+- The owner app decides leave and sees a person's (§15, screen O35). The demo has one request waiting, one taken and one
+  coming up. Migration 000029: `leave_requests`. Hindi for every new string.
+
+**Tests:** 288 passing (new `LeaveTest`, 4 tests: the app's balances, a request asked once (the retry replayed), an overlap
+and too much sick leave refused, the owner told, approved on the web, the driver told, the balance after, an approved one
+not cancelled from the app; unpaid leave off October's salary (28 of 31 days) and casual leave not, a trip to someone on
+sick leave stopped and free again once it is cancelled; the year's days for someone who joined in October; the owner
+app's decision once per key).
+
 ## 2026-10-26 — Milestone M39: a truck's trips, fuel and money (decision P29)
 
 **Built (in `webapp/`, `Fleet/Services/TruckActivity`, the truck page's last three tabs):**

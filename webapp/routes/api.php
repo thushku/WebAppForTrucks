@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Owner\CompanyController;
 use App\Http\Controllers\Api\Owner\DealsController;
+use App\Http\Controllers\Api\Owner\LeaveController;
 use App\Http\Controllers\Api\Owner\MastersController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
@@ -150,6 +151,11 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/emis', [DealsController::class, 'emis'])->middleware('permission:truck.view')->name('emis');
                 Route::post('/trucks/{truck}/emis', [DealsController::class, 'payEmi'])->whereNumber('truck')->middleware('permission:accounts.post')->name('emis.pay');
 
+                // Leave (M40): the requests to approve, a person's leave, the decision once per key.
+                Route::get('/leave', [LeaveController::class, 'index'])->middleware('permission:leave.approve')->name('leave');
+                Route::post('/leave/{leave}/decide', [LeaveController::class, 'decide'])->whereNumber('leave')->middleware('permission:leave.approve')->name('leave.decide');
+                Route::get('/crew/{person}/leave', [LeaveController::class, 'person'])->whereNumber('person')->middleware('permission:people.view')->name('crew.leave');
+
                 // Tyres (M38): the store, a truck's tyres by position; the workshop's moves once per key.
                 Route::get('/tyres', [TyresController::class, 'index'])->middleware('permission:truck.view')->name('tyres');
                 Route::get('/tyres/{tyre}', [TyresController::class, 'show'])->whereNumber('tyre')->middleware('permission:truck.view')->name('tyres.show');
@@ -184,6 +190,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/commands', [CrewController::class, 'commands'])->name('commands');
                 Route::get('/papers/{document}/files/{file}', [CrewController::class, 'paperFile'])->name('papers.file');
                 Route::get('/money', [CrewController::class, 'money'])->name('money');
+                Route::get('/leave', [CrewController::class, 'leave'])->name('leave');
             });
         });
     });

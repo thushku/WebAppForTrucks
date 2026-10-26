@@ -503,6 +503,27 @@ package), QR codes / amount in words / CSV written in-house. See
 - Km per litre is measured from one full tank to the next: the km between
   them over the litres bought since.
 
+### P30. Leave (added 26 Oct 2026, M40; full attendance stays in phase 2–3)
+
+- **Leave types are the company's list** (Settings → Lists: casual, sick,
+  earned… each with its days a year and whether it is paid); an unpaid type
+  is always there.
+- **Balances are worked out, never stored**: a paid type's days a year for
+  the part of the **financial year** the person is employed (to the half
+  day), less approved and asked-for days of that year. No carry-forward yet.
+- **Days are calendar days**, first and last counted (crew work every day);
+  at most 60 at a time, from 90 days back to a year ahead; never overlapping
+  another request that waits or is approved; a paid type never beyond what
+  is left (the rest is asked for as unpaid leave).
+- A crew member asks from the app; the office records leave for anyone —
+  approved at once when the recorder holds `leave.approve`, else it waits.
+  Those with `leave.approve` approve or turn it down (with a note); the
+  person is told. A waiting request can be cancelled by the person; approved
+  leave that has not ended only by the office.
+- **Approved unpaid leave comes off a monthly salary** in the pay run (those
+  days are not paid); **a trip whose crew is on leave that day needs an
+  override** to be sent.
+
 ---
 
 ## 4. Still open

@@ -22,6 +22,7 @@ class NotificationSettings
         'papers' => ['Papers', 'Insurance, permits, PUC and licences running out'],
         'money' => ['Pay', 'Your pay paid'],
         'quotations' => ['Quotations', 'A client accepting or declining a quotation'],
+        'leave' => ['Leave', 'Leave asked for, and your leave approved or not'],
         'digest' => ['Morning summary', 'Yesterday’s trips and money, when you get the summary'],
     ];
 
@@ -31,6 +32,7 @@ class NotificationSettings
         'entry.second' => ['entries', 'high'], 'entry.queried' => ['entries', 'medium'], 'entry.rejected' => ['entries', 'medium'],
         'approvals.waiting' => ['approvals', 'medium'], 'road.incident' => ['incidents', 'high'], 'papers.due' => ['papers', 'medium'],
         'pay.paid' => ['money', 'low'], 'quotation.accepted' => ['quotations', 'medium'], 'quotation.declined' => ['quotations', 'medium'],
+        'leave.asked' => ['leave', 'medium'], 'leave.decided' => ['leave', 'medium'],
         'digest.ready' => ['digest', 'low'],
         'test' => [null, 'low'],
     ];

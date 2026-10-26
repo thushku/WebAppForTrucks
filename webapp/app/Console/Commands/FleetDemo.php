@@ -83,6 +83,7 @@ class FleetDemo extends Command
             $this->tyres($owner, $parties);
             $this->trips($owner->id);
             $this->payroll($owner);
+            $this->leave($owner);
             $this->bankStatement($owner);
             $this->quotesAndBooks($owner);
 
@@ -362,6 +363,17 @@ class FleetDemo extends Command
         $away = $add(['MRF2409R0150'], 'MRF', 'Steel Muscle S3C8', '10.00 R20', 20500, 80000, '2024-09-01')->first();
         $away->forceFill(['km_run' => 81500])->save();
         $tyres->sendForRetread($away, now()->subDays(7)->toDateString(), $dealer->id, $owner);
+    }
+
+    /** Leave (M40): one request waiting from the app, one taken, one coming up. */
+    private function leave(Account $owner): void
+    {
+        $leave = app(\App\Modules\People\Services\Leave::class);
+        $person = \App\Modules\People\Models\Person::pluck('id', 'name');
+        $day = fn (int $n) => now()->addDays($n)->toDateString();
+        $leave->apply(\App\Modules\People\Models\Person::find($person['Manoj Thomas']), ['leave_type' => 'casual', 'from_on' => $day(8), 'to_on' => $day(9), 'reason' => 'Daughter’s school annual day'], null, 'app');
+        $leave->apply(\App\Modules\People\Models\Person::find($person['Suresh Babu']), ['leave_type' => 'sick', 'from_on' => $day(-12), 'to_on' => $day(-11), 'reason' => 'Fever'], $owner, 'office', null, true);
+        $leave->apply(\App\Modules\People\Models\Person::find($person['Ravi Kumar']), ['leave_type' => 'earned', 'from_on' => $day(16), 'to_on' => $day(20), 'reason' => 'Onam at home'], $owner, 'office', null, true);
     }
 
     private function trips(int $ownerId): void

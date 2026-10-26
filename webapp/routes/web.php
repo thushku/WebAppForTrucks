@@ -22,6 +22,7 @@ use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
 use App\Http\Controllers\Fleet\TyreController;
 use App\Http\Controllers\Parties\PartyController;
+use App\Http\Controllers\People\LeaveController;
 use App\Http\Controllers\People\PersonController;
 use App\Http\Controllers\Trips\ApprovalController;
 use App\Http\Controllers\Trips\ConsignmentController;
@@ -434,6 +435,11 @@ Route::middleware('auth')->group(function () {
         // People: drivers, helpers, staff; crew-app activation codes (M4).
         Route::prefix('people')->name('people.')->group(function () {
             Route::get('/', [PersonController::class, 'index'])->middleware('permission:people.view')->name('index');
+            // Leave (M40): see and record with leave.approve or people.manage; approve, turn down and cancel with leave.approve.
+            Route::get('/leave', [LeaveController::class, 'index'])->middleware('permission:leave.approve,people.manage')->name('leave');
+            Route::post('/leave', [LeaveController::class, 'store'])->middleware('permission:leave.approve,people.manage')->name('leave.store');
+            Route::post('/leave/{leave}/decide', [LeaveController::class, 'decide'])->whereNumber('leave')->middleware('permission:leave.approve')->name('leave.decide');
+            Route::post('/leave/{leave}/cancel', [LeaveController::class, 'cancel'])->whereNumber('leave')->middleware('permission:leave.approve')->name('leave.cancel');
             Route::middleware('permission:people.manage')->group(function () {
                 Route::get('/new', [PersonController::class, 'create'])->name('create');
                 Route::post('/', [PersonController::class, 'store'])->name('store');

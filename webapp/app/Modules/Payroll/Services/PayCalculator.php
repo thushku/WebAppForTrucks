@@ -13,7 +13,8 @@ use Carbon\CarbonImmutable;
  *
  *  · monthly — the salary for each calendar month the period touches, for the
  *    days of that month inside the period and inside their employment
- *    (joining and leaving dates); no attendance yet, so every such day counts;
+ *    (joining and leaving dates), less the days of approved unpaid leave
+ *    (M40); there is no attendance yet, so every other such day counts;
  *  · per trip — trips they were crew on that ended in the period;
  *  · per km — kilometres they drove (their driving shifts) in the period.
  *
@@ -38,23 +39,28 @@ class PayCalculator
         return match ($basis) {
             'per_trip' => $this->perTrip($person, $start, $end, $rate),
             'per_km' => $this->perKm($person, $start, $end, $rate),
-            default => $this->monthly($start, $end, $rate),
+            default => $this->monthly($person, $start, $end, $rate),
         };
     }
 
-    private function monthly(CarbonImmutable $start, CarbonImmutable $end, float $salary): array
+    private function monthly(Person $person, CarbonImmutable $start, CarbonImmutable $end, float $salary): array
     {
+        $leave = app(\App\Modules\People\Services\Leave::class);
         $days = 0;
+        $unpaid = 0;
         $pay = 0.0;
         for ($month = $start->startOfMonth(); $month->lte($end); $month = $month->addMonthNoOverflow()) {
             $a = $start->max($month);
             $b = $end->min($month->endOfMonth()->startOfDay());
-            $n = (int) $a->diffInDays($b) + 1;
+            $off = $leave->unpaidDays($person, $a, $b);
+            $n = max(0, (int) $a->diffInDays($b) + 1 - $off);
             $days += $n;
+            $unpaid += $off;
             $pay += $salary * $n / $month->daysInMonth;
         }
 
-        return ['basis' => 'monthly', 'units' => (float) $days, 'rate' => $salary, 'base' => round($pay, 2), 'note' => null];
+        return ['basis' => 'monthly', 'units' => (float) $days, 'rate' => $salary, 'base' => round($pay, 2),
+            'note' => $unpaid ? trans_choice('Less :count day of unpaid leave|Less :count days of unpaid leave', $unpaid) : null];
     }
 
     private function perTrip(\App\Modules\People\Models\Person $person, CarbonImmutable $start, CarbonImmutable $end, float $rate): array
