@@ -27,7 +27,7 @@ class LiveMap
     /** @return Collection<int, array<string, mixed>> one row per running trip */
     public function positions(): Collection
     {
-        $trips = Trip::with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'crew.person:id,name,mobile', 'stops.place:id,name'])->where('status', 'running')->get()->keyBy('id');
+        $trips = Trip::inBranch()->with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'crew.person:id,name,mobile', 'stops.place:id,name'])->where('status', 'running')->get()->keyBy('id');
         if ($trips->isEmpty()) {
             return collect();
         }

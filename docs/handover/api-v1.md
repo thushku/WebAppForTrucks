@@ -314,6 +314,9 @@ permission shown; without it the answer is `403` — hide that tile or tab (the 
 | `GET /owner/ledgers?kind=` | `ledger.view` | `ledgers[]` with a balance today: `id`, `name`, `kind` (party, person, bank, cash, general, tax), `group`, `nature`, `balance` (positive: a debit — they owe us; negative: we owe them) |
 | `GET /owner/ledgers/{id}?from=&to=` | `ledger.view` | `opening`, `debit`, `credit`, `closing`, `lines[]` (`date`, `number`, `reference`, `narration`, `debit`, `credit`, `balance`, `bucket`, `cancelled`) for the period (default: the last 90 days); for a crew member also `buckets` (trip cash, earnings, loan) |
 
+A person limited to one branch (decision P17) gets only that branch's trips, trucks and bills in these lists, and
+`404` for another branch's trip or bill.
+
 Not in version 1 (use the web app for now): making an LR, a bill or a receipt from the
 phone, hire challans, uploading a paper by camera, creating a trip. They come in API v2
 with the same rules as the web (finalised bills are never edited; every money write is

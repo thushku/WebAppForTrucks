@@ -30,14 +30,14 @@ class TruckController extends Controller
         $status = (string) $request->query('status', '');
         $search = trim((string) $request->query('q', ''));
 
-        $trucks = Truck::query()
+        $trucks = Truck::query()->inBranch()
             ->withCount(['complaints as open_complaints_count' => fn ($q) => $q->whereNotIn('status', ['solved', 'closed'])])
             ->when(isset(Truck::STATUSES[$status]), fn ($q) => $q->where('status', $status), fn ($q) => $q->where('status', '!=', 'sold'))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('reg_key', 'like', '%' . Truck::key($search) . '%')->orWhere('make', 'like', '%' . addcslashes($search, '%_\\') . '%')->orWhere('model', 'like', '%' . addcslashes($search, '%_\\') . '%')))
             ->orderBy('reg_no')
             ->paginate(50)->withQueryString();
 
-        $counts = Truck::selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
+        $counts = Truck::inBranch()->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
 
         return view('trucks.index', [
             'trucks' => $trucks, 'status' => $status, 'search' => $search, 'counts' => $counts,

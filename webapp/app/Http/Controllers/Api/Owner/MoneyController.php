@@ -32,7 +32,7 @@ class MoneyController extends Controller
         $tab = $f['tab'] ?? 'open';
         $today = $this->today()->toDateString();
 
-        $invoices = Invoice::with('party:id,name,mobile')->whereNotNull('finalized_at')
+        $invoices = Invoice::inBranch()->with('party:id,name,mobile')->whereNotNull('finalized_at')
             ->when($tab === 'open', fn ($q) => $q->whereIn('status', Invoice::OPEN_STATUSES)->where('doc_type', '!=', 'credit_note'))
             ->when($tab === 'overdue', fn ($q) => $q->whereIn('status', Invoice::OPEN_STATUSES)->where('balance_due', '>', 0)->where('due_date', '<', $today))
             ->when($tab === 'paid', fn ($q) => $q->whereIn('status', ['paid', 'issued']))

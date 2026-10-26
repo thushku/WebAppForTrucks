@@ -2,6 +2,29 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M22: branches at work
+
+**Built (in `webapp/`, `app/Platform/Tenancy/{BranchContext,HasBranch}`; blueprint 04 §1; decision P17):**
+- **The branch filter** in the header for companies with two active branches or more ("All branches", Kochi, Mumbai…):
+  trips, trucks, people, bills, quotations, the approvals inbox and its badge, LRs waiting to be billed, the dashboard
+  (trucks, trips, approvals, money this month, the chart, spending today, the LR-to-cash queues), the live map and the
+  profit and loss follow it. Trucks and people with no branch show in every branch. It is a view: the owner still opens
+  any record.
+- **Staff limited to a branch**: Settings → Team → a person → **Works for: only the Mumbai branch** (an owner cannot
+  be limited). They see only that branch's lists, cannot open another branch's trip, truck, person, bill or quotation by
+  its URL (not found), cannot decide another branch's crew entries, and plan trips only for their branch; the owner app
+  lists (trips, trucks, bills) follow the same limit. Changing it is logged.
+- New trips, bills and quotations start in the branch shown; a bill made from LRs takes their trips' branch.
+- Demo: trucks and trips in Kochi and Mumbai; **vikram@fleet.test works for the Mumbai branch only**.
+
+**Tests:** 241 passing (new `BranchTest`, 2 tests: the filter on trucks, trips and bills, the owner still opening other
+records, a new trip's branch, the dashboard count, back to all, another company's branch refused, no filter with one
+branch; a manager limited on the team page — not an owner — the lists, the 404s, trips only for the branch, the owner
+app's trips and trucks, back to the whole company).
+
+**Not yet:** per-branch number series on the screens (the `{BR}` token exists), branch on documents, payroll and
+receipts, a branch-wise trial balance, branch-to-branch transfers (phase 2: manifests, transshipment, D16).
+
 ## 2026-10-26 — Milestone M21: quotations, pre-printed LR books, vouchers to sign
 
 **Built (in `webapp/`; blueprint 10 §1, §3, §6.3; decision P16):**

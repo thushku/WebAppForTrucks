@@ -38,7 +38,7 @@ class PersonController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'working');
 
-        $people = Person::query()
+        $people = Person::query()->inBranch()
             ->with('defaultTruck')
             ->when(isset(Person::TYPES[$type]), fn ($q) => $q->where('type', $type))
             ->when($status === 'working', fn ($q) => $q->where('status', '!=', 'left'))
@@ -50,7 +50,7 @@ class PersonController extends Controller
 
         return view('people.index', [
             'people' => $people, 'type' => $type, 'search' => $search, 'status' => $status,
-            'counts' => Person::where('status', '!=', 'left')->selectRaw('type, count(*) as n')->groupBy('type')->pluck('n', 'type'),
+            'counts' => Person::inBranch()->where('status', '!=', 'left')->selectRaw('type, count(*) as n')->groupBy('type')->pluck('n', 'type'),
         ]);
     }
 

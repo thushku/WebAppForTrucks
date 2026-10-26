@@ -65,7 +65,7 @@ class OfficeController extends Controller
             'q' => ['nullable', 'string', 'max:40'], 'page' => ['nullable', 'integer', 'min:1'],
         ]);
         $statuses = ['planned' => ['assigned', 'accepted'], 'running' => ['running'], 'ended' => ['ended'], 'settled' => ['settled'], 'closed' => ['closed'], 'cancelled' => ['cancelled']];
-        $trips = Trip::with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'from:id,name', 'to:id,name', 'crew.person:id,name'])
+        $trips = Trip::inBranch()->with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'from:id,name', 'to:id,name', 'crew.person:id,name'])
             ->when($f['status'] ?? null, fn ($q, $s) => $q->whereIn('status', $statuses[$s]), fn ($q) => $q->where('status', '!=', 'draft'))
             ->when(filled($f['q'] ?? null), fn ($q) => $q->where(fn ($q) => $q->where('trip_number', 'like', '%' . addcslashes($f['q'], '%_\\') . '%')
                 ->orWhereHas('truck', fn ($t) => $t->where('reg_no', 'like', '%' . addcslashes($f['q'], '%_\\') . '%'))))
@@ -79,7 +79,7 @@ class OfficeController extends Controller
 
     public function trip(Request $request, string $uuid, Statements $statements): JsonResponse
     {
-        $trip = Trip::with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'supplier:id,name', 'from:id,name', 'to:id,name', 'crew.person:id,name,mobile', 'stops.place:id,name',
+        $trip = Trip::inBranch()->with(['truck:id,reg_no', 'supplierVehicle:id,reg_no', 'supplier:id,name', 'from:id,name', 'to:id,name', 'crew.person:id,name,mobile', 'stops.place:id,name',
             'consignments' => fn ($q) => $q->with(['billingParty:id,name', 'consignor:id,name', 'consignee:id,name'])])->where('uuid', $uuid)->firstOrFail();
         $user = $request->user();
         $freight = $user->can('trip.freight_view');
@@ -108,14 +108,14 @@ class OfficeController extends Controller
 
     public function route(string $uuid, LiveMap $map): JsonResponse
     {
-        $trip = Trip::where('uuid', $uuid)->firstOrFail();
+        $trip = Trip::inBranch()->where('uuid', $uuid)->firstOrFail();
 
         return response()->json($map->route($trip, 1500));
     }
 
     public function trucks(): JsonResponse
     {
-        $trucks = Truck::where('status', '!=', 'sold')->orderBy('reg_no')->get(['id', 'reg_no', 'truck_type', 'status', 'ownership']);
+        $trucks = Truck::inBranch()->where('status', '!=', 'sold')->orderBy('reg_no')->get(['id', 'reg_no', 'truck_type', 'status', 'ownership']);
         $papers = Document::where('owner_type', 'truck')->whereIn('owner_id', $trucks->pluck('id'))->whereNotNull('expires_on')->get(['owner_id', 'document_type', 'expires_on'])->groupBy('owner_id');
 
         return response()->json(['trucks' => $trucks->map(function (Truck $truck) use ($papers) {

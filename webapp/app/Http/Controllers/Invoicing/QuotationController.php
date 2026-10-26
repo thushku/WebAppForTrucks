@@ -39,7 +39,7 @@ class QuotationController extends Controller
     {
         $tab = array_key_exists($request->query('tab'), self::TABS) ? $request->query('tab') : 'open';
         $q = trim((string) $request->query('q'));
-        $list = Quotation::with('party:id,name')->withCount('lines')
+        $list = Quotation::with('party:id,name')->withCount('lines')->inBranch()
             ->when($tab === 'open', fn ($b) => $b->whereIn('status', ['draft', 'issued']))
             ->when($tab === 'accepted', fn ($b) => $b->where('status', 'accepted'))
             ->when($tab === 'closed', fn ($b) => $b->whereIn('status', ['declined', 'cancelled']))
@@ -61,7 +61,7 @@ class QuotationController extends Controller
     public function store(Request $request): RedirectResponse
     {
         [$fields, $lines] = $this->validated($request);
-        $quotation = $this->quotations->save(null, $fields, $lines, $request->user());
+        $quotation = $this->quotations->save(null, $fields + ['branch_id' => app(\App\Platform\Tenancy\BranchContext::class)->defaultBranch()], $lines, $request->user());
 
         return redirect()->route('quotations.show', $quotation)->with('status', __('Draft saved. Print it to check, then send it.'));
     }

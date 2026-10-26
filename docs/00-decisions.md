@@ -300,6 +300,25 @@ package), QR codes / amount in words / CSV written in-house. See
 - **Every voucher prints to sign** (payment, receipt, journal, contra) with the
   amount in words and prepared / approved / received boxes.
 
+### P17. Branches at work (added 26 Oct 2026, M22)
+
+- **The branch filter is a view, not a permission**: with two branches or
+  more, the header has "All branches / Kochi / Mumbai"; the lists (trips,
+  trucks, people, bills, quotations, approvals, LRs to bill), the dashboard,
+  the live map and the profit and loss follow it. Trucks and people with no
+  branch show in every branch; trips and bills with no branch only under "All".
+- **A person can be limited to one branch** (Settings → Team → Works for):
+  they see and open only that branch's trips, bills and quotations, and its
+  trucks and crew (plus the shared ones) — on the web and in the owner app; a
+  URL to another branch's record answers "not found"; they plan trips only for
+  their branch. An owner is never limited.
+- **The books stay company-wide** (trial balance, balance sheet, ledgers,
+  GST/TDS registers): give the accounts permissions only to people who work
+  for the whole company. Services never apply the branch (a truck on a trip in
+  another branch is still busy; numbering and postings are unchanged).
+- A bill takes its trips' branch when they share one; new trips, bills and
+  quotations start in the branch shown.
+
 ---
 
 ## 4. Still open

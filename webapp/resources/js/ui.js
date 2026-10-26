@@ -37,6 +37,11 @@ document.addEventListener('click', (event) => {
   }
 });
 
+// The branch filter in the header: a new choice shows the lists for that branch.
+document.querySelectorAll('[data-branch-filter] select').forEach((select) => {
+  select.addEventListener('change', () => select.form.submit());
+});
+
 // Messages leave by themselves after a while (errors stay until closed).
 document.querySelectorAll('[data-flash][role="status"]').forEach((el) => {
   setTimeout(() => el.remove(), 6000);

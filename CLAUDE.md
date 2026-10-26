@@ -47,6 +47,9 @@ founder's laptop) in `phoneapp/`.
   Public pages: `Site/{Site,Contact}Controller`, views `resources/views/site` on `layouts/site`; "/" is the website
   for visitors and the dashboard for people signed in. Getting started for a new company: `Settings/SetupController`
   with `Platform/Signup/GettingStarted` (the steps, ticked from the data; `/welcome`, opened by the first sign-in after the email is confirmed; a card on the dashboard until done).
+- Branches (M22): `Platform/Tenancy/BranchContext` (the header filter in the session, and a person's branch limit from
+  their role grants) and the `HasBranch` trait (`->inBranch()` for lists; route binding answers 404 to a limited person
+  for another branch's record) on Trip, Truck, Person, Invoice, Quotation. Services and the books never apply it.
 - `app/Modules/<Module>` — business modules: `Settings` (branches, places, lists, rules, number series), `Parties`
   (parties, roles, tax IDs, contacts, bank accounts, supplier vehicles, rate contracts), `Fleet` (trucks, complaints,
   service), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,

@@ -41,7 +41,7 @@ class InvoiceController extends Controller
         $tab = $f['tab'] ?? 'open';
         $today = now($this->context->company()->timezone ?: 'UTC')->toDateString();
 
-        $query = Invoice::query()
+        $query = Invoice::query()->inBranch()
             ->when($tab === 'open', fn ($q) => $q->whereIn('status', Invoice::OPEN_STATUSES)->where('doc_type', '!=', 'credit_note'))
             ->when($tab === 'overdue', fn ($q) => $q->whereIn('status', Invoice::OPEN_STATUSES)->where('balance_due', '>', 0)->where('due_date', '<', $today))
             ->when($tab === 'draft', fn ($q) => $q->where('status', 'draft'))
@@ -301,7 +301,7 @@ class InvoiceController extends Controller
     /** LRs with a number, not cancelled, not billed yet and not on a live draft. */
     private function unbilledQuery()
     {
-        return Consignment::query()->whereNotNull('lr_number')->whereNull('invoice_id')->whereIn('status', ['booked', 'picked_up', 'in_transit', 'delivered', 'pod_received'])
+        return Consignment::query()->whereHas('trip', fn ($t) => $t->inBranch())->whereNotNull('lr_number')->whereNull('invoice_id')->whereIn('status', ['booked', 'picked_up', 'in_transit', 'delivered', 'pod_received'])
             ->whereNotIn('id', InvoiceLine::query()->whereNotNull('consignment_id')->whereHas('invoice', fn ($q) => $q->where('status', 'draft'))->select('consignment_id'));
     }
 }

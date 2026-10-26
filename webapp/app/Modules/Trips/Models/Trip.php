@@ -9,6 +9,7 @@ use App\Modules\Settings\Models\Branch;
 use App\Modules\Settings\Models\Place;
 use App\Platform\Audit\Audited;
 use App\Platform\Tenancy\BelongsToCompany;
+use App\Platform\Tenancy\HasBranch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,7 +22,7 @@ use Illuminate\Support\Str;
  */
 class Trip extends Model
 {
-    use Audited, BelongsToCompany;
+    use Audited, BelongsToCompany, HasBranch;
 
     public const STATUSES = [
         'draft'     => 'Draft',

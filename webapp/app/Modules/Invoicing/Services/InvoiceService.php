@@ -57,6 +57,11 @@ class InvoiceService
             if ($this->addLoads($invoice, $consignmentIds) === 0) {
                 throw ValidationException::withMessages(['loads' => __('None of those LRs is waiting to be billed to :name.', ['name' => $billTo->name])]);
             }
+            // A bill belongs to its trips' branch when they share one (M22).
+            $tripBranches = Trip::whereIn('id', InvoiceLine::where('invoice_id', $invoice->id)->whereNotNull('trip_id')->pluck('trip_id'))->pluck('branch_id')->unique();
+            if ($tripBranches->count() === 1 && $tripBranches->first()) {
+                $invoice->forceFill(['branch_id' => $tripBranches->first()])->save();
+            }
 
             return $invoice->fresh(['lines', 'taxes']);
         });
@@ -116,6 +121,7 @@ class InvoiceService
             'reference' => $related?->reference, 'currency' => $related?->currency ?? $company->currency,
             'transport_type' => $related?->transport_type, 'carrier_role' => $related?->carrier_role, 'loading_state' => $related?->loading_state,
             'evidence' => $related?->evidence, 'inclusive' => false, 'created_by' => $by?->id ?? auth()->id(),
+            'branch_id' => $related?->branch_id ?? app(\App\Platform\Tenancy\BranchContext::class)->defaultBranch(),
         ]);
     }
 

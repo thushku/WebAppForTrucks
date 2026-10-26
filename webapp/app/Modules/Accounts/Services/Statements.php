@@ -213,6 +213,7 @@ class Statements
         return DB::table('voucher_lines as l')->join('vouchers as v', 'v.id', '=', 'l.voucher_id')->where('l.company_id', $company)
             ->when($centres['trip_id'] ?? null, fn ($q, $id) => $q->where('l.trip_id', $id))
             ->when($centres['truck_id'] ?? null, fn ($q, $id) => $q->where('l.truck_id', $id))
-            ->when($centres['branch_id'] ?? null, fn ($q, $id) => $q->where('l.branch_id', $id));
+            // One branch, or the several a branch-limited person works in (M22).
+            ->when($centres['branch_id'] ?? null, fn ($q, $id) => is_array($id) ? $q->whereIn('l.branch_id', $id) : $q->where('l.branch_id', $id));
     }
 }

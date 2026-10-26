@@ -100,6 +100,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('company')->group(function () {
         Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
 
+        // The branch the lists show (M22).
+        Route::post('/branch', function (\Illuminate\Http\Request $request, \App\Platform\Tenancy\BranchContext $branches) {
+            $branches->select($request->filled('branch') ? (int) $request->input('branch') : null);
+
+            return back();
+        })->name('branch.select');
+
         // The bell (M20): everyone's own notices in this company.
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->whereNumber('notification')->name('notifications.open');

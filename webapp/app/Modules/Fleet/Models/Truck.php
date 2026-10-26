@@ -6,6 +6,7 @@ use App\Modules\Parties\Models\Party;
 use App\Modules\Settings\Models\Branch;
 use App\Platform\Audit\Audited;
 use App\Platform\Tenancy\BelongsToCompany;
+use App\Platform\Tenancy\HasBranch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,7 +20,13 @@ use Illuminate\Support\Str;
  */
 class Truck extends Model
 {
-    use Audited, BelongsToCompany;
+    use Audited, BelongsToCompany, HasBranch;
+
+    /** A truck or person with no branch works for every branch (M22). */
+    public static function branchSharedWhenUnassigned(): bool
+    {
+        return true;
+    }
 
     public const STATUSES = [
         'idle'           => 'Free',

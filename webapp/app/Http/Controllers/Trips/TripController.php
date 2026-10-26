@@ -63,7 +63,7 @@ class TripController extends Controller
         ]);
         $status = $f['status'] ?? 'active';
 
-        $query = Trip::query()
+        $query = Trip::query()->inBranch()
             ->when($status === 'active', fn ($q) => $q->whereNotIn('status', ['closed', 'cancelled']))
             ->when(isset(Trip::STATUSES[$status]), fn ($q) => $q->where('status', $status))
             ->when($f['from'] ?? null, fn ($q, $d) => $q->where('trip_date', '>=', $d))
@@ -90,7 +90,7 @@ class TripController extends Controller
             'places'  => Place::active()->orderBy('name')->pluck('name', 'id'),
             'trucks'  => Truck::inService()->orderBy('reg_no')->pluck('reg_no', 'id'),
             'parties' => Party::active()->withRole('client')->orderBy('name')->pluck('name', 'id'),
-            'counts'  => Trip::selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status'),
+            'counts'  => Trip::inBranch()->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status'),
         ]);
     }
 
@@ -100,6 +100,7 @@ class TripController extends Controller
             'trip_date'    => CarbonImmutable::now($this->context->company()->timezone)->toDateString(),
             'load_type'    => in_array($request->query('load'), array_keys(Trip::LOAD_TYPES), true) ? $request->query('load') : 'ftl',
             'truck_source' => $request->query('source') === 'hired' ? 'hired' : 'own',
+            'branch_id'    => app(\App\Platform\Tenancy\BranchContext::class)->defaultBranch(),
         ]);
 
         // From a quotation's route (M21): the route, the client and the quoted rate filled in.
@@ -259,7 +260,7 @@ class TripController extends Controller
             'clients'   => Party::active()->withRole('client')->orderBy('name')->get(['id', 'name', 'short_code']),
             'partiesAll' => Party::active()->orderBy('name')->get(['id', 'name', 'short_code']),
             'materials' => MasterItem::ofList('material')->where('active', true)->pluck('name', 'code'),
-            'branches'  => Branch::where('active', true)->orderBy('name')->pluck('name', 'id'),
+            'branches'  => app(\App\Platform\Tenancy\BranchContext::class)->limited() ? app(\App\Platform\Tenancy\BranchContext::class)->choices() : Branch::where('active', true)->orderBy('name')->pluck('name', 'id'),
             'returnable' => Trip::whereIn('status', ['running', 'ended', 'settled', 'closed'])->where('id', '!=', $trip->id ?? 0)->orderByDesc('trip_date')->limit(30)->pluck('trip_number', 'id'),
             'gstDefault' => $this->context->company()->country === 'IN' ? 'consignor' : null,
         ];
@@ -296,7 +297,10 @@ class TripController extends Controller
             'cost_allocation_method' => ['nullable', Rule::in(['freight', 'weight', 'tonne_km'])],
             'instructions'         => ['nullable', 'string', 'max:2000'],
             'office_note'          => ['nullable', 'string', 'max:2000'],
-            'branch_id'            => ['nullable', 'integer', Rule::exists('branches', 'id')->where('company_id', $companyId)],
+            // A branch-limited person plans trips only for their branches (M22).
+            'branch_id'            => app(\App\Platform\Tenancy\BranchContext::class)->limited()
+                ? ['required', 'integer', Rule::in(app(\App\Platform\Tenancy\BranchContext::class)->allowed())]
+                : ['nullable', 'integer', Rule::exists('branches', 'id')->where('company_id', $companyId)],
             'return_of_trip_id'    => ['nullable', 'integer', Rule::exists('trips', 'id')->where('company_id', $companyId)],
         ], [
             'truck_id.required_if'   => __('Choose the truck.'),

@@ -46,13 +46,13 @@ class Dashboard
     /** @return array{trucks: array, trips: array, approvals: array} */
     public function counts(): array
     {
-        $trucks = Truck::where('status', '!=', 'sold')->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
-        $trips = Trip::whereIn('status', ['assigned', 'accepted', 'running', 'ended'])->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
+        $trucks = Truck::inBranch()->where('status', '!=', 'sold')->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
+        $trips = Trip::inBranch()->whereIn('status', ['assigned', 'accepted', 'running', 'ended'])->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
 
         return [
             'trucks' => ['total' => $trucks->sum(), 'on_trip' => $trucks['on_trip'] ?? 0, 'idle' => $trucks['idle'] ?? 0, 'workshop' => ($trucks['workshop'] ?? 0) + ($trucks['breakdown'] ?? 0)],
             'trips' => ['running' => $trips['running'] ?? 0, 'planned' => ($trips['assigned'] ?? 0) + ($trips['accepted'] ?? 0), 'to_settle' => $trips['ended'] ?? 0],
-            'approvals' => $this->approvals->counts() + ['waiting_check' => 0, 'disputed' => 0, 'queried' => 0, 'waiting_2nd' => 0],
+            'approvals' => $this->approvals->counts(true) + ['waiting_check' => 0, 'disputed' => 0, 'queried' => 0, 'waiting_2nd' => 0],
         ];
     }
 
@@ -60,10 +60,11 @@ class Dashboard
     public function profit(): array
     {
         $today = $this->today();
-        $now = $this->statements->profitAndLoss($today->startOfMonth(), $today);
+        $centres = $this->branchCentres();
+        $now = $this->statements->profitAndLoss($today->startOfMonth(), $today, $centres);
         // Last month up to the same day, so a part month is compared with a part month.
         $lastFrom = $today->startOfMonth()->subMonthNoOverflow();
-        $then = $this->statements->profitAndLoss($lastFrom, $lastFrom->addDays(min($today->day, $lastFrom->daysInMonth) - 1));
+        $then = $this->statements->profitAndLoss($lastFrom, $lastFrom->addDays(min($today->day, $lastFrom->daysInMonth) - 1), $centres);
         $change = abs($then['profit']) >= 1 ? round(($now['profit'] - $then['profit']) / abs($then['profit']) * 100) : null;
 
         return ['profit' => $now['profit'], 'income' => $now['total_income'], 'expense' => $now['total_expense'], 'last' => $then['profit'], 'change' => $change];
@@ -123,7 +124,7 @@ class Dashboard
     {
         $from = $this->today()->setTimezone('UTC');
 
-        return RoadEvent::whereNotNull('amount')->where('type', '!=', 'money_received')->whereNotIn('status', ['rejected', 'cancelled'])
+        return RoadEvent::whereHas('trip', fn ($t) => $t->inBranch())->whereNotNull('amount')->where('type', '!=', 'money_received')->whereNotIn('status', ['rejected', 'cancelled'])
             ->whereBetween('event_at', [$from, $from->addDay()])
             ->get(['type', 'amount'])
             ->groupBy(fn ($e) => EventTypes::label($e->type))
@@ -145,6 +146,7 @@ class Dashboard
             ->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')->join('account_groups as g', 'g.id', '=', 'a.account_group_id')
             ->where('l.company_id', $this->context->id())->whereIn('g.nature', ['income', 'expense'])
             ->whereBetween('v.voucher_date', [$from->toDateString(), $today->toDateString()])
+            ->when($this->branchCentres()['branch_id'] ?? null, fn ($q, $ids) => $q->whereIn('l.branch_id', $ids))
             ->groupByRaw("date_format(v.voucher_date, '%Y-%m')")
             ->selectRaw("date_format(v.voucher_date, '%Y-%m') as month,
                 sum(case when g.nature = 'income' then l.credit - l.debit else 0 end) as income,
@@ -161,17 +163,25 @@ class Dashboard
         return $out;
     }
 
+    /** The book's cost centres for the branch filter (M22): the branch(es) shown, or none for the whole company. */
+    private function branchCentres(): array
+    {
+        $ids = app(\App\Platform\Tenancy\BranchContext::class)->ids();
+
+        return $ids === null ? [] : ['branch_id' => $ids];
+    }
+
     /** From LR to cash (09 §2.3): how many wait at each step. */
     public function queues(): array
     {
         $today = $this->today()->toDateString();
 
         return [
-            'pod_pending' => Consignment::where('status', 'delivered')->whereNull('pod_received_at')->count(),
-            'ready_to_bill' => Consignment::whereNotNull('lr_number')->whereNull('invoice_id')->where('status', 'pod_received')->where('payment_type', 'to_be_billed')->count(),
-            'not_submitted' => Invoice::whereIn('status', ['finalised'])->where('doc_type', '!=', 'credit_note')->whereNull('submitted_on')->whereNull('sent_at')->count(),
-            'overdue' => Invoice::whereIn('status', Invoice::OPEN_STATUSES)->where('doc_type', '!=', 'credit_note')->where('balance_due', '>', 0)->where('due_date', '<', $today)->count(),
-            'overdue_amount' => round((float) Invoice::whereIn('status', Invoice::OPEN_STATUSES)->where('doc_type', '!=', 'credit_note')->where('due_date', '<', $today)->sum('balance_due'), 2),
+            'pod_pending' => Consignment::whereHas('trip', fn ($t) => $t->inBranch())->where('status', 'delivered')->whereNull('pod_received_at')->count(),
+            'ready_to_bill' => Consignment::whereHas('trip', fn ($t) => $t->inBranch())->whereNotNull('lr_number')->whereNull('invoice_id')->where('status', 'pod_received')->where('payment_type', 'to_be_billed')->count(),
+            'not_submitted' => Invoice::inBranch()->whereIn('status', ['finalised'])->where('doc_type', '!=', 'credit_note')->whereNull('submitted_on')->whereNull('sent_at')->count(),
+            'overdue' => Invoice::inBranch()->whereIn('status', Invoice::OPEN_STATUSES)->where('doc_type', '!=', 'credit_note')->where('balance_due', '>', 0)->where('due_date', '<', $today)->count(),
+            'overdue_amount' => round((float) Invoice::inBranch()->whereIn('status', Invoice::OPEN_STATUSES)->where('doc_type', '!=', 'credit_note')->where('due_date', '<', $today)->sum('balance_due'), 2),
         ];
     }
 }

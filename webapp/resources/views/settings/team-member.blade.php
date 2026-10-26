@@ -36,6 +36,17 @@
       </div>
       @error('roles')<span class="error">{{ $message }}</span>@enderror
     </fieldset>
+    @if ($branches->count() > 1)
+      <div class="mt-5 max-w-sm">
+        <label class="label" for="m_branch">{{ __('Works for') }}</label>
+        <select id="m_branch" name="branch_id" class="input">
+          <option value="">{{ __('The whole company') }}</option>
+          @foreach ($branches as $id => $name)<option value="{{ $id }}" @selected((int) old('branch_id', $branchNow) === $id)>{{ __('Only the :branch branch', ['branch' => $name]) }}</option>@endforeach
+        </select>
+        <p class="mt-1 text-xs text-ink-500">{{ __('Limited to a branch, they see and open only its trips, bills and quotations, and its trucks and crew (plus those with no branch). Keep the books with people who work for the whole company.') }}</p>
+        @error('branch_id')<span class="error">{{ $message }}</span>@enderror
+      </div>
+    @endif
   @endcan
   <div class="mt-6 flex justify-end"><button type="submit" class="btn-primary"><x-icon name="check" /> {{ __('Save') }}</button></div>
 </form>

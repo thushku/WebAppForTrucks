@@ -34,7 +34,7 @@ class ApprovalController extends Controller
         ]);
         $status = $f['status'] ?? 'waiting_check';
 
-        $events = $this->approvals->inbox($status)
+        $events = $this->approvals->inbox($status, true)
             ->when($f['type'] ?? null, fn ($q, $t) => $q->where('type', $t))
             ->when(filled($f['q'] ?? null), fn ($q) => $q->whereHas('trip', fn ($t) => $t->where('trip_number', 'like', '%' . addcslashes(strtoupper($f['q']), '%_\\') . '%')))
             ->paginate(100)->withQueryString();
@@ -43,7 +43,7 @@ class ApprovalController extends Controller
             'events'  => $events,
             'status'  => $status,
             'filters' => $f,
-            'counts'  => $this->approvals->counts(),
+            'counts'  => $this->approvals->counts(true),
             'canMoney' => $request->user()->can('trip.freight_view') || $request->user()->can('event.verify'),
         ]);
     }
@@ -54,6 +54,7 @@ class ApprovalController extends Controller
             'decision' => ['required', Rule::in(['approve', 'query', 'reject'])],
             'note'     => ['nullable', 'string', 'max:255'],
         ]);
+        $this->ownBranch($event);
         $this->approvals->decide($request->user(), $event, $data['decision'], $data['note'] ?? null);
 
         return back()->with('status', match ($data['decision']) {
@@ -66,7 +67,7 @@ class ApprovalController extends Controller
     public function approveMany(Request $request): RedirectResponse
     {
         $data = $request->validate(['events' => ['required', 'array', 'max:100'], 'events.*' => ['integer']], ['events.required' => __('Tick the entries to approve.')]);
-        $done = $this->approvals->approveMany($request->user(), RoadEvent::with('trip.crew')->whereIn('id', $data['events'])->get());
+        $done = $this->approvals->approveMany($request->user(), RoadEvent::with('trip.crew')->whereIn('id', $data['events'])->whereHas('trip', fn ($t) => $t->inBranch())->get());
         $left = count($data['events']) - $done;
 
         return back()->with('status', trans_choice(':count entry approved.|:count entries approved.', $done)
@@ -74,9 +75,17 @@ class ApprovalController extends Controller
     }
 
     /** An entry's photo, for the inbox. */
+    /** A branch-limited person decides only their branch's entries (M22). */
+    private function ownBranch(RoadEvent $event): void
+    {
+        $branch = $event->trip()->value('branch_id');
+        abort_unless(app(\App\Platform\Tenancy\BranchContext::class)->canSee($branch !== null ? (int) $branch : null), 404);
+    }
+
     public function photo(RoadEvent $event, EventPhoto $photo): Response
     {
         abort_unless($photo->road_event_id === $event->id, 404);
+        $this->ownBranch($event);
 
         return response(Storage::disk('local')->get($photo->path), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=3600']);
     }

@@ -114,19 +114,20 @@ class Approvals
     }
 
     /** Entries waiting for the office, newest trips' first, for the inbox and the owner app. */
-    public function inbox(?string $status = null)
+    public function inbox(?string $status = null, bool $inBranch = false)
     {
         return RoadEvent::with(['trip:id,uuid,trip_number,status', 'trip.crew:id,trip_id,person_id,role', 'person:id,name', 'photos:id,road_event_id,slot,duplicate_of'])
             ->whereIn('status', $status ? [$status] : RoadEvent::OPEN)
-            ->whereHas('trip', fn ($q) => $q->whereNotIn('status', ['settled', 'closed', 'cancelled']))
+            ->whereHas('trip', fn ($q) => $q->whereNotIn('status', ['settled', 'closed', 'cancelled'])->when($inBranch, fn ($t) => $t->inBranch()))
             ->orderBy('trusted_at');
     }
 
     /** How many entries wait, per status (the inbox tabs and the menu badge). */
-    public function counts(): array
+    /** With $inBranch, only the trips of the branch filter (the web inbox and its badge, M22). */
+    public function counts(bool $inBranch = false): array
     {
         return RoadEvent::whereIn('status', RoadEvent::OPEN)
-            ->whereHas('trip', fn ($q) => $q->whereNotIn('status', ['settled', 'closed', 'cancelled']))
+            ->whereHas('trip', fn ($q) => $q->whereNotIn('status', ['settled', 'closed', 'cancelled'])->when($inBranch, fn ($t) => $t->inBranch()))
             ->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n)->all();
     }
 }

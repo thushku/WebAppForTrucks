@@ -92,7 +92,8 @@ class FleetDemo extends Command
                 $account->email_verified_at = now();
                 $account->save();
                 $member = CompanyUser::create(['company_id' => $company->id, 'account_id' => $account->id, 'status' => 'active', 'joined_at' => now(), 'title' => $title]);
-                $roles->grant($member, $role);
+                // Vikram runs the Mumbai branch: he sees and opens only its trips, bills and trucks (M22).
+                $roles->grant($member, $role, $email === 'vikram@fleet.test' ? Branch::where('code', 'BOM')->value('id') : null);
             }
         });
 
@@ -103,7 +104,7 @@ class FleetDemo extends Command
         // The demo is set up already: no getting-started card.
         $company->forceFill(['setup_done_at' => now()])->save();
 
-        $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test, same password).');
+        $this->info('Demo company ready. Sign in as ' . self::EMAIL . ' / ' . self::PASSWORD . ' (also anita@ and vikram@fleet.test — Mumbai branch only — same password).');
 
         return self::SUCCESS;
     }
@@ -315,11 +316,15 @@ class FleetDemo extends Command
         $place  = \App\Modules\Settings\Models\Place::pluck('id', 'short_code');
         $party  = \App\Modules\Parties\Models\Party::pluck('id', 'name');
         $truck  = \App\Modules\Fleet\Models\Truck::pluck('id', 'reg_no');
+        // Two branches at work (M22): the Mumbai-registered truck and the Bhiwandi supplier's trips are Mumbai's, the rest Kochi's.
+        $br = Branch::pluck('id', 'code');
+        \App\Modules\Fleet\Models\Truck::where('reg_no', 'like', 'MH-%')->update(['branch_id' => $br['BOM']]);
+        \App\Modules\Fleet\Models\Truck::whereNull('branch_id')->update(['branch_id' => $br['HO']]);
         $person = \App\Modules\People\Models\Person::pluck('id', 'name');
         $line   = \App\Modules\Parties\Models\RateContractLine::whereHas('contract', fn ($q) => $q->where('status', 'approved'))->where('to_place_id', $place['BOM'])->first();
 
         // 1. Kochi → Mumbai, cement for ACC, running (its insurance is fine).
-        $t1 = $trips->create(['trip_date' => now()->subDay()->toDateString(), 'truck_source' => 'own', 'truck_id' => $truck['KL-43-D-7702'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['BOM'],
+        $t1 = $trips->create(['branch_id' => $br['HO'], 'trip_date' => now()->subDay()->toDateString(), 'truck_source' => 'own', 'truck_id' => $truck['KL-43-D-7702'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['BOM'],
             'planned_km' => 1380, 'budget_fuel' => 36000, 'budget_toll' => 9500, 'instructions' => 'Unload at ACC depot gate 2. Call Suresh 30 min before.'],
             [['person_id' => $person['Abdul Rasheed'], 'role' => 'driver'], ['person_id' => $person['Binu Joseph'], 'role' => 'helper']],
             ['billing_party_id' => $party['ACC Limited'], 'consignor_party_id' => $party['ACC Limited'], 'consignee_party_id' => $party['ACC Limited'], 'material' => 'cement',
@@ -330,7 +335,7 @@ class FleetDemo extends Command
         \App\Modules\Trips\Models\TripAdvance::create(['trip_id' => $t1->id, 'person_id' => $person['Abdul Rasheed'], 'amount' => 20000, 'mode' => 'cash', 'given_on' => now()->subDay()->toDateString(), 'created_by' => $ownerId]);
 
         // 2. A part-load draft: Kochi → Thrissur… → Coimbatore with two clients.
-        $t2 = $trips->create(['trip_date' => now()->toDateString(), 'load_type' => 'ptl', 'truck_source' => 'own', 'truck_id' => $truck['KL-07-CU-4521'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['CJB'], 'planned_km' => 195],
+        $t2 = $trips->create(['branch_id' => $br['HO'], 'trip_date' => now()->toDateString(), 'load_type' => 'ptl', 'truck_source' => 'own', 'truck_id' => $truck['KL-07-CU-4521'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['CJB'], 'planned_km' => 195],
             [['person_id' => $person['Ravi Kumar'], 'role' => 'driver'], ['person_id' => $person['Suresh Babu'], 'role' => 'co_driver']],
             ['billing_party_id' => $party['Kerala Agro Foods'], 'consignor_party_id' => $party['Kerala Agro Foods'], 'material' => 'food_grains', 'packages' => 200, 'package_type' => 'bags', 'actual_weight_mt' => 10,
              'freight_basis' => 'tonne', 'rate' => 1100, 'freight' => 11000, 'payment_type' => 'to_pay']);
@@ -342,7 +347,7 @@ class FleetDemo extends Command
         // 3. A hired truck for the Bhiwandi run, with its hire challan and an advance.
         $raju = \App\Modules\Parties\Models\Party::where('name', 'Raju Transport')->first();
         $vehicle = \App\Modules\Parties\Models\SupplierVehicle::where('party_id', $raju->id)->first();
-        $t3 = $trips->create(['trip_date' => now()->toDateString(), 'truck_source' => 'hired', 'supplier_party_id' => $raju->id, 'supplier_vehicle_id' => $vehicle->id,
+        $t3 = $trips->create(['branch_id' => $br['BOM'], 'trip_date' => now()->toDateString(), 'truck_source' => 'hired', 'supplier_party_id' => $raju->id, 'supplier_vehicle_id' => $vehicle->id,
             'from_place_id' => $place['BHW'], 'to_place_id' => $place['PNQ'], 'planned_km' => 150], [],
             ['billing_party_id' => $party['ACC Limited'], 'material' => 'cement', 'actual_weight_mt' => 20, 'freight_basis' => 'trip', 'rate' => 18500, 'freight' => 18500, 'payment_type' => 'to_be_billed']);
         $trips->assign($t3);
@@ -356,7 +361,7 @@ class FleetDemo extends Command
         $this->road($t1->fresh());
 
         // 4. Kochi → Chennai last week: ended, its entries checked, waiting for settlement.
-        $t4 = $trips->create(['trip_date' => now()->subDays(4)->toDateString(), 'truck_source' => 'own', 'truck_id' => $truck['MH-04-JK-3345'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['MAA'], 'planned_km' => 690],
+        $t4 = $trips->create(['branch_id' => $br['BOM'], 'trip_date' => now()->subDays(4)->toDateString(), 'truck_source' => 'own', 'truck_id' => $truck['MH-04-JK-3345'], 'from_place_id' => $place['COK'], 'to_place_id' => $place['MAA'], 'planned_km' => 690],
             [['person_id' => $person['Ravi Kumar'], 'role' => 'driver'], ['person_id' => $person['Shibu P'], 'role' => 'helper']],
             ['billing_party_id' => $party['UltraTech Cement'], 'consignor_party_id' => $party['UltraTech Cement'], 'material' => 'cement', 'packages' => 340, 'package_type' => 'bags', 'actual_weight_mt' => 17,
              'freight_basis' => 'trip', 'rate' => 38000, 'freight' => 38000, 'payment_type' => 'to_be_billed']);

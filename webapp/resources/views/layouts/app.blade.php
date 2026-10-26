@@ -6,6 +6,7 @@
   $notice  = app(\App\Platform\Settings\PlatformSettings::class)->get('announcement');
   $rtl     = \App\Support\Locales::isRtl(app()->getLocale());
   $unread  = $company && $account ? \App\Platform\Notifications\UserNotification::for($account)->whereNull('read_at')->count() : 0;
+  $branches = $company ? app(\App\Platform\Tenancy\BranchContext::class) : null;
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $rtl ? 'rtl' : 'ltr' }}" class="h-full">
@@ -70,6 +71,17 @@
       </button>
       <h1 class="min-w-0 flex-1 truncate font-display text-lg font-semibold">@yield('title', __('Dashboard'))</h1>
 
+      @if ($branches?->shown())
+        <form method="POST" action="{{ route('branch.select') }}" data-branch-filter>
+          @csrf
+          <label for="branch_filter" class="sr-only">{{ __('Branch') }}</label>
+          <select id="branch_filter" name="branch" class="input max-w-[8.5rem] py-2 text-sm sm:max-w-none">
+            @unless ($branches->limited() && count($branches->allowed()) === 1)<option value="">{{ $branches->limited() ? __('My branches') : __('All branches') }}</option>@endunless
+            @foreach ($branches->choices() as $id => $name)<option value="{{ $id }}" @selected($branches->selected() === $id)>{{ $name }}</option>@endforeach
+          </select>
+          <noscript><button class="btn-secondary text-sm">{{ __('Show') }}</button></noscript>
+        </form>
+      @endif
       @if ($company)
         <a href="{{ route('notifications.index') }}" class="relative grid size-10 place-items-center rounded-full border border-ink-100 bg-white text-ink-700 hover:border-brand-300" data-bell
            aria-label="{{ $unread ? trans_choice('Notifications, :count unread|Notifications, :count unread', $unread) : __('Notifications') }}">

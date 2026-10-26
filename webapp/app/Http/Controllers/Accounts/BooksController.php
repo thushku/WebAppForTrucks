@@ -90,10 +90,17 @@ class BooksController extends AccountsController
             'trip_id' => ['nullable', 'integer', Rule::exists('trips', 'id')->where('company_id', $this->context->id())],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('company_id', $this->context->id())],
         ]);
+        // The header's branch filter is the default; a branch-limited person sees only their branches (M22).
+        $branches = app(\App\Platform\Tenancy\BranchContext::class);
+        if (! $request->has('branch_id') && $branches->selected()) {
+            $centres['branch_id'] = $branches->selected();
+        }
+        abort_if(! empty($centres['branch_id']) && ! $branches->canSee((int) $centres['branch_id']), 404);
+        $book = array_filter($centres) + ($branches->limited() ? ['branch_id' => $branches->allowed()] : []);
 
         return view('accounts.profit-loss', [
-            'from' => $from, 'to' => $to, 'fy' => $fy, 'centres' => array_filter($centres), 'pl' => $statements->profitAndLoss($from, $to, array_filter($centres)),
-            'trucks' => Truck::orderBy('reg_no')->pluck('reg_no', 'id'), 'branches' => Branch::orderBy('name')->pluck('name', 'id'),
+            'from' => $from, 'to' => $to, 'fy' => $fy, 'centres' => array_filter($centres), 'pl' => $statements->profitAndLoss($from, $to, $book),
+            'trucks' => Truck::inBranch()->orderBy('reg_no')->pluck('reg_no', 'id'), 'branches' => $branches->limited() ? $branches->choices() : Branch::orderBy('name')->pluck('name', 'id'),
             'trip' => isset($centres['trip_id']) ? Trip::find($centres['trip_id']) : null,
         ]);
     }

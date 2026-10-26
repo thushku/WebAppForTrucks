@@ -6,6 +6,7 @@ use App\Modules\Parties\Models\Party;
 use App\Modules\Parties\Models\RateContract;
 use App\Platform\Audit\Audited;
 use App\Platform\Tenancy\BelongsToCompany;
+use App\Platform\Tenancy\HasBranch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Quotation extends Model
 {
-    use Audited, BelongsToCompany;
+    use Audited, BelongsToCompany, HasBranch;
 
     public const STATUSES = ['draft' => 'Draft', 'issued' => 'Sent', 'accepted' => 'Accepted', 'declined' => 'Declined', 'cancelled' => 'Cancelled'];
 

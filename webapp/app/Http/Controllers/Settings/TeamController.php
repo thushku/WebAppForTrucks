@@ -11,6 +11,7 @@ use App\Platform\Team\TeamService;
 use App\Platform\Tenancy\CompanyContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -69,6 +70,8 @@ class TeamController extends Controller
             'grantable' => $this->team->grantable($me),
             'canManage' => $this->team->canManage($me, $member),
             'isMe'      => $me->id === $member->id,
+            'branches'  => \App\Modules\Settings\Models\Branch::where('active', true)->orderByDesc('is_head_office')->orderBy('name')->pluck('name', 'id'),
+            'branchNow' => $this->team->branchOf($member),
         ]);
     }
 
@@ -79,6 +82,7 @@ class TeamController extends Controller
             'title'   => ['nullable', 'string', 'max:80'],
             'roles'   => ['nullable', 'array', 'max:5'],
             'roles.*' => ['string', 'max:40'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('company_id', $this->context->id())],
         ]);
 
         $me = $this->context->member();
@@ -88,7 +92,7 @@ class TeamController extends Controller
         }
 
         if ($request->user()->can('role.grant')) {
-            $this->team->setRoles($me, $member, $data['roles'] ?? []);
+            $this->team->setRoles($me, $member, $data['roles'] ?? [], isset($data['branch_id']) ? (int) $data['branch_id'] : null, $request->has('branch_id'));
         }
 
         return redirect()->route('settings.team')->with('status', __(':name saved.', ['name' => $member->label]));

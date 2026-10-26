@@ -6,6 +6,7 @@ use App\Modules\Parties\Models\Party;
 use App\Modules\Tax\Models\TaxRegistration;
 use App\Platform\Audit\Audited;
 use App\Platform\Tenancy\BelongsToCompany;
+use App\Platform\Tenancy\HasBranch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,7 +29,7 @@ use RuntimeException;
  */
 class Invoice extends Model
 {
-    use Audited, BelongsToCompany, SoftDeletes;
+    use Audited, BelongsToCompany, SoftDeletes, HasBranch;
 
     public const DOC_TYPES = [
         'invoice'       => 'Invoice',

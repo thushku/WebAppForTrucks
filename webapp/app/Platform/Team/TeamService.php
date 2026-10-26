@@ -99,24 +99,44 @@ class TeamService
      *
      * @param string[] $roleCodes
      */
-    public function setRoles(CompanyUser $by, CompanyUser $member, array $roleCodes): void
+    public function setRoles(CompanyUser $by, CompanyUser $member, array $roleCodes, ?int $branchId = null, bool $setBranch = false): void
     {
         $this->assertCanManage($by, $member);
         $wanted = $this->grantableRoles($by, $roleCodes)->pluck('code')->all();
+        if ($setBranch && $branchId !== null && in_array('owner', $wanted, true)) {
+            throw ValidationException::withMessages(['branch_id' => __('An owner works for the whole company. Take the owner role away to limit this person to a branch.')]);
+        }
 
-        DB::transaction(function () use ($by, $member, $wanted) {
+        DB::transaction(function () use ($by, $member, $wanted, $branchId, $setBranch) {
             $current = $this->roleCodes($member);
+            $branchNow = $this->branchOf($member);
+            // A new branch limit: every role is given again for that branch (M22).
+            $rebranch = $setBranch && $branchId !== $branchNow;
+            $branch = $setBranch ? $branchId : $branchNow;
 
-            foreach (array_diff($current, $wanted) as $code) {
+            foreach ($rebranch ? $current : array_diff($current, $wanted) as $code) {
                 $this->assertGrantable($by, $this->role($code));
                 $this->roles->revoke($member, $code);
             }
-            foreach (array_diff($wanted, $current) as $code) {
-                $this->roles->grant($member, $code);
+            foreach ($rebranch ? $wanted : array_diff($wanted, $current) as $code) {
+                $this->roles->grant($member, $code, $branch);
+            }
+            if ($rebranch) {
+                $name = $branch ? \App\Modules\Settings\Models\Branch::whereKey($branch)->value('name') : null;
+                $this->audit->record('team.branch_set', $name ? "Limited {$member->label} to the {$name} branch" : "{$member->label} works for the whole company again",
+                    'company_user', (string) $member->id, $member->label, severity: 'notable');
             }
 
             $this->assertOwnerRemains();
         });
+    }
+
+    /** The one branch a member's roles are limited to, or null for the whole company. */
+    public function branchOf(CompanyUser $member): ?int
+    {
+        $branches = RoleAssignment::withoutGlobalScopes()->where('company_user_id', $member->id)->pluck('branch_id')->unique()->values();
+
+        return $branches->count() === 1 && $branches->first() !== null ? (int) $branches->first() : null;
     }
 
     public function suspend(CompanyUser $by, CompanyUser $member): void

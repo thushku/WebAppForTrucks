@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
         // who may do what.
         $this->app->singleton(CompanyContext::class);
         $this->app->singleton(PermissionResolver::class);
+        $this->app->singleton(\App\Platform\Tenancy\BranchContext::class);
         $this->app->singleton(PlatformSettings::class);
         $this->app->singleton(\App\Modules\Settings\Services\CompanySettings::class);
 
