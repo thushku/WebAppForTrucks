@@ -2,6 +2,27 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M23: the owner app makes things
+
+**Built (in `webapp/`, `Api/Owner/WriteController`; api-v1 §12; decision P18):**
+- `GET /owner/masters`: everything the phone's forms pick from (places, clients, trucks with the trip they are busy on,
+  crew, materials, branches, bank accounts, freight bases, payment types, receipt modes, paper types).
+- `POST /owner/trips` (with its load, and `send` to the crew at once — or nothing is made if sending is refused) and
+  `POST /owner/trips/{uuid}/send`; `GET /owner/unbilled` and `POST /owner/invoices` (a bill from LRs, `finalise` to issue)
+  and `/finalise`; `POST /owner/receipts` (cash, UPI, NEFT, cheque, TDS, deductions; set against the oldest bills);
+  `POST /owner/papers` (photos or a PDF of a truck's or a person's paper).
+- **Run once**: every write needs an `Idempotency-Key`; the answer is kept (with the crew's commands) so a retry never
+  makes a second trip, bill or receipt; refusals are not kept.
+- The trip form's rules now live in `Trips/Concerns/ValidatesTrips`, used by the web and the phone.
+
+**Tests:** 244 passing (new `OwnerWriteTest`, 3 tests: the masters, no key 428, a refusal not kept then the same key
+working, plan and send, the replay giving the same trip, a key reused for something else 409, a busy truck refusing
+with nothing left half made, a draft sent later, viewer 403; LRs waiting, a bill issued at once and its replay, a draft
+issued afterwards, an LR billed twice refused, money by NEFT with TDS set against the oldest bill, a manager and a
+viewer refused; a paper with a PDF, without a file refused, ID paper types hidden, another company's truck not found).
+
+**Not yet:** hire challans, credit/debit notes and payments from the phone; quotations on the phone.
+
 ## 2026-10-26 — Milestone M22: branches at work
 
 **Built (in `webapp/`, `app/Platform/Tenancy/{BranchContext,HasBranch}`; blueprint 04 §1; decision P17):**

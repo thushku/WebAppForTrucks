@@ -319,6 +319,18 @@ package), QR codes / amount in words / CSV written in-house. See
 - A bill takes its trips' branch when they share one; new trips, bills and
   quotations start in the branch shown.
 
+### P18. The owner app makes things (added 26 Oct 2026, M23)
+
+- The owner app plans and sends trips, makes and issues bills from LRs,
+  records money received (against the oldest bills) and photographs papers —
+  through the web's own services, rules and permissions.
+- **Every write runs once per `Idempotency-Key`** (a UUID per tap, kept with
+  the queued request): a retry gets the first answer; a refusal is not kept,
+  so the corrected request goes with the same key.
+- "Plan and send" is one step: if sending is refused (truck busy, papers),
+  nothing is made. Still web only: hire challans, notes, journals, payments,
+  settlement.
+
 ---
 
 ## 4. Still open

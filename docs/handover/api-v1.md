@@ -317,10 +317,8 @@ permission shown; without it the answer is `403` — hide that tile or tab (the 
 A person limited to one branch (decision P17) gets only that branch's trips, trucks and bills in these lists, and
 `404` for another branch's trip or bill.
 
-Not in version 1 (use the web app for now): making an LR, a bill or a receipt from the
-phone, hire challans, uploading a paper by camera, creating a trip. They come in API v2
-with the same rules as the web (finalised bills are never edited; every money write is
-one transaction).
+Making things from the phone is §12. Still web only: hire challans, credit and debit notes, journals and payments,
+settlement.
 
 ## 11. Notifications (both apps)
 
@@ -354,4 +352,28 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 
 Unknown kinds may come later: show them in the list and open the list. After any push, a crew
 app runs `GET /crew/sync` (the push says *that* something changed; sync says *what*).
+
+## 12. Owner app: making things (added in M23)
+
+The same rules and permissions as the web: a trip is planned with its load and sent to the crew, a bill is made from
+LRs and issued, money received is set against the oldest bills, a paper is photographed onto a truck or a person.
+
+**Every write carries `Idempotency-Key: <uuid>`** — a new UUID made by the app for each tap (keep it with the queued
+request). Sent again with the same key (no answer came, the network dropped), the server answers what it answered the
+first time with `"replayed": true` and does not make a second trip, bill or receipt. A refused request (`422`) is not
+kept: correct it and send it again with the same key. Without the header: `428`. A key used for another action: `409`.
+Answers to a write are `201`.
+
+| Call | Permission | Body → answer |
+|---|---|---|
+| `GET /owner/masters` | any of `trip.create`, `invoice.create`, `payment.record`, `document.manage` | the lists for the forms: `places[]` (`id`, `name`, `short_code`), `clients[]` (`id`, `name`, `short_code`, `mobile`), `trucks[]` (`id`, `reg_no`, `type`, `status`, `busy_on` — the trip number it is on), `crew[]` (`id`, `name`, `type`, `mobile`), `materials[]` (`code`, `name`), `branches[]` (`id`, `name`), `branch_required` (true for a person limited to a branch), `bank_accounts[]` (`id`, `label`), `freight_bases`, `payment_types`, `receipt_modes`, `paper_types` (`truck`, `person`: code → name) |
+| `POST /owner/trips` | `trip.create` (`trip.assign` for `send`) | `trip_date` (default today), `from_place_id`, `to_place_id`, `truck_id`, `driver_id`, `co_driver_id`, `helper_ids[]`, `planned_km`, `branch_id`, `instructions`, `trip_kind` (`loaded` / `empty`, default from `load`), `load` {`billing_party_id`, `consignor_party_id`, `consignee_party_id`, `material`, `packages`, `actual_weight_mt`, `freight_basis`, `rate`, `payment_type`, `gst_payable_by`, `lr_number` (from a printed LR book), `loading_charge`, …}, `send` (true: send to the crew now), `override_reason` (papers expired: why it must go anyway) → `trip` {`uuid`, `number`, `status`, `date`, `from`, `to`, `vehicle`, `branch_id`, `loads[]` (`id`, `lr_number`, `freight`)}. With `send`, a refusal (truck busy, papers) makes nothing at all |
+| `POST /owner/trips/{uuid}/send` | `trip.assign` | `override_reason` → `trip` |
+| `GET /owner/unbilled?party=` | `invoice.create` | `loads[]` waiting to be billed (To-be-billed LRs): `id`, `lr_number`, `lr_date`, `status`, `party_id`, `party`, `trip_uuid`, `trip`, `route`, `freight` |
+| `POST /owner/invoices` | `invoice.create` (`invoice.finalise` for `finalise`) | `party_id`, `loads[]` (ids from `unbilled`), `finalise` → `invoice` as in §10's list (`number` and `share_url` once issued) |
+| `POST /owner/invoices/{id}/finalise` | `invoice.finalise` | → `invoice` with its number |
+| `POST /owner/receipts` | `payment.record` | `party_id`, `receipt_date`, `amount`, `mode` (`receipt_modes`), `reference` (all but cash), `cheque_date` (cheque), `bank_account_id`, `tds_amount`, `tds_section`, `deduction_amount`, `deduction_note`, `narration` → `receipt` {`id`, `number`, `date`, `amount`, `applied[]` (`invoice`, `amount`) — oldest bills first —, `share_url`} |
+| `POST /owner/papers` (multipart) | `document.manage` | `owner_type` (`truck` / `person`), `owner_id`, `document_type` (`paper_types`), `number`, `authority`, `issued_on`, `valid_from`, `expires_on`, `amount`, `notes`, `files[]` (1–6 photos or PDFs, 8 MB each; photos are shrunk on the server) → `paper` {`id`, `type`, `type_label`, `number`, `expires_on`, `files`} |
+
+A person limited to a branch sees and uses only that branch's trucks, crew and trips here (decision P17).
 

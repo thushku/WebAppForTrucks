@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
+use App\Http\Controllers\Api\Owner\WriteController;
 use App\Http\Controllers\Api\WebLoginController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -86,6 +87,16 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/invoices/{invoice}/shared', [MoneyController::class, 'shared'])->whereNumber('invoice')->middleware('permission:invoice.send')->name('invoices.shared');
                 Route::get('/ledgers', [MoneyController::class, 'ledgers'])->middleware('permission:ledger.view')->name('ledgers');
                 Route::get('/ledgers/{ledger}', [MoneyController::class, 'statement'])->whereNumber('ledger')->middleware('permission:ledger.view')->name('ledgers.show');
+
+                // Making things from the phone (M23, api-v1 §12): each write runs once per Idempotency-Key.
+                Route::get('/masters', [WriteController::class, 'masters'])->middleware('permission:trip.create,invoice.create,payment.record,document.manage')->name('masters');
+                Route::post('/trips', [WriteController::class, 'storeTrip'])->middleware('permission:trip.create')->name('trips.store');
+                Route::post('/trips/{uuid}/send', [WriteController::class, 'sendTrip'])->whereUuid('uuid')->middleware('permission:trip.assign')->name('trips.send');
+                Route::get('/unbilled', [WriteController::class, 'unbilled'])->middleware('permission:invoice.create')->name('unbilled');
+                Route::post('/invoices', [WriteController::class, 'storeInvoice'])->middleware('permission:invoice.create')->name('invoices.store');
+                Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');
+                Route::post('/receipts', [WriteController::class, 'storeReceipt'])->middleware('permission:payment.record')->name('receipts.store');
+                Route::post('/papers', [WriteController::class, 'storePaper'])->middleware('permission:document.manage')->name('papers.store');
             });
 
             Route::prefix('crew')->name('api.crew.')->group(function () {

@@ -41,7 +41,7 @@ class MoneyController extends Controller
             ->orderByDesc('issue_date')->orderByDesc('id')->paginate(30);
 
         return response()->json([
-            'invoices' => collect($invoices->items())->map(fn (Invoice $i) => $this->row($i, $today))->values(),
+            'invoices' => collect($invoices->items())->map(fn (Invoice $i) => self::row($i, $today))->values(),
             'page' => $invoices->currentPage(), 'more' => $invoices->hasMorePages(),
         ]);
     }
@@ -52,7 +52,7 @@ class MoneyController extends Controller
         $invoice->load(['party:id,name,mobile', 'lines']);
         $today = $this->today()->toDateString();
 
-        return response()->json($this->row($invoice, $today) + [
+        return response()->json(self::row($invoice, $today) + [
             'subtotal' => (float) $invoice->subtotal, 'tax' => (float) $invoice->tax_total, 'tax_reverse_charge' => (float) $invoice->tax_notional, 'paid' => (float) $invoice->amount_paid,
             'lines' => $invoice->lines->map(fn ($l) => ['description' => $l->description, 'quantity' => (float) $l->quantity, 'rate' => (float) $l->unit_rate, 'tax' => (float) $l->tax_amount, 'amount' => (float) $l->line_total])->values(),
         ]);
@@ -108,7 +108,8 @@ class MoneyController extends Controller
         ]);
     }
 
-    private function row(Invoice $i, string $today): array
+    /** A bill as the owner app lists it (also the answer to making one, M23). */
+    public static function row(Invoice $i, string $today): array
     {
         return [
             'id' => $i->id, 'number' => $i->number, 'type' => $i->doc_type, 'type_label' => $i->kindLabel(), 'status' => $i->status,

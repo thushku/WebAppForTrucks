@@ -71,5 +71,11 @@ Ledgers · Scan to sign in on the web · Settings · About**. Show only what `GE
 | O14 | **Scan to sign in on the web** | camera → "Sign in on Chrome on Windows?" → Yes | any office login | `POST /web-login/inspect`, `/web-login/approve` (§9) |
 | O15 | **Settings / About** | language, PIN, fingerprint, sign out; version and build | — | `GET /me`, `POST /auth/logout` |
 
-Not in the owner app version 1 (the web does these): creating a trip, an LR, a bill or a
-receipt; hire challans; uploading papers by camera. Plan the menu so they can be added.
+| O16 | **New trip** | pick route, truck (busy ones marked), crew, client, material, weight, rate (and a printed LR number); **Save** or **Save and send** | `trip.create` (`trip.assign`) | `GET /owner/masters`, `POST /owner/trips`, `.../send` (§12) |
+| O17 | **Bill LRs** | the LRs waiting for a client, tick and **Make the bill** / **Make and issue** | `invoice.create` (`invoice.finalise`) | `GET /owner/unbilled`, `POST /owner/invoices`, `.../finalise` |
+| O18 | **Money received** | client, amount, mode, UTR or cheque, TDS; shows which bills it paid | `payment.record` | `POST /owner/receipts` |
+| O19 | **Add a paper** | truck or person, type, number, expiry, camera photo(s) | `document.manage` | `POST /owner/papers` (multipart) |
+| O20 | **Notifications** | the inbox behind the pushes; tap opens what it is about | — | `GET /notifications`, `POST /notifications/read` (§11) |
+
+Every O16–O19 write sends an `Idempotency-Key` made when the person taps (§12), so a retry on a bad network never
+makes a second trip, bill or receipt. Still web only: hire challans, credit and debit notes, payments, settlement.

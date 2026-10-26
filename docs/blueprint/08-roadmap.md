@@ -37,6 +37,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M20 ✅ | Notifications: inbox on the web bell and both apps, Firebase push (HTTP v1, no SDK) for trips, questions, second approvals, approvals waiting, incidents, pay and papers | Nobody has to keep checking |
 | M21 ✅ | The rest of M9: **quotations** (print, PDF, email, WhatsApp; accepted → rate contract; a trip from a route), **pre-printed LR books** (typed LR numbers checked, spoilt/lost leaves, skipped-leaf report), payment vouchers printed to sign | Quote, book and sign as the office does on paper |
 | M22 ✅ | Branches at work: the header's branch filter for lists, dashboard, map and P&L; staff limited to a branch on the web and in the owner app | A Mumbai manager sees Mumbai |
+| M23 ✅ | Owner app makes things: trip planned and sent, bills from LRs issued, money received, papers photographed — once per Idempotency-Key | Run the office from the phone |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 
