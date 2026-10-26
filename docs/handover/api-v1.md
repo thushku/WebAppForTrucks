@@ -504,6 +504,8 @@ The register keeps no books: the tyre dealer's bill is paid (`POST /owner/paymen
 | `GET /owner/leave?status=` | `leave.approve` | `requests[]` (default the waiting ones, soonest first): `id`, `uuid`, `person` {`id`, `name`}, `type`, `type_name`, `from`, `to`, `days`, `reason`, `via` (app / office), `status`, `status_label`, `note` |
 | `POST /owner/leave/{id}/decide` | `leave.approve` | once per key: `decision` (`approve` / `reject`), `note` → `leave`; the person hears it (`leave.decided`) |
 | `GET /owner/crew/{person}/leave` | `people.view` | `person`, `types[]` (as `GET /crew/leave`), `requests[]` |
+| `GET /owner/crew/{person}/trips?from=&to=` | `trip.view` | M41, this financial year unless sent: `trips[]` (`uuid`, `number`, `date`, `status`, `status_label`, `route`, `vehicle`, `role`, `km`, `entries` and `spent` — their own entries on it), latest first |
+| `GET /owner/crew/{person}/driving?from=&to=` | `trip.view` | M41: `minutes` at the wheel (less the rests recorded), `km`, `days_driven`, `longest`, `over` (shifts longer than `limit` minutes without a break), `days[]` (`date`, `minutes` — a night drive split over both days), `shifts[]` (`started_at`, `ended_at` — null while driving —, `trip`, `trip_uuid`, `minutes`, `km`, `over`) |
 
 A trip whose crew is on approved leave on its day is refused by the dispatch check (`busy`: "Ravi Kumar is on leave from
 26 Oct to 28 Oct.") unless sent with an `override_reason`. Approved unpaid leave comes off a monthly salary in the pay run.

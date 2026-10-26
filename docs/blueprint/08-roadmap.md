@@ -55,6 +55,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M38 ✅ | Tyres: the store and register by serial number, fitting by wheel position on the truck's axle map, take off, move or swap, retread, scrap; km run and cost per km, what each brand gives, tyres near their end, each trip's tyre wear; owner app | Tyres are the second cost after diesel |
 | M39 ✅ | The truck page's Trips, Fuel and Costs tabs (and the owner app's): its trips, its fills with km per litre between full tanks, its books by ledger and month with the estimates the books do not hold; a reversed voucher left out with its reversal | Each truck's own profit and loss |
 | M40 ✅ | Leave: types from the company's list, balances per financial year, ask from the crew app or record in the office, approve or turn down, unpaid leave off monthly pay, the dispatch check, notices; People → Leave and the person page; owner app | Crew leave planned, not guessed |
+| M41 ✅ | The person page's Trips and Driving hours tabs (and the owner app's): the trips they were crew on with what they spent; their hours at the wheel less recorded rests, shift by shift and day by day, against the limit without a break | Each crew member's work at a glance |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

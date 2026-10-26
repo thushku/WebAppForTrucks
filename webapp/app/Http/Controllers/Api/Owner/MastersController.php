@@ -131,6 +131,40 @@ class MastersController extends Controller
 
     // ---- Trucks (the list is GET /owner/trucks) -------------------------------------------
 
+    // ---- A crew member's trips and hours at the wheel (M41) -----------------------------
+
+    public function personTrips(Request $request, Person $person, \App\Modules\People\Services\PersonActivity $activity): JsonResponse
+    {
+        [$from, $to] = $this->personPeriod($request, $activity);
+
+        return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'trips' => $activity->trips($person, $from, $to)->map(fn ($r) => [
+            'uuid' => $r->trip->uuid, 'number' => $r->trip->trip_number, 'date' => $r->trip->trip_date?->toDateString(), 'status' => $r->trip->status,
+            'status_label' => __(\App\Modules\Trips\Models\Trip::STATUSES[$r->trip->status] ?? $r->trip->status), 'route' => $r->route, 'vehicle' => $r->vehicle,
+            'role' => $r->role, 'km' => $r->km, 'entries' => $r->entries, 'spent' => $r->spent,
+        ])->values()]);
+    }
+
+    public function personDriving(Request $request, Person $person, \App\Modules\People\Services\PersonActivity $activity): JsonResponse
+    {
+        [$from, $to] = $this->personPeriod($request, $activity);
+        $d = $activity->driving($person, $from, $to);
+
+        return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString()] + collect($d)->except(['shifts', 'days'])->all() + [
+            'days' => $d['days']->map(fn ($minutes, $day) => ['date' => $day, 'minutes' => $minutes])->values(),
+            'shifts' => $d['shifts']->map(fn ($r) => ['started_at' => $r->shift->started_at->toIso8601String(), 'ended_at' => $r->shift->ended_at?->toIso8601String(),
+                'trip' => $r->shift->trip?->trip_number, 'trip_uuid' => $r->shift->trip?->uuid, 'minutes' => $r->minutes, 'km' => $r->km, 'over' => $r->over])->values(),
+        ]);
+    }
+
+    /** @return array{0: \Carbon\CarbonImmutable, 1: \Carbon\CarbonImmutable} */
+    private function personPeriod(Request $request, \App\Modules\People\Services\PersonActivity $activity): array
+    {
+        $f = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        [$from, $to] = $activity->defaultPeriod();
+
+        return [isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $from, isset($f['to']) ? \Carbon\CarbonImmutable::parse($f['to']) : $to];
+    }
+
     // ---- A truck's trips, fuel and money (M39) ---------------------------------------
 
     public function truckTrips(Request $request, Truck $truck, \App\Modules\Fleet\Services\TruckActivity $activity): JsonResponse

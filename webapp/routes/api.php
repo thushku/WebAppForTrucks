@@ -155,6 +155,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/leave', [LeaveController::class, 'index'])->middleware('permission:leave.approve')->name('leave');
                 Route::post('/leave/{leave}/decide', [LeaveController::class, 'decide'])->whereNumber('leave')->middleware('permission:leave.approve')->name('leave.decide');
                 Route::get('/crew/{person}/leave', [LeaveController::class, 'person'])->whereNumber('person')->middleware('permission:people.view')->name('crew.leave');
+                Route::get('/crew/{person}/trips', [MastersController::class, 'personTrips'])->whereNumber('person')->middleware('permission:trip.view')->name('crew.trips');
+                Route::get('/crew/{person}/driving', [MastersController::class, 'personDriving'])->whereNumber('person')->middleware('permission:trip.view')->name('crew.driving');
 
                 // Tyres (M38): the store, a truck's tyres by position; the workshop's moves once per key.
                 Route::get('/tyres', [TyresController::class, 'index'])->middleware('permission:truck.view')->name('tyres');

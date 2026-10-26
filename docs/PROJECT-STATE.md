@@ -2,6 +2,19 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M41: a person's trips and driving hours
+
+**Built (in `webapp/`, `People/Services/PersonActivity`, the person page's tabs):**
+- The person page is in tabs now: **Profile** (as before), **Trips** — the trips they were crew on in a period (this
+  financial year unless chosen) with their role, the vehicle, km and what they spent on each —, **Driving hours** — time at
+  the wheel less the rests they recorded, days driven and the average, km, the longest stretch and how many shifts went
+  past the company's limit without a break (red), each shift, and day by day (a night drive split over both days) —;
+  Leave, Documents and Ledger link to their places. For those who see trips.
+- The owner app has both (`/owner/crew/{person}/trips`, `/driving`).
+
+**Tests:** 289 passing (new `PersonTabsTest`: a driver's trip with ₹2,000 spent, 7 h 30 min at the wheel over two
+shifts after a half-hour rest, one over the five-hour limit, day by day, on the page and in the owner app).
+
 ## 2026-10-26 — Milestone M40: leave (decision P30)
 
 **Built (in `webapp/`, `People/Services/Leave`, People → Leave):**

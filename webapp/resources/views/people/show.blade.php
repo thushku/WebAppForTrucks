@@ -30,21 +30,24 @@
         <a href="https://wa.me/{{ ltrim($dial, '+') }}?text={{ rawurlencode(__('Hello :name', ['name' => $person->name])) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer">{{ __('WhatsApp') }}</a>
         <a href="https://wa.me/?text={{ rawurlencode($person->name . ' — ' . __(\App\Modules\People\Models\Person::TYPES[$person->type]) . ' — ' . $person->mobile) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer"><x-icon name="send" /> {{ __('Share contact') }}</a>
       @endif
-      @canany(['ledger.view', 'accounts.view'])
-        @if ($ledgerId = \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'person:' . $person->id)->value('id'))<a href="{{ route('ledgers.show', $ledgerId) }}" class="btn-secondary"><x-icon name="ledger" /> {{ __('Khata') }}</a>@endif
-      @endcanany
+      @php($ledgerId = auth()->user()->canAny(['ledger.view', 'accounts.view']) ? \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'person:' . $person->id)->value('id') : null)
+      @if ($ledgerId)<a href="{{ route('ledgers.show', $ledgerId) }}" class="btn-secondary"><x-icon name="ledger" /> {{ __('Khata') }}</a>@endif
       @can('people.manage')<a href="{{ route('people.edit', $person) }}" class="btn-primary">{{ __('Edit') }}</a>@endcan
     </div>
   </div>
   <nav class="mt-5 flex gap-1 overflow-x-auto border-b border-ink-100" aria-label="{{ __('Person sections') }}">
-    <span class="-mb-px whitespace-nowrap border-b-2 border-brand-600 px-3 py-2 text-sm font-medium text-brand-700">{{ __('Profile') }}</span>
-    @can('document.view')<a href="{{ route('documents.owner', ['person', $person->id]) }}" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Documents') }}</a>@endcan
-    <a href="#leave" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Leave') }}</a>
-    @foreach ([__('Trips'), __('Driving hours'), __('Ledger')] as $soon)
-      <span class="whitespace-nowrap px-3 py-2 text-sm text-ink-300" title="{{ __('Coming in a later milestone') }}">{{ $soon }}</span>
+    @foreach ($tabs as $key => $label)
+      <a href="{{ route('people.show', [$person, 'tab' => $key === 'profile' ? null : $key]) }}" class="-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium {{ $tab === $key ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-900' }}" @if ($tab === $key) aria-current="page" @endif>{{ $label }}</a>
     @endforeach
+    <a href="{{ route('people.show', $person) }}#leave" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Leave') }}</a>
+    @can('document.view')<a href="{{ route('documents.owner', ['person', $person->id]) }}" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Documents') }}</a>@endcan
+    @canany(['ledger.view', 'accounts.view'])@if ($ledgerId)<a href="{{ route('ledgers.show', $ledgerId) }}" class="-mb-px whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-500 hover:text-ink-900">{{ __('Ledger') }}</a>@endif @endcanany
   </nav>
 </section>
+
+@if ($tab !== 'profile')
+  @include('people.partials.' . $tab)
+@else
 
 <div class="grid gap-6 xl:grid-cols-2">
   <section class="card p-6">
@@ -131,5 +134,6 @@
       </tbody>
     </table>
   </section>
+@endif
 @endif
 @endsection

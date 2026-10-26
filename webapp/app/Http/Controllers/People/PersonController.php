@@ -77,8 +77,13 @@ class PersonController extends Controller
     public function show(Person $person, ?string $revealed = null): View
     {
         $person->load(['defaultTruck', 'branch', 'member.account']);
+        $tabs = $this->tabs();
+        $tab = array_key_exists((string) request()->query('tab'), $tabs) ? request()->query('tab') : 'profile';
+        if ($tab !== 'profile') {
+            return view('people.show', ['person' => $person, 'tab' => $tab, 'tabs' => $tabs, 'papers' => $this->paperChip($person)] + $this->activityTab($person, $tab));
+        }
 
-        return view('people.show', [
+        return view('people.show', ['tab' => $tab, 'tabs' => $tabs,
             'person'  => $person,
             'pending' => ActivationCode::where('person_id', $person->id)->whereNull('used_at')->where('expires_at', '>', now())->latest()->first(),
             'used'    => ActivationCode::where('person_id', $person->id)->whereNotNull('used_at')->where('used_device', '!=', 'replaced')->latest('used_at')->first(),
@@ -89,11 +94,36 @@ class PersonController extends Controller
             'payslips' => auth()->user()->can('payroll.view') ? \App\Modules\Payroll\Models\Payslip::with('run')->where('person_id', $person->id)->where('status', '!=', 'cancelled')->orderByDesc('id')->limit(12)->get() : collect(),
             // The khata in short and the quick cash form, and the papers as one chip (M27).
             'khata' => $this->khata($person),
-            'papers' => auth()->user()->can('document.view') ? app(\App\Modules\Documents\Services\Compliance::class)->healthMany([$person])[$person->id] : null,
+            'papers' => $this->paperChip($person),
             // Leave this year by type and the latest requests (M40).
             'leave' => app(\App\Modules\People\Services\Leave::class)->balances($person),
             'leaveRequests' => \App\Modules\People\Models\LeaveRequest::with('decider:id,name')->where('person_id', $person->id)->orderByDesc('from_on')->orderByDesc('id')->limit(8)->get(),
         ]);
+    }
+
+    /** The person page's tabs this person may open (M41 adds their trips and hours at the wheel). */
+    private function tabs(): array
+    {
+        $can = auth()->user()->can('trip.view');
+
+        return array_filter(['profile' => __('Profile'), 'trips' => $can ? __('Trips') : null, 'driving' => $can ? __('Driving hours') : null]);
+    }
+
+    /** The Trips and Driving hours tabs: one period, this financial year unless chosen. */
+    private function activityTab(Person $person, string $tab): array
+    {
+        $activity = app(\App\Modules\People\Services\PersonActivity::class);
+        [$from, $to] = $activity->defaultPeriod();
+        $f = request()->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        $from = isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $from;
+        $to = isset($f['to']) ? \Carbon\CarbonImmutable::parse($f['to']) : $to;
+
+        return ['from' => $from, 'to' => $to, 'activity' => $tab === 'trips' ? $activity->trips($person, $from, $to) : $activity->driving($person, $from, $to)];
+    }
+
+    private function paperChip(Person $person): ?array
+    {
+        return auth()->user()->can('document.view') ? app(\App\Modules\Documents\Services\Compliance::class)->healthMany([$person])[$person->id] : null;
     }
 
     private function today(): \Carbon\CarbonImmutable

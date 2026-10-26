@@ -66,7 +66,7 @@ founder's laptop) in `phoneapp/`.
   `TruckActivity` — a truck's trips, fuel (km/l between full tanks) and money for its Trips, Fuel and Costs tabs), `People` (people, activation codes; M40 `Leave` — leave types from the
   `leave_type` list plus unpaid, balances worked out per financial year, `leave_requests`, crew commands `leave.apply` /
   `leave.cancel`, People → Leave; unpaid days come off monthly pay in `PayCalculator`, leave on a trip's day is a dispatch
-  `busy`), `Documents` (documents, versions, files, required types, shares,
+  `busy`; M41 `PersonActivity` — a person's trips and driving hours for the person page's tabs), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
   broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
   LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events
