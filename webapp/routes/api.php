@@ -6,10 +6,12 @@ use App\Http\Controllers\Api\CrewController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Owner\CompanyController;
 use App\Http\Controllers\Api\Owner\DealsController;
+use App\Http\Controllers\Api\Owner\HireController;
 use App\Http\Controllers\Api\Owner\LeaveController;
 use App\Http\Controllers\Api\Owner\MastersController;
 use App\Http\Controllers\Api\Owner\MoneyController;
 use App\Http\Controllers\Api\Owner\OfficeController;
+use App\Http\Controllers\Api\Owner\SettlementController;
 use App\Http\Controllers\Api\Owner\TyresController;
 use App\Http\Controllers\Api\Owner\WriteController;
 use App\Http\Controllers\Api\WebLoginController;
@@ -108,6 +110,21 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/masters', [WriteController::class, 'masters'])->middleware('permission:trip.create,invoice.create,payment.record,document.manage,trip.settle,party.manage,truck.manage,people.manage,settings.masters')->name('masters');
                 Route::post('/trips', [WriteController::class, 'storeTrip'])->middleware('permission:trip.create')->name('trips.store');
                 Route::post('/trips/{uuid}/send', [WriteController::class, 'sendTrip'])->whereUuid('uuid')->middleware('permission:trip.assign')->name('trips.send');
+                // Settling a trip (M42): the crew's trip cash, then settle each person and close.
+                Route::middleware('permission:trip.settle')->group(function () {
+                    Route::get('/trips/{uuid}/settlement', [SettlementController::class, 'show'])->whereUuid('uuid')->name('trips.settlement');
+                    Route::post('/trips/{uuid}/settle/{person}', [SettlementController::class, 'settle'])->whereUuid('uuid')->whereNumber('person')->name('trips.settle');
+                    Route::post('/trips/{uuid}/settle', [SettlementController::class, 'settleAll'])->whereUuid('uuid')->name('trips.settle.all');
+                    Route::post('/trips/{uuid}/close', [SettlementController::class, 'close'])->whereUuid('uuid')->name('trips.close');
+                });
+                // A hired truck's hire challan (M42): draft, edit, issue, then its money.
+                Route::middleware('permission:hire.manage')->group(function () {
+                    Route::get('/trips/{uuid}/hire', [HireController::class, 'index'])->whereUuid('uuid')->name('trips.hire');
+                    Route::post('/trips/{uuid}/hire', [HireController::class, 'store'])->whereUuid('uuid')->name('trips.hire.store');
+                    Route::put('/trips/{uuid}/hire/{challan}', [HireController::class, 'update'])->whereUuid('uuid')->whereNumber('challan')->name('trips.hire.update');
+                    Route::post('/trips/{uuid}/hire/{challan}/issue', [HireController::class, 'issue'])->whereUuid('uuid')->whereNumber('challan')->name('trips.hire.issue');
+                    Route::post('/trips/{uuid}/hire/{challan}/lines', [HireController::class, 'line'])->whereUuid('uuid')->whereNumber('challan')->name('trips.hire.lines');
+                });
                 Route::get('/unbilled', [WriteController::class, 'unbilled'])->middleware('permission:invoice.create')->name('unbilled');
                 Route::post('/invoices', [WriteController::class, 'storeInvoice'])->middleware('permission:invoice.create')->name('invoices.store');
                 Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');

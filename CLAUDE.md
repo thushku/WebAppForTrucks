@@ -108,7 +108,9 @@ founder's laptop) in `phoneapp/`.
   `Api/Owner/{Office,Money}Controller` (`/api/v1/owner/*`) and its writes `Api/Owner/WriteController` (M23: trips, bills,
   receipts, papers — each once per `Idempotency-Key`, `Concerns/RunsOnce`), its masters `Api/Owner/MastersController`
   (M29: clients, places, trucks, crew; an edit changes only the fields sent — rules wrapped in `sometimes`) and
-  `Api/Owner/DealsController` (M31: quotations via `Quotations::rules()/input()`, payments via `Accounts/Services/Payments`); the crew's My Khata is
+  `Api/Owner/DealsController` (M31: quotations via `Quotations::rules()/input()`, payments via `Accounts/Services/Payments`),
+  `Api/Owner/{Settlement,Hire}Controller` (M42: settle and close a trip; a hire challan via `HireService::rules()/prepare()/
+  lineRules()`); the crew's My Khata is
   `GET /crew/money`. The rest of the handover pack (read-me, screens, sync design, local set-up) is in
   `docs/handover/`; `php artisan fleet:code <mobile>` prints a demo crew member's activation code.
 - Controllers in `app/Http/Controllers` (`Settings/`, `Auth/`, `Api/`, `Platform/`); views in `resources/views`

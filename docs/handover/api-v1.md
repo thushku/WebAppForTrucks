@@ -509,3 +509,19 @@ The register keeps no books: the tyre dealer's bill is paid (`POST /owner/paymen
 
 A trip whose crew is on approved leave on its day is refused by the dispatch check (`busy`: "Ravi Kumar is on leave from
 26 Oct to 28 Oct.") unless sent with an `override_reason`. Approved unpaid leave comes off a monthly salary in the pay run.
+
+## 16. Owner app: settling a trip, a hired truck's hire challan (added in M42)
+
+Every write runs once per `Idempotency-Key` (§12); refusals answer 422 with the reason.
+
+| Call | Permission | Sends → gets |
+|---|---|---|
+| `GET /owner/trips/{uuid}/settlement` | `trip.settle` | the settlement state: `trip` {`uuid`, `number`, `status`, `status_label`}, `can_settle` (ended and no entry waiting), `can_close` (settled), `blockers` (what still waits, as text), `modes[]` {`code`, `label`}, `crew[]` once ended: `person` {`id`, `name`}, `role`, `advances`, `collected`, `received`, `spent` (approved, from their pocket), `balance` (positive: they return it; negative: we pay them), `waiting` (entries not decided), `bata_days`, `bata` (suggested), `settlement` {`mode`, `mode_label`, `bata`, `reference`, `at`} or null |
+| `POST /owner/trips/{uuid}/settle/{person}` | `trip.settle` | `mode` (`nil` / `cash_returned` / `paid_to_crew` / `carried_forward` / `ledger` — the balance decides which may be used), `reference`, `note`, `bata_amount` (default the suggested) → the settlement state; when everyone is settled the trip is `settled` |
+| `POST /owner/trips/{uuid}/settle` | `trip.settle` | a trip with no crew of ours (a hired truck): settled → the state |
+| `POST /owner/trips/{uuid}/close` | `trip.settle` | a settled trip closed (the crew's entries are locked) → the state |
+| `GET /owner/trips/{uuid}/hire` | `hire.manage` | `challans[]` (`id`, `number` — once issued —, `status`, `status_label`, `challan_date`, `vehicle_reg`, `driver_name`, `driver_mobile`, `hire_basis` fixed / tonne, `hire_rate`, `hire_weight_mt`, `hire_amount`, `office_charge`, `commission_amount`, `commission_mode` deducted / paid, `tds_section`, `tds_rate`, `tds_amount`, `balance` — what we still owe —, `lines[]` {`kind`, `label`, `amount`, `date`, `mode`, `paid_to`, `reference`, `note`}), `new` (what a new challan starts with: the vehicle and its driver, the loads' weight, the suggested TDS, the supplier's days), `line_kinds[]` {`code`, `label`, `adds`} |
+| `POST /owner/trips/{uuid}/hire` | `hire.manage` | a draft: `challan_date`, `vehicle_reg`, `driver_name`, `driver_mobile`, `driver_licence`, `hire_basis`, `hire_amount` (fixed) or `hire_rate` + `hire_weight_mt` (per tonne), `broker_party_id`, `commission_amount`, `commission_mode`, `office_charge`, `tds_section`, `tds_rate`, `tds_nil_reason`, `balance_days_after_pod`, `terms` → `challan` |
+| `PUT /owner/trips/{uuid}/hire/{id}` | `hire.manage` | a draft changed: the same fields, sent whole → `challan`; an issued challan is refused |
+| `POST /owner/trips/{uuid}/hire/{id}/issue` | `hire.manage` | issued with its number → `challan` |
+| `POST /owner/trips/{uuid}/hire/{id}/lines` | `hire.manage` | money on an issued challan: `kind` (`detention`, `extra` add to what we owe; `advance`, `fuel`, `deduction`, `payment` take from it — never more than the balance), `amount`, `line_date`, `mode` (cash / upi / bank; needed for advance and payment), `paid_to` (owner / broker / driver), `reference`, `note` (needed for a deduction) → `challan`; the balance paid to zero settles it |

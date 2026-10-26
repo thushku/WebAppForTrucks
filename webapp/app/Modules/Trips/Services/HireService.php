@@ -11,6 +11,7 @@ use App\Modules\Trips\Models\Trip;
 use App\Platform\Audit\AuditRecorder;
 use App\Platform\Tenancy\CompanyContext;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -35,6 +36,83 @@ class HireService
         $tds = app(\App\Modules\Tax\Services\Withholding::class)->onPayment($supplier, $on);
 
         return ['section' => $tds['section'], 'rate' => $tds['rate'], 'nil_reason' => $tds['nil_reason'], 'label' => $tds['label']];
+    }
+
+    /** A new challan's fields from the trip: its supplier's vehicle and driver, the loads' weight, the suggested TDS (web and owner app). */
+    public function draftFor(Trip $trip): array
+    {
+        $trip->loadMissing(['supplier', 'supplierVehicle', 'consignments']);
+        $tds = $this->tdsFor($trip->supplier);
+
+        return [
+            'challan_date'   => now($this->context->company()->timezone)->toDateString(),
+            'vehicle_reg'    => $trip->supplierVehicle?->reg_no,
+            'driver_name'    => $trip->supplierVehicle?->driver_name,
+            'driver_mobile'  => $trip->supplierVehicle?->driver_mobile,
+            'driver_licence' => $trip->supplierVehicle?->driver_licence,
+            'hire_weight_mt' => $trip->consignments->where('status', '!=', 'cancelled')->sum(fn ($c) => $c->weight()) ?: null,
+            'tds_section'    => $tds['section'],
+            'tds_rate'       => $tds['rate'],
+            'tds_nil_reason' => $tds['nil_reason'],
+            'balance_days_after_pod' => $trip->supplier->payment_days,
+        ];
+    }
+
+    /** The challan's fields (M42: shared by the web and the owner app). */
+    public function rules(): array
+    {
+        $companyId = $this->context->id();
+
+        return [
+            'challan_date'   => ['required', 'date_format:Y-m-d'],
+            'vehicle_reg'    => ['required', 'string', 'max:20'],
+            'driver_name'    => ['nullable', 'string', 'max:120'],
+            'driver_mobile'  => ['nullable', 'string', 'max:20'],
+            'driver_licence' => ['nullable', 'string', 'max:30'],
+            'hire_basis'     => ['required', Rule::in(['fixed', 'tonne'])],
+            'hire_amount'    => ['nullable', 'required_if:hire_basis,fixed', 'numeric', 'min:1', 'max:99999999'],
+            'hire_rate'      => ['nullable', 'required_if:hire_basis,tonne', 'numeric', 'min:1', 'max:9999999'],
+            'hire_weight_mt' => ['nullable', 'required_if:hire_basis,tonne', 'numeric', 'min:0.001', 'max:500'],
+            'broker_party_id' => ['nullable', 'integer', Rule::exists('party_roles', 'party_id')->where('company_id', $companyId)->where('role', 'broker')],
+            'commission_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'commission_mode'   => ['required', Rule::in(['deducted', 'paid'])],
+            'office_charge'  => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'tds_section'    => ['nullable', 'string', 'max:10'],
+            'tds_rate'       => ['nullable', 'numeric', 'min:0', 'max:30'],
+            'tds_nil_reason' => ['nullable', 'string', 'max:150'],
+            'balance_days_after_pod' => ['nullable', 'integer', 'min:0', 'max:180'],
+            'terms'          => ['nullable', 'string', 'max:2000'],
+        ];
+    }
+
+    /** The validated fields as stored: money as numbers, the registration in capitals. */
+    public function prepare(array $data): array
+    {
+        foreach (['commission_amount', 'office_charge', 'tds_rate'] as $money) {
+            $data[$money] = (float) ($data[$money] ?? 0);
+        }
+        $data['vehicle_reg'] = strtoupper($data['vehicle_reg']);
+
+        return $data;
+    }
+
+    /** Money on an issued challan: detention, an advance, fuel given, a deduction, the balance paid. */
+    public function lineRules(): array
+    {
+        return [
+            'kind'      => ['required', Rule::in(array_keys(HireChallan::LINE_KINDS))],
+            'amount'    => ['required', 'numeric', 'min:1', 'max:99999999'],
+            'line_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:' . now($this->context->company()->timezone ?: 'UTC')->toDateString()],
+            'mode'      => ['nullable', 'required_if:kind,advance,payment', Rule::in(['cash', 'upi', 'bank'])],
+            'paid_to'   => ['nullable', Rule::in(['owner', 'broker', 'driver'])],
+            'reference' => ['nullable', 'string', 'max:60'],
+            'note'      => ['nullable', 'required_if:kind,deduction', 'string', 'max:255'],
+        ];
+    }
+
+    public function lineMessages(): array
+    {
+        return ['note.required_if' => __('Say what the deduction is for.'), 'mode.required_if' => __('How was it paid?')];
     }
 
     /** @param array<string, mixed> $data */

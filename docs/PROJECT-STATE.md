@@ -2,6 +2,24 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M42: settling a trip and hire challans from the owner app
+
+**Built (in `webapp/`, `Api/Owner/SettlementController`, `Api/Owner/HireController`; api-v1 §16):**
+- **Settle a trip from the phone**: each crew member's trip cash — advances, money collected, spent from their pocket,
+  the balance and the suggested bata —, what still waits (entries to decide), settle each person (the balance decides
+  which ways are allowed), a hired truck's trip with no crew in one step, then close.
+- **A hired truck's hire challan from the phone**: a new one starts from the trip (vehicle, driver, the loads' weight, the
+  suggested TDS), a draft changed whole, issued with its number, then the money on it — advance, fuel given, detention,
+  extras, deductions, the balance paid (never more than the balance; paid to zero it is settled).
+- The challan's rules now live in `HireService` (`rules`, `prepare`, `lineRules`, `draftFor`), shared by the web form and
+  the app; a money line's date may not be after today in the company's time zone.
+- Every write once per `Idempotency-Key`. Only credit and debit notes stay web-only.
+
+**Tests:** 291 passing (new `OwnerTripMoneyTest`, 2 tests: nothing to settle before the trip ends, a driver's ₹5,000
+advance returned (paying him refused), settled once per key, all three settled then closed; a hire challan from its
+suggested start through draft, edit, issue, an advance without its mode refused, an overpayment refused, the balance paid
+and settled).
+
 ## 2026-10-26 — Milestone M41: a person's trips and driving hours
 
 **Built (in `webapp/`, `People/Services/PersonActivity`, the person page's tabs):**
