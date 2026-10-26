@@ -46,6 +46,9 @@
           <tr><td style="{{ $cell }}">{{ __('LRs delivered, POD not received') }}</td><td style="{{ $num }}">{{ $d['waiting']['pod_pending'] }}</td></tr>
           <tr><td style="{{ $cell }}">{{ __('LRs ready to bill') }}</td><td style="{{ $num }}">{{ $d['waiting']['ready_to_bill'] }}</td></tr>
           <tr><td style="{{ $cell }}">{{ __('Bills overdue') }} <span style="{{ $muted }}">({{ $d['waiting']['overdue'] }})</span></td><td style="{{ $num }}{{ $d['waiting']['overdue_amount'] > 0 ? 'color:#b91c1c;' : '' }}">{{ $m($d['waiting']['overdue_amount']) }}</td></tr>
+          @if ($d['waiting']['emis'] ?? 0)
+            <tr><td style="{{ $cell }}">{{ __('Truck EMIs this week') }} <span style="{{ $muted }}">({{ $d['waiting']['emis'] }}@if ($d['waiting']['emis_overdue']) · {{ __(':n overdue', ['n' => $d['waiting']['emis_overdue']]) }}@endif)</span></td><td style="{{ $num }}{{ $d['waiting']['emis_overdue'] ? 'color:#b91c1c;' : '' }}">{{ $m($d['waiting']['emis_amount']) }}</td></tr>
+          @endif
           @if ($d['papers']['expired'] || $d['papers']['week'] || $d['papers']['missing'])
             <tr><td style="{{ $cell }}">{{ __('Papers') }}</td><td style="{{ $cell }}text-align:right;font-weight:600;color:#b45309;">{{ collect([$d['papers']['expired'] ? __(':n expired', ['n' => $d['papers']['expired']]) : null, $d['papers']['week'] ? __(':n due this week', ['n' => $d['papers']['week']]) : null, $d['papers']['missing'] ? __(':n missing', ['n' => $d['papers']['missing']]) : null])->filter()->join(' · ') }}</td></tr>
           @endif

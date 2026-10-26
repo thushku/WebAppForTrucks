@@ -421,6 +421,21 @@ package), QR codes / amount in words / CSV written in-house. See
   three days (late points from offline phones). The thresholds are a first
   guess: tell us if they flag too much or too little.
 
+### P25. Truck loans and EMIs (added 26 Oct 2026, M35)
+
+- A truck with an EMI and its day has a loan with its own liability ledger,
+  opened with what was owed at the start of the financial year (typed on the
+  truck by someone who keeps the books).
+- EMIs fall due on their day each month (the month's last day when shorter)
+  from the first EMI — or from when the company started here, so years before
+  are not shown as overdue — to the loan's end.
+- **An EMI paid is a payment voucher**: the principal off the loan, the
+  interest (by default the rate on what is still owed, editable) an expense
+  of the truck, from cash or the bank; once per EMI; recorded with
+  `accounts.post`.
+- Overdue and coming EMIs show on the dashboard (three days ahead), in the
+  morning summary (a week ahead) and on Trucks → EMIs.
+
 ---
 
 ## 4. Still open

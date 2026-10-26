@@ -75,6 +75,13 @@
       <div><label class="label" for="emi_amount">{{ __('EMI') }}</label><input id="emi_amount" name="emi_amount" type="number" step="0.01" class="input" value="{{ old('emi_amount', $t->emi_amount) }}"></div>
       <div><label class="label" for="emi_day">{{ __('EMI day of month') }}</label><input id="emi_day" name="emi_day" type="number" min="1" max="31" class="input" value="{{ old('emi_day', $t->emi_day) }}"></div>
       <div><label class="label" for="loan_ends_on">{{ __('Loan ends') }}</label><input id="loan_ends_on" name="loan_ends_on" type="date" class="input" value="{{ old('loan_ends_on', $t->loan_ends_on?->toDateString()) }}"></div>
+      <div><label class="label" for="loan_starts_on">{{ __('First EMI') }}</label><input id="loan_starts_on" name="loan_starts_on" type="date" class="input" value="{{ old('loan_starts_on', $t->loan_starts_on?->toDateString()) }}"></div>
+      <div><label class="label" for="loan_rate">{{ __('Interest % a year') }}</label><input id="loan_rate" name="loan_rate" type="number" step="0.01" min="0" max="60" class="input" value="{{ old('loan_rate', $t->loan_rate) }}">@error('loan_rate')<span class="error">{{ $message }}</span>@enderror</div>
+      @can('accounts.post')
+        <div class="sm:col-span-2"><label class="label" for="loan_opening">{{ __('Loan owed at the start of this financial year') }}</label>
+          <input id="loan_opening" name="loan_opening" type="number" step="0.01" min="0" class="input" value="{{ old('loan_opening', $t->exists ? ((float) -\App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'truck_loan:' . $t->id)->value('opening_balance') ?: '') : '') }}">
+          <p class="mt-1 text-xs text-ink-500">{{ __('The loan’s opening balance in the books; each EMI then takes its principal off.') }}</p>@error('loan_opening')<span class="error">{{ $message }}</span>@enderror</div>
+      @endcan
       <div><label class="label" for="purchase_date">{{ __('Bought on') }}</label><input id="purchase_date" name="purchase_date" type="date" class="input" value="{{ old('purchase_date', $t->purchase_date?->toDateString()) }}"></div>
       <div><label class="label" for="purchase_price">{{ __('Price') }}</label><input id="purchase_price" name="purchase_price" type="number" step="0.01" class="input" value="{{ old('purchase_price', $t->purchase_price) }}"></div>
     </div>

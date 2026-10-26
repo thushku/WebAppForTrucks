@@ -12,7 +12,16 @@
       <dt class="text-ink-500">{{ __('Odometer') }}</dt><dd>{{ $truck->odometer_km !== null ? number_format($truck->odometer_km) . ' km' : '—' }}@if ($truck->odometer_at) <span class="text-xs text-ink-400">({{ $truck->odometer_at->diffForHumans() }})</span>@endif</dd>
       @if ($truck->chassis_no)<dt class="text-ink-500">{{ __('Chassis / engine') }}</dt><dd class="font-mono text-xs">{{ $truck->chassis_no }} · {{ $truck->engine_no }}</dd>@endif
       @if ($truck->fastag_no)<dt class="text-ink-500">{{ __('Toll tag') }}</dt><dd>{{ $truck->fastag_no }}</dd>@endif
-      @if ($truck->financier)<dt class="text-ink-500">{{ __('Loan') }}</dt><dd>{{ $truck->financier }}{{ $truck->emi_amount ? ' · ' . \App\Support\Money::company($truck->emi_amount) . ' ' . __('on day :d', ['d' => $truck->emi_day]) : '' }}{{ $truck->loan_ends_on ? ' · ' . __('until :date', ['date' => $truck->loan_ends_on->format('M Y')]) : '' }}</dd>@endif
+      @if ($truck->financier)<dt class="text-ink-500">{{ __('Loan') }}</dt><dd>{{ $truck->financier }}{{ $truck->emi_amount ? ' · ' . \App\Support\Money::company($truck->emi_amount) . ' ' . __('on day :d', ['d' => $truck->emi_day]) : '' }}{{ $truck->loan_ends_on ? ' · ' . __('until :date', ['date' => $truck->loan_ends_on->format('M Y')]) : '' }}
+        @if ($truck->emi_amount && $truck->emi_day)
+          @php($loan = app(\App\Modules\Fleet\Services\TruckLoans::class)->status($truck, \Carbon\CarbonImmutable::now(app(\App\Platform\Tenancy\CompanyContext::class)->company()->timezone ?: 'UTC')->startOfDay()))
+          <div class="mt-0.5 text-xs">
+            @if ($loan['overdue'])<span class="font-semibold text-overdue">{{ trans_choice(':count EMI overdue|:count EMIs overdue', count($loan['overdue'])) }}</span>@elseif ($loan['next'])<span class="text-ink-500">{{ __('Next EMI :date', ['date' => $loan['next']->format('d M Y')]) }}</span>@endif
+            @if ($loan['outstanding'] !== null)<span class="text-ink-500"> · {{ __('still owed :amount', ['amount' => \App\Support\Money::company($loan['outstanding'])]) }}</span>@endif
+            · <a href="{{ route('trucks.emis') }}" class="text-brand-700 hover:underline">{{ __('EMIs') }}</a>
+          </div>
+        @endif
+      </dd>@endif
       @if ($truck->branch)<dt class="text-ink-500">{{ __('Branch') }}</dt><dd>{{ $truck->branch->name }}</dd>@endif
     </dl>
   </section>

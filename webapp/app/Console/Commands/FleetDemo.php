@@ -261,6 +261,13 @@ class FleetDemo extends Command
                 'registration_state' => substr($reg, 0, 2) === 'MH' ? '27' : '32', 'created_by' => $ownerId,
             ]);
         }
+        // Two trucks on loan (M35): their EMIs on the EMIs page, what is owed in the books.
+        $loans = app(\App\Modules\Fleet\Services\TruckLoans::class);
+        foreach ([['KL-43-D-7702', 'HDFC Bank', 52400, 5, 9.5, '2023-02-05', '2028-01-05', 1850000], ['KL-07-CU-4521', 'Shriram Finance', 38900, 10, 11.5, '2021-04-10', '2027-03-10', 420000]]
+            as [$reg, $financier, $emi, $day, $rate, $from, $until, $owed]) {
+            $trucks[$reg]->forceFill(['financier' => $financier, 'emi_amount' => $emi, 'emi_day' => $day, 'loan_rate' => $rate, 'loan_starts_on' => $from, 'loan_ends_on' => $until])->save();
+            $loans->setOpening($trucks[$reg], $owed);
+        }
 
         foreach ([
             ['Ravi Kumar', 'driver', '+919847100001', 'KL-07-CU-4521', '2027-04-30'], ['Suresh Babu', 'driver', '+919847100002', 'KL-07-CU-4521', '2026-11-15'],

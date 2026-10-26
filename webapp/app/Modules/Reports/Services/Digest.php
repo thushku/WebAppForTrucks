@@ -63,6 +63,8 @@ class Digest
             ->sortByDesc('amount')->values();
         $counts = $this->dashboard->counts();
         $queues = $this->dashboard->queues();
+        // Truck EMIs overdue or due in the coming week (M35).
+        $emis = app(\App\Modules\Fleet\Services\TruckLoans::class)->due($to, 7);
         $papers = $this->compliance->counts();
 
         return [
@@ -84,6 +86,7 @@ class Digest
                 'approvals' => array_sum($counts['approvals']), 'to_settle' => $counts['trips']['to_settle'],
                 'pod_pending' => $queues['pod_pending'], 'ready_to_bill' => $queues['ready_to_bill'],
                 'overdue' => $queues['overdue'], 'overdue_amount' => $queues['overdue_amount'],
+                'emis' => $emis->count(), 'emis_amount' => round($emis->sum('amount'), 2), 'emis_overdue' => $emis->where('overdue', true)->count(),
             ],
             'overdue_clients' => $overdue->take(5)->all(),
             'papers' => ['expired' => $papers['expired'], 'week' => $papers['d7'], 'missing' => $papers['missing']],

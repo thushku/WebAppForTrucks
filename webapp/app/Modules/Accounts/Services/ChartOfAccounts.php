@@ -82,6 +82,7 @@ class ChartOfAccounts
         'accident_repairs'   => ['Accident repairs', 'maintenance', 'general'],
         'opening_difference' => ['Difference in opening balances', 'suspense', 'general'],
         'owners_capital'     => ['Owner’s capital', 'capital', 'general'],
+        'loan_interest'      => ['Interest on truck loans', 'indirect_expenses', 'general'],
     ];
 
     /** Expense category group (master list meta) => chart group. */
@@ -130,6 +131,13 @@ class ChartOfAccounts
 
             return ['name' => $party->name, 'account_group_id' => $this->group($client ? 'sundry_debtors' : 'sundry_creditors')->id, 'kind' => 'party', 'party_id' => $party->id];
         });
+    }
+
+    /** A truck's loan (M35): what is still owed to the financier, paid down by the EMIs' principal. */
+    public function truckLoan(\App\Modules\Fleet\Models\Truck $truck): LedgerAccount
+    {
+        return $this->keyed('truck_loan:' . $truck->id, fn () => ['name' => trim(__('Truck loan') . ' — ' . $truck->reg_no . ($truck->financier ? ' (' . $truck->financier . ')' : '')),
+            'account_group_id' => $this->group('loans_liability')->id, 'kind' => 'general']);
     }
 
     /** A crew member's personal account (khata): trip cash and earnings are buckets of it. */

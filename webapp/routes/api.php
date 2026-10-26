@@ -143,6 +143,8 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 });
                 Route::get('/payees', [DealsController::class, 'payees'])->middleware('permission:accounts.post')->name('payees');
                 Route::post('/payments', [DealsController::class, 'storePayment'])->middleware('permission:accounts.post')->name('payments.store');
+                Route::get('/emis', [DealsController::class, 'emis'])->middleware('permission:truck.view')->name('emis');
+                Route::post('/trucks/{truck}/emis', [DealsController::class, 'payEmi'])->whereNumber('truck')->middleware('permission:accounts.post')->name('emis.pay');
 
                 // The Business tab of the profile (M28): the company as it prints; edited with settings.company.
                 Route::get('/company', [CompanyController::class, 'show'])->name('company');

@@ -103,6 +103,15 @@ class Dashboard
                 : __('No GPS from :vehicle for :n min (:trip)', ['vehicle' => $p['vehicle'], 'n' => $p['minutes'], 'trip' => $p['trip']]), 'url' => $p['url']];
         }
 
+        // Truck EMIs overdue or due within three days (M35).
+        $emis = app(\App\Modules\Fleet\Services\TruckLoans::class)->due($this->today(), 3);
+        if ($late = $emis->where('overdue', true)->count()) {
+            $alerts[] = ['level' => 'critical', 'text' => trans_choice(':count truck EMI is overdue|:count truck EMIs are overdue', $late), 'url' => route('trucks.emis')];
+        }
+        foreach ($emis->where('overdue', false) as $emi) {
+            $alerts[] = ['level' => 'warning', 'text' => __('EMI of :truck, :amount, due :date', ['truck' => $emi['truck']->reg_no, 'amount' => \App\Support\Money::company($emi['amount']), 'date' => $emi['due_on']->format('d M')]), 'url' => route('trucks.emis')];
+        }
+
         // Odometer and GPS apart on a trip of the last 30 days (M34).
         $apart = Trip::inBranch()->where('km_check', 'differs')->where('ended_at', '>=', now()->subDays(30))->count();
         if ($apart) {

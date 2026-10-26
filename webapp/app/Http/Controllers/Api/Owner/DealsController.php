@@ -137,6 +137,35 @@ class DealsController extends Controller
         });
     }
 
+    // ---- Truck EMIs (M35) ---------------------------------------------------------------
+
+    public function emis(\App\Modules\Fleet\Services\TruckLoans $loans): JsonResponse
+    {
+        $today = $this->today();
+        $trucks = \App\Modules\Fleet\Models\Truck::inBranch()->where('status', '!=', 'sold')->where('emi_amount', '>', 0)->whereNotNull('emi_day')->orderBy('reg_no')->get();
+
+        return response()->json(['emis' => $trucks->map(function ($t) use ($loans, $today) {
+            $s = $loans->status($t, $today);
+
+            return ['truck' => ['id' => $t->id, 'reg_no' => $t->reg_no], 'financier' => $t->financier, 'emi' => (float) $t->emi_amount, 'emi_day' => $t->emi_day,
+                'rate' => $t->loan_rate !== null ? (float) $t->loan_rate : null, 'ends' => $t->loan_ends_on?->toDateString(),
+                'next' => $s['next']?->toDateString(), 'overdue' => array_map(fn ($d) => $d->toDateString(), $s['overdue']), 'open' => array_map(fn ($d) => $d->toDateString(), $s['open']),
+                'outstanding' => $s['outstanding'], 'interest' => $s['interest'], 'last_paid' => $s['last']?->due_on->toDateString()];
+        })->values()]);
+    }
+
+    /** An EMI paid, once per key: the principal off the truck's loan, the interest its cost. */
+    public function payEmi(Request $request, \App\Modules\Fleet\Models\Truck $truck, \App\Modules\Fleet\Services\TruckLoans $loans): JsonResponse
+    {
+        return $this->once($request, 'emi', function () use ($request, $truck, $loans) {
+            $request->merge(['paid_on' => $request->input('paid_on', $this->today()->toDateString()), 'amount' => $request->input('amount', (float) $truck->emi_amount)]);
+            $emi = $loans->pay($truck, $request->validate($loans->rules(), ['reference.required_if' => __('Give the UTR or cheque number.')]), $request->user());
+
+            return ['emi' => ['id' => $emi->id, 'due_on' => $emi->due_on->toDateString(), 'paid_on' => $emi->paid_on->toDateString(), 'amount' => (float) $emi->amount,
+                'principal' => (float) $emi->principal, 'interest' => (float) $emi->interest, 'voucher' => $emi->voucher?->number]];
+        });
+    }
+
     // ---- Answers ------------------------------------------------------------------------
 
     private function card(Quotation $q): array

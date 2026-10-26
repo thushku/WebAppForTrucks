@@ -62,6 +62,8 @@ class Truck extends Model
         return [
             'registration_date' => 'date',
             'loan_ends_on'      => 'date',
+            'loan_starts_on'    => 'date',
+            'loan_rate'         => 'decimal:2',
             'purchase_date'     => 'date',
             'sold_on'           => 'date',
             'odometer_at'       => 'datetime',

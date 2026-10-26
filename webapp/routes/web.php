@@ -17,6 +17,7 @@ use App\Http\Controllers\Invoicing\InvoiceController;
 use App\Http\Controllers\Invoicing\PublicDocumentController;
 use App\Http\Controllers\Invoicing\ReceiptController;
 use App\Http\Controllers\Fleet\ComplaintController;
+use App\Http\Controllers\Fleet\EmiController;
 use App\Http\Controllers\Fleet\ServiceController;
 use App\Http\Controllers\Fleet\TruckController;
 use App\Http\Controllers\Parties\PartyController;
@@ -386,6 +387,9 @@ Route::middleware('auth')->group(function () {
         // Trucks, their complaints and service (M4).
         Route::prefix('trucks')->name('trucks.')->group(function () {
             Route::get('/', [TruckController::class, 'index'])->middleware('permission:truck.view')->name('index');
+            // Truck loans and EMIs (M35): see with truck.view, pay with accounts.post (it is a payment voucher).
+            Route::get('/emis', [EmiController::class, 'index'])->middleware('permission:truck.view')->name('emis');
+            Route::post('/{truck}/emis', [EmiController::class, 'pay'])->middleware('permission:accounts.post')->name('emis.pay');
             Route::middleware('permission:truck.manage')->group(function () {
                 Route::get('/new', [TruckController::class, 'create'])->name('create');
                 Route::post('/', [TruckController::class, 'store'])->name('store');

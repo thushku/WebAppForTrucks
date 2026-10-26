@@ -2,6 +2,27 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M35: truck loans and EMIs (decision P25)
+
+**Built (in `webapp/`, `Fleet/Services/TruckLoans`, Trucks → EMIs):**
+- On the truck: the financier, EMI, its day, the loan's end (there already), now also the **first EMI**, the **interest
+  rate** and — for those who keep the books — **what the loan owed at the start of the financial year** (the opening of
+  the truck's own loan ledger, "Truck loan — KL 07 AB 1234 (HDFC Bank)").
+- **Trucks → EMIs**: every truck on loan with its EMI, the next one due (amber within a week), overdue ones in red,
+  what is still owed (from the books) and the loan's end; **EMI paid** on each row (which month, the date, the amount, the
+  interest part — by default the rate on what is owed —, cash or bank with the UTR) posts a payment voucher: principal
+  off the loan, interest as the truck's cost (so the truck's profit counts it). Once per EMI; a list of EMIs paid with
+  their vouchers. The truck page shows the next or overdue EMI and what is owed.
+- Alerts: overdue EMIs (critical) and EMIs due within three days on the dashboard; EMIs of the coming week in the
+  morning summary. The owner app sees and pays them (`GET /owner/emis`, `POST /owner/trucks/{id}/emis`, screen O31).
+- The demo has two trucks on loan (HDFC Bank, Shriram Finance).
+- Migration 000027: `trucks.loan_rate`, `loan_starts_on`, table `truck_emis`.
+
+**Tests:** 272 passing (new `EmiTest`, 2 tests: the loan set from the truck form with its opening, the next EMI, two
+overdue on 10 December on the page and the dashboard, the default interest, a bank EMI needing its UTR, paid once, no
+EMI on a wrong day, the voucher's principal, interest and truck, what is owed after and next month's interest, the truck
+page; the owner app's list and an EMI paid in cash once per key with the defaults).
+
 ## 2026-10-26 — Milestone M34: odometer against GPS (decision P24)
 
 **Built (in `webapp/`, `Road/Services/GpsDistance`, `fleet:gps-check`):**

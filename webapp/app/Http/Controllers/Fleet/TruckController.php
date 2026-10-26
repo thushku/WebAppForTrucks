@@ -54,6 +54,7 @@ class TruckController extends Controller
     {
         app(\App\Platform\Billing\Limits::class)->assertRoom($this->context->company(), 'trucks');
         $truck = Truck::create($this->validated($request) + ['created_by' => $request->user()->id]);
+        $this->loanOpening($request, $truck);
 
         return redirect()->route('trucks.show', $truck)->with('status', __(':reg added.', ['reg' => $truck->reg_no]));
     }
@@ -89,8 +90,22 @@ class TruckController extends Controller
     public function update(Request $request, Truck $truck): RedirectResponse
     {
         $truck->update($this->validated($request, $truck));
+        $this->loanOpening($request, $truck);
 
         return redirect()->route('trucks.show', $truck)->with('status', __('Saved.'));
+    }
+
+    /** What the loan owed at the start of this financial year (M35): the loan ledger's opening, for those who keep the books. */
+    private function loanOpening(Request $request, Truck $truck): void
+    {
+        if (! $request->filled('loan_opening') || ! $request->user()->can('accounts.post')) {
+            return;
+        }
+        $owed = (float) $request->validate(['loan_opening' => ['numeric', 'min:0', 'max:999999999']])['loan_opening'];
+        $current = (float) \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'truck_loan:' . $truck->id)->value('opening_balance');
+        if (abs(-$current - $owed) >= 0.005) {
+            app(\App\Modules\Fleet\Services\TruckLoans::class)->setOpening($truck, $owed);
+        }
     }
 
     /** Free / workshop / breakdown / out of service by hand. "On trip" is set by trips only (M5). */
@@ -162,6 +177,8 @@ class TruckController extends Controller
             'emi_amount'         => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'emi_day'            => ['nullable', 'integer', 'min:1', 'max:31'],
             'loan_ends_on'       => ['nullable', 'date_format:Y-m-d'],
+            'loan_rate'          => ['nullable', 'numeric', 'min:0', 'max:60'],
+            'loan_starts_on'     => ['nullable', 'date_format:Y-m-d'],
             'purchase_date'      => ['nullable', 'date_format:Y-m-d'],
             'purchase_price'     => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'odometer_km'        => ['nullable', 'integer', 'min:0', 'max:9999999'],

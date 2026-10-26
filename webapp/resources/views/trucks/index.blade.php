@@ -13,7 +13,10 @@
       <a href="{{ route('trucks.index', ['status' => $key]) }}" role="tab" aria-selected="{{ $status === $key ? 'true' : 'false' }}" class="rounded-xl border px-3 py-2 text-sm font-medium {{ $status === $key ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-ink-100 bg-white text-ink-700' }}">{{ __($label) }} <span class="text-xs text-ink-400">{{ $counts[$key] ?? 0 }}</span></a>
     @endforeach
   </div>
-  @can('truck.manage')<a href="{{ route('trucks.create') }}" class="btn-primary"><x-icon name="plus" /> {{ __('Add truck') }}</a>@endcan
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ route('trucks.emis') }}" class="btn-secondary"><x-icon name="wallet" /> {{ __('EMIs') }}</a>
+    @can('truck.manage')<a href="{{ route('trucks.create') }}" class="btn-primary"><x-icon name="plus" /> {{ __('Add truck') }}</a>@endcan
+  </div>
 </div>
 
 <section class="card overflow-hidden">
