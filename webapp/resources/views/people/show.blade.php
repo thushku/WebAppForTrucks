@@ -15,12 +15,20 @@
         <span class="pill {{ $person->status === 'active' ? 'bg-emerald-50 text-paid' : 'bg-ink-100 text-ink-500' }}">{{ __(\App\Modules\People\Models\Person::STATUSES[$person->status]) }}</span>
         @if ($state === 'expired')<span class="pill bg-red-50 text-overdue">{{ __('Licence expired') }}</span>@elseif ($state === 'expiring')<span class="pill bg-amber-50 text-partial">{{ __('Licence expires :date', ['date' => $person->licence_expiry->format('d M Y')]) }}</span>@elseif ($state === 'missing')<span class="pill bg-red-50 text-overdue">{{ __('Licence missing') }}</span>@endif
         @if ($person->hazardous_endorsement)<span class="pill bg-amber-50 text-partial">{{ __('Hazardous goods') }}</span>@endif
+        @if ($papers)
+          <a href="{{ route('documents.owner', ['person', $person->id]) }}" class="pill {{ ['green' => 'bg-emerald-50 text-paid', 'amber' => 'bg-amber-50 text-partial', 'red' => 'bg-red-50 text-overdue'][$papers['state']] }}">{{ $papers['state'] === 'green' ? __('Papers in order') : collect([
+            $papers['expired'] ? trans_choice(':count expired|:count expired', $papers['expired']) : null,
+            $papers['missing'] ? trans_choice(':count missing|:count missing', $papers['missing']) : null,
+            $papers['due'] ? trans_choice(':count due soon|:count due soon', $papers['due']) : null,
+          ])->filter()->join(' · ') }}</a>
+        @endif
       </div>
     </div>
     <div class="flex flex-wrap gap-2">
       @if ($dial)
         <a href="tel:{{ $dial }}" class="btn-secondary"><x-icon name="phone" /> {{ __('Call') }}</a>
         <a href="https://wa.me/{{ ltrim($dial, '+') }}?text={{ rawurlencode(__('Hello :name', ['name' => $person->name])) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer">{{ __('WhatsApp') }}</a>
+        <a href="https://wa.me/?text={{ rawurlencode($person->name . ' — ' . __(\App\Modules\People\Models\Person::TYPES[$person->type]) . ' — ' . $person->mobile) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer"><x-icon name="send" /> {{ __('Share contact') }}</a>
       @endif
       @canany(['ledger.view', 'accounts.view'])
         @if ($ledgerId = \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'person:' . $person->id)->value('id'))<a href="{{ route('ledgers.show', $ledgerId) }}" class="btn-secondary"><x-icon name="ledger" /> {{ __('Khata') }}</a>@endif
@@ -101,6 +109,9 @@
     <p class="mt-4 text-xs text-ink-500">{{ __('No SMS is needed: read the code out or show the QR. The app then asks for a PIN or fingerprint each time it opens.') }}</p>
   </section>
 </div>
+@if ($khata)
+  @include('people.partials.cash')
+@endif
 @if ($payslips->isNotEmpty())
   <section class="card overflow-x-auto">
     <h2 class="border-b border-ink-100 px-5 py-4 text-lg font-semibold">{{ __('Pay') }}</h2>

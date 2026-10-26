@@ -35,7 +35,7 @@ payroll; hide the tab until the API has them.)
 | C18 | **Delivery (e-POD)** | per load: packages and weight received, shortage, damage, receiver name and mobile (OTP when asked), signature, POD photo, unloading times | `load.delivered` + `pod` photo |
 | C19 | **End trip** | odometer; "end early" with a reason | `trip.end` |
 | C20 | **Entry detail** | what was sent, photos, status, the office's question; **Change** or **Cancel** until it is checked | `PATCH /crew/events/{uuid}`, `.../cancel` |
-| C21 | **Money (My Khata)** | trip cash I hold, what the company owes me, the net, the statement; per settled trip its settlement | `GET /crew/money` (§3), sync → `trips[].settlement` |
+| C21 | **Money (My Khata)** | trip cash I hold, what the company owes me, an advance against my pay, the net, the statement; per settled trip its settlement | `GET /crew/money` (§3), sync → `trips[].settlement` |
 | C22 | **Papers** | truck papers and my licence, readable offline at a checkpost (images cached on the phone) | sync → `papers[]`; `GET /crew/papers/{id}/files/{file}` |
 | C23 | **Raise complaint** | title, details, priority, odometer, photo | `complaint.raise` |
 | C24 | **Waiting to send** | every item not yet sent, oldest first, with **Send now**; warns after 24 hours | — (the phone's queue) |
@@ -76,6 +76,7 @@ Ledgers · Scan to sign in on the web · Settings · About**. Show only what `GE
 | O18 | **Money received** | client, amount, mode, UTR or cheque, TDS; shows which bills it paid | `payment.record` | `POST /owner/receipts` |
 | O19 | **Add a paper** | truck or person, type, number, expiry, camera photo(s) | `document.manage` | `POST /owner/papers` (multipart) |
 | O20 | **Notifications** | the inbox behind the pushes, high ones first in red; tap opens what it is about; **My notifications**: which groups ring the phone, quiet hours | — | `GET /notifications`, `POST /notifications/read`, `GET`/`PUT /notifications/settings` (§11) |
+| O21 | **Crew cash** | from a crew member (Ledgers → crew, or Trip detail → crew): their trip cash, earnings, advance and the net in words; **Given to them** / **Spent for the company** — amount, what for, date, trip (theirs, not settled), mode or what it was spent on | `trip.settle` | `GET /owner/crew/{id}/khata`, `POST /owner/crew/{id}/cash` (§12) |
 
-Every O16–O19 write sends an `Idempotency-Key` made when the person taps (§12), so a retry on a bad network never
+Every O16–O19 and O21 write sends an `Idempotency-Key` made when the person taps (§12), so a retry on a bad network never
 makes a second trip, bill or receipt. Still web only: hire challans, credit and debit notes, payments, settlement.

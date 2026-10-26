@@ -93,7 +93,7 @@ checkpost).
 
 **My Khata** (the Money tab): `GET /crew/money?from=&to=` (default: the last 90 days) →
 `currency`, `holding` (the company's trip cash I carry), `owed_to_me` (bata, salary
-not yet paid), `net` (positive: I give this back; negative: the company pays me),
+not yet paid), `advance` (an advance against my pay, taken back from a payslip — M27), `net` (positive: I give this back; negative: the company pays me),
 `opening`, `closing`, `lines[]` (`date`, `what`, `reference`, `bucket` — trip_cash /
 earnings, `given` — money handed to me, `credited` — what counts for me: spent for the
 company, earned, returned, `balance`, `cancelled`), and `payslips[]` of approved pay runs
@@ -312,7 +312,7 @@ permission shown; without it the answer is `403` — hide that tile or tab (the 
 | `GET /owner/invoices/{id}` | `invoice.view` | the row plus `subtotal`, `tax`, `tax_reverse_charge`, `paid`, `lines[]` (`description`, `quantity`, `rate`, `tax`, `amount`) |
 | `POST /owner/invoices/{id}/shared` `{ "channel": "whatsapp" \| "link", "recipient": "98470…" }` | `invoice.send` | `status` (the bill becomes `sent`), `text` (ready to share), `whatsapp_url` (`https://wa.me/<number>?text=…`, null without a number). Open `whatsapp_url`, or share `text` with Android's share sheet, then call this so the office sees it was sent |
 | `GET /owner/ledgers?kind=` | `ledger.view` | `ledgers[]` with a balance today: `id`, `name`, `kind` (party, person, bank, cash, general, tax), `group`, `nature`, `balance` (positive: a debit — they owe us; negative: we owe them) |
-| `GET /owner/ledgers/{id}?from=&to=` | `ledger.view` | `opening`, `debit`, `credit`, `closing`, `lines[]` (`date`, `number`, `reference`, `narration`, `debit`, `credit`, `balance`, `bucket`, `cancelled`) for the period (default: the last 90 days); for a crew member also `buckets` (trip cash, earnings, loan) |
+| `GET /owner/ledgers/{id}?from=&to=` | `ledger.view` | `opening`, `debit`, `credit`, `closing`, `lines[]` (`date`, `number`, `reference`, `narration`, `debit`, `credit`, `balance`, `bucket`, `cancelled`) for the period (default: the last 90 days); for a crew member also `buckets` (`trip_cash`, `earnings`, `loan`, `net`) |
 
 A person limited to one branch (decision P17) gets only that branch's trips, trucks and bills in these lists, and
 `404` for another branch's trip or bill.
@@ -358,7 +358,7 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 Unknown kinds may come later: show them in the list and open the list. After any push, a crew
 app runs `GET /crew/sync` (the push says *that* something changed; sync says *what*).
 
-## 12. Owner app: making things (added in M23)
+## 12. Owner app: making things (added in M23; crew cash in M27)
 
 The same rules and permissions as the web: a trip is planned with its load and sent to the crew, a bill is made from
 LRs and issued, money received is set against the oldest bills, a paper is photographed onto a truck or a person.
@@ -371,7 +371,7 @@ Answers to a write are `201`.
 
 | Call | Permission | Body → answer |
 |---|---|---|
-| `GET /owner/masters` | any of `trip.create`, `invoice.create`, `payment.record`, `document.manage` | the lists for the forms: `places[]` (`id`, `name`, `short_code`), `clients[]` (`id`, `name`, `short_code`, `mobile`), `trucks[]` (`id`, `reg_no`, `type`, `status`, `busy_on` — the trip number it is on), `crew[]` (`id`, `name`, `type`, `mobile`), `materials[]` (`code`, `name`), `branches[]` (`id`, `name`), `branch_required` (true for a person limited to a branch), `bank_accounts[]` (`id`, `label`), `freight_bases`, `payment_types`, `receipt_modes`, `paper_types` (`truck`, `person`: code → name) |
+| `GET /owner/masters` | any of `trip.create`, `invoice.create`, `payment.record`, `document.manage`, `trip.settle` | the lists for the forms: `places[]` (`id`, `name`, `short_code`), `clients[]` (`id`, `name`, `short_code`, `mobile`), `trucks[]` (`id`, `reg_no`, `type`, `status`, `busy_on` — the trip number it is on), `crew[]` (`id`, `name`, `type`, `mobile`), `materials[]` (`code`, `name`), `branches[]` (`id`, `name`), `branch_required` (true for a person limited to a branch), `bank_accounts[]` (`id`, `label`), `freight_bases`, `payment_types`, `receipt_modes`, `paper_types` (`truck`, `person`: code → name), and for crew cash (M27) `expense_categories[]` (`code`, `name`), `cash_directions`, `cash_modes`, `cash_purposes` |
 | `POST /owner/trips` | `trip.create` (`trip.assign` for `send`) | `trip_date` (default today), `from_place_id`, `to_place_id`, `truck_id`, `driver_id`, `co_driver_id`, `helper_ids[]`, `planned_km`, `branch_id`, `instructions`, `trip_kind` (`loaded` / `empty`, default from `load`), `load` {`billing_party_id`, `consignor_party_id`, `consignee_party_id`, `material`, `packages`, `actual_weight_mt`, `freight_basis`, `rate`, `payment_type`, `gst_payable_by`, `lr_number` (from a printed LR book), `loading_charge`, …}, `send` (true: send to the crew now), `override_reason` (papers expired: why it must go anyway) → `trip` {`uuid`, `number`, `status`, `date`, `from`, `to`, `vehicle`, `branch_id`, `loads[]` (`id`, `lr_number`, `freight`)}. With `send`, a refusal (truck busy, papers) makes nothing at all |
 | `POST /owner/trips/{uuid}/send` | `trip.assign` | `override_reason` → `trip` |
 | `GET /owner/unbilled?party=` | `invoice.create` | `loads[]` waiting to be billed (To-be-billed LRs): `id`, `lr_number`, `lr_date`, `status`, `party_id`, `party`, `trip_uuid`, `trip`, `route`, `freight` |
@@ -379,6 +379,8 @@ Answers to a write are `201`.
 | `POST /owner/invoices/{id}/finalise` | `invoice.finalise` | → `invoice` with its number |
 | `POST /owner/receipts` | `payment.record` | `party_id`, `receipt_date`, `amount`, `mode` (`receipt_modes`), `reference` (all but cash), `cheque_date` (cheque), `bank_account_id`, `tds_amount`, `tds_section`, `deduction_amount`, `deduction_note`, `narration` → `receipt` {`id`, `number`, `date`, `amount`, `applied[]` (`invoice`, `amount`) — oldest bills first —, `share_url`} |
 | `POST /owner/papers` (multipart) | `document.manage` | `owner_type` (`truck` / `person`), `owner_id`, `document_type` (`paper_types`), `number`, `authority`, `issued_on`, `valid_from`, `expires_on`, `amount`, `notes`, `files[]` (1–6 photos or PDFs, 8 MB each; photos are shrunk on the server) → `paper` {`id`, `type`, `type_label`, `number`, `expires_on`, `files`} |
+| `GET /owner/crew/{person_id}/khata` | `trip.settle` | a crew member's khata in short (M27): `person` {`id`, `name`, `type`, `mobile`}, `ledger_id` (for `GET /owner/ledgers/{id}`; null until something is posted), `trip_cash`, `earnings`, `advance`, `net` — as in the ledger, positive is the company's money with them: trip cash they carry, an advance against pay; a negative `earnings` is what the company owes them —, `words` ("Ravi Kumar will give you ₹3,000.00"), `trips[]` their cash can go with (`id`, `number`, `date`, `status`: sent and not settled) |
+| `POST /owner/crew/{person_id}/cash` | `trip.settle` | quick cash (M27): `direction` (`received` — given to them / `spent` — spent by them for the company), `amount`, `remark` (what for, required), `on` (date, not after today), `trip_id` (one of `trips`), `mode` (`cash_modes`, for `received`), `purpose` (`advance` — against pay, or `dues` — paying what we owe them; for `received` without a trip), `category` (`expense_categories`, required for `spent`), `reference` (required for UPI and bank), `bank_account_id` → `voucher` {`id`, `number`, `date`, `amount`, `narration`}. Given for a trip it is that trip's advance (counted when the trip is settled); spent, it is owed to them with their pay, tagged with the trip and truck when given |
 
 A person limited to a branch sees and uses only that branch's trucks, crew and trips here (decision P17).
 

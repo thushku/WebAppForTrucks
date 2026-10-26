@@ -2,6 +2,7 @@
 @section('title', __('People'))
 @section('content')
 @php
+  $paperTones = ['green' => 'bg-emerald-50 text-paid', 'amber' => 'bg-amber-50 text-partial', 'red' => 'bg-red-50 text-overdue'];
   $chip = ['valid' => ['bg-emerald-50 text-paid', __('Licence on file')], 'expiring' => ['bg-amber-50 text-partial', null], 'expired' => ['bg-red-50 text-overdue', __('Licence expired')], 'missing' => ['bg-red-50 text-overdue', __('Licence missing')]];
 @endphp
 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -25,9 +26,9 @@
     </select>
     <button class="btn-secondary px-3" aria-label="{{ __('Search') }}"><x-icon name="search" /></button>
   </form>
-  <div class="overflow-x-auto">
+  <div class="relative overflow-x-auto">
     <table class="table">
-      <thead><tr><th>{{ __('Person') }}</th><th>{{ __('Mobile') }}</th><th>{{ __('Licence') }}</th><th>{{ __('Truck') }}</th><th>{{ __('App') }}</th></tr></thead>
+      <thead><tr><th>{{ __('Person') }}</th><th>{{ __('Mobile') }}</th><th>{{ __('Licence') }}</th>@if ($papers)<th>{{ __('Papers') }}</th>@endif<th>{{ __('Truck') }}</th><th>{{ __('App') }}</th><th><span class="sr-only">{{ __('Share') }}</span></th></tr></thead>
       <tbody>
         @forelse ($people as $p)
           @php($state = $p->licenceState())
@@ -41,17 +42,30 @@
                 </div>
               </div>
             </td>
-            <td class="nowrap text-sm">{{ $p->mobile }}</td>
+            <td class="nowrap text-sm">@if ($p->mobile)<a href="tel:{{ preg_replace('/[^0-9+]/', '', $p->mobile) }}" class="hover:text-brand-700">{{ $p->mobile }}</a>@endif</td>
             <td>
               @if (isset($chip[$state]))
                 <span class="pill {{ $chip[$state][0] }}">{{ $chip[$state][1] ?? trans_choice('Expires in :count day|Expires in :count days', now()->startOfDay()->diffInDays($p->licence_expiry)) }}</span>
               @endif
             </td>
+            @if ($papers)
+              @php($h = $papers[$p->id] ?? null)
+              <td>
+                @if ($h)
+                  <a href="{{ route('documents.owner', ['person', $p->id]) }}" class="pill {{ $paperTones[$h['state']] }}">{{ $h['state'] === 'green' ? __('All in order') : collect([
+                    $h['expired'] ? trans_choice(':count expired|:count expired', $h['expired']) : null,
+                    $h['missing'] ? trans_choice(':count missing|:count missing', $h['missing']) : null,
+                    $h['due'] ? trans_choice(':count due soon|:count due soon', $h['due']) : null,
+                  ])->filter()->join(' · ') }}</a>
+                @endif
+              </td>
+            @endif
             <td class="docno font-mono text-xs">{{ $p->defaultTruck?->reg_no }}</td>
             <td>@if ($p->company_user_id)<span class="pill bg-brand-50 text-brand-700"><x-icon name="phone" class="size-3" /> {{ __('Linked') }}</span>@endif</td>
+            <td class="text-end">@if ($p->mobile)<a href="https://wa.me/?text={{ rawurlencode($p->name . ' — ' . __(\App\Modules\People\Models\Person::TYPES[$p->type]) . ' — ' . $p->mobile) }}" class="btn-ghost px-2 py-1" target="_blank" rel="noopener noreferrer" title="{{ __('Share contact') }}" aria-label="{{ __('Share :name’s contact on WhatsApp', ['name' => $p->name]) }}"><x-icon name="send" class="size-4" /></a>@endif</td>
           </tr>
         @empty
-          <tr><td colspan="5" class="py-12 text-center text-ink-500">{{ $search !== '' ? __('Nobody matches.') : __('No people yet — add your first driver.') }}</td></tr>
+          <tr><td colspan="{{ $papers ? 7 : 6 }}" class="py-12 text-center text-ink-500">{{ $search !== '' ? __('Nobody matches.') : __('No people yet — add your first driver.') }}</td></tr>
         @endforelse
       </tbody>
     </table>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\People;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Accounts\Services\CrewCash;
 use App\Modules\Fleet\Models\Truck;
 use App\Modules\People\Models\ActivationCode;
 use App\Modules\People\Models\Person;
@@ -50,6 +51,8 @@ class PersonController extends Controller
 
         return view('people.index', [
             'people' => $people, 'type' => $type, 'search' => $search, 'status' => $status,
+            // Each person's papers as one chip (M27, 13-parity #19), for those who may see papers.
+            'papers' => $request->user()->can('document.view') ? app(\App\Modules\Documents\Services\Compliance::class)->healthMany($people->getCollection()) : [],
             'counts' => Person::inBranch()->where('status', '!=', 'left')->selectRaw('type, count(*) as n')->groupBy('type')->pluck('n', 'type'),
         ]);
     }
@@ -81,7 +84,29 @@ class PersonController extends Controller
             'revealed' => $revealed,
             // Pay history (M16), for those who may see salaries.
             'payslips' => auth()->user()->can('payroll.view') ? \App\Modules\Payroll\Models\Payslip::with('run')->where('person_id', $person->id)->where('status', '!=', 'cancelled')->orderByDesc('id')->limit(12)->get() : collect(),
+            // The khata in short and the quick cash form, and the papers as one chip (M27).
+            'khata' => $this->khata($person),
+            'papers' => auth()->user()->can('document.view') ? app(\App\Modules\Documents\Services\Compliance::class)->healthMany([$person])[$person->id] : null,
         ]);
+    }
+
+    /** The person's buckets for those who see ledgers or give cash, and the form's choices for those who give cash. */
+    private function khata(Person $person): ?array
+    {
+        $user = auth()->user();
+        $gives = $user->can('trip.settle');
+        if (! $gives && ! $user->canAny(['ledger.view', 'accounts.view'])) {
+            return null;
+        }
+        $ledger = \App\Modules\Accounts\Models\LedgerAccount::where('system_key', 'person:' . $person->id)->first();
+
+        return [
+            'ledger' => $ledger,
+            'buckets' => $ledger ? app(\App\Modules\Accounts\Services\Statements::class)->crewBuckets($ledger) : ['trip_cash' => 0, 'earnings' => 0, 'loan' => 0, 'net' => 0],
+            'gives' => $gives && $person->status !== 'left',
+            'trips' => $gives ? app(CrewCash::class)->trips($person) : collect(),
+            'categories' => $gives ? \App\Modules\Settings\Models\MasterItem::ofList('expense_category')->where('active', true)->pluck('name', 'code') : collect(),
+        ];
     }
 
     public function edit(Person $person): View
@@ -111,6 +136,14 @@ class PersonController extends Controller
         return redirect()->route('people.show', $person)->with('status', $relogin
             ? __('Saved. The crew app login for the old number has ended — make a new activation code.')
             : __('Saved.'));
+    }
+
+    /** Quick cash given to or spent by the person (M27): one voucher in their khata. */
+    public function cash(Request $request, Person $person, CrewCash $cash): RedirectResponse
+    {
+        $voucher = $cash->record($person, $request->validate($cash->rules(), $cash->messages()), $request->user());
+
+        return redirect()->to(route('people.show', $person) . '#cash')->with('status', __('Recorded in :name’s khata as :number.', ['name' => $person->name, 'number' => $voucher->number]));
     }
 
     /** A new activation code, shown once on the next page (never stored in clear). */

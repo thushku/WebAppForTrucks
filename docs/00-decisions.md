@@ -337,6 +337,24 @@ package), QR codes / amount in words / CSV written in-house. See
   nothing is made. Still web only: hire challans, notes, journals, payments,
   settlement.
 
+### P19. Quick cash for the crew (added 26 Oct 2026, M27)
+
+- From a crew member's page (web) or the owner app, with `trip.settle`:
+  **Given to them** or **Spent for the company**, an amount, what for
+  (required), the date (not ahead) and, if wanted, one of their trips that is
+  sent and not settled.
+- **Given for a trip is that trip's advance** — the same record as on the trip
+  page — so the trip's settlement counts it. Given without a trip it is either
+  **an advance against pay** (the khata's "loan" bucket, taken back from a
+  payslip deduction) or **paying what we owe them** (their earnings); a
+  payment voucher (PV/) either way.
+- **Spent for the company** is the expense (tagged with the trip and truck when
+  a trip is chosen) and is **owed to them with their pay** (earnings), not
+  part of a trip's cash settlement: what the crew spends on the road they enter
+  in the crew app, where it is approved and settled with the trip.
+- The khata's net now includes the advance bucket, everywhere (ledger page,
+  person page, owner app, My Khata's `advance`).
+
 ---
 
 ## 4. Still open

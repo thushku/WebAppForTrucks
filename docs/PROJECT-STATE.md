@@ -2,6 +2,30 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M27: the crew money desk (13-parity #19, #23)
+
+**Built (in `webapp/`, `Accounts/Services/CrewCash`; decision P19):**
+- **Quick cash on a crew member's page** (the new Khata card, with `trip.settle`) and in the owner app
+  (`GET /owner/crew/{id}/khata`, `POST /owner/crew/{id}/cash`, once per Idempotency-Key): **Given to them** or
+  **Spent for the company**, the amount, what for (required), the date (not ahead), and one of their trips that is sent
+  and not settled. Given for a trip is that trip's advance (the settlement counts it); given without a trip is an
+  **advance against pay** or **paying what we owe them**, on a payment voucher (PV/); spent is the expense — on the trip
+  and truck when chosen — owed to them with their pay. Every entry is audited; a wrong one is reversed in the books.
+- The card shows the khata in short: trip cash, earnings, **advance against pay** and the net in words, with a link to
+  the full statement. The khata's net now counts advances everywhere (ledger page — a fourth card —, owner app,
+  My Khata's new `advance`); before, a payslip's loan deduction was left out of the net.
+- **People list** (#19): each person's papers as one chip (All in order / N expired · N missing · N due soon, from the
+  required papers and expiry dates, in a few queries for the whole page) linking to their papers, the mobile to tap and call,
+  and **Share contact** on WhatsApp (name — role — mobile); the same chip and Share contact on the person page.
+- Updated the handover: api-v1 §12 (the two crew-cash calls, the masters' cash lists, `advance` in My Khata, the ledger's
+  `buckets`), screens O21 **Crew cash**.
+- Fixed on the way: a screen-reader label in the people table's last column widened the whole page on a phone.
+
+**Tests:** 255 passing (new `CrewMoneyTest`, 3 tests: cash for a trip as its advance and in the settlement, an advance
+against pay by UPI with its reference, spending on a trip and truck, paying dues back, the buckets and the words, the
+refusals — another person's trip, a date ahead, no remark —, a viewer without the form; the owner app's khata and a
+write once per key, 428 and 422; the people list's chips and the share link, the person page's chip and Share contact).
+
 ## 2026-10-26 — Milestone M26: notification priorities and my notification settings (13-parity #15, #29)
 
 **Built (in `webapp/`, `Platform/Notifications/NotificationSettings`):**

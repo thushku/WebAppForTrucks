@@ -91,7 +91,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/ledgers/{ledger}', [MoneyController::class, 'statement'])->whereNumber('ledger')->middleware('permission:ledger.view')->name('ledgers.show');
 
                 // Making things from the phone (M23, api-v1 §12): each write runs once per Idempotency-Key.
-                Route::get('/masters', [WriteController::class, 'masters'])->middleware('permission:trip.create,invoice.create,payment.record,document.manage')->name('masters');
+                Route::get('/masters', [WriteController::class, 'masters'])->middleware('permission:trip.create,invoice.create,payment.record,document.manage,trip.settle')->name('masters');
                 Route::post('/trips', [WriteController::class, 'storeTrip'])->middleware('permission:trip.create')->name('trips.store');
                 Route::post('/trips/{uuid}/send', [WriteController::class, 'sendTrip'])->whereUuid('uuid')->middleware('permission:trip.assign')->name('trips.send');
                 Route::get('/unbilled', [WriteController::class, 'unbilled'])->middleware('permission:invoice.create')->name('unbilled');
@@ -99,6 +99,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');
                 Route::post('/receipts', [WriteController::class, 'storeReceipt'])->middleware('permission:payment.record')->name('receipts.store');
                 Route::post('/papers', [WriteController::class, 'storePaper'])->middleware('permission:document.manage')->name('papers.store');
+                // Quick cash for the crew (M27): the khata in short, then a cash entry.
+                Route::get('/crew/{person}/khata', [WriteController::class, 'crewKhata'])->whereNumber('person')->middleware('permission:trip.settle')->name('crew.khata');
+                Route::post('/crew/{person}/cash', [WriteController::class, 'storeCrewCash'])->whereNumber('person')->middleware('permission:trip.settle')->name('crew.cash');
             });
 
             Route::prefix('crew')->name('api.crew.')->group(function () {

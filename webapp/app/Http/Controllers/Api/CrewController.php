@@ -168,13 +168,15 @@ class CrewController extends Controller
 
         // No ledger yet (nothing posted for this person): everything is zero.
         $ledger = LedgerAccount::where('person_id', $person->id)->first();
-        $buckets = $ledger ? $statements->crewBuckets($ledger, $to) : ['trip_cash' => 0, 'earnings' => 0, 'net' => 0];
+        $buckets = $ledger ? $statements->crewBuckets($ledger, $to) : ['trip_cash' => 0, 'earnings' => 0, 'loan' => 0, 'net' => 0];
         $statement = $ledger ? $statements->ledger($ledger, $from, $to) : ['opening' => 0, 'rows' => collect(), 'closing' => 0];
 
         return response()->json([
             'currency' => $company->currency,
             'holding' => round(max(0, $buckets['trip_cash']), 2),
             'owed_to_me' => round(max(0, -$buckets['earnings']), 2),
+            // An advance against my pay (M27), taken back from a payslip.
+            'advance' => round(max(0, $buckets['loan']), 2),
             // Positive: I give this much back; negative: the company pays me this much.
             'net' => round($buckets['net'], 2),
             'from' => $from->toDateString(), 'to' => $to->toDateString(),

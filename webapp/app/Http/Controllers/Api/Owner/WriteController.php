@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\Owner\Concerns\RunsOnce;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Trips\Concerns\ValidatesLoads;
 use App\Http\Controllers\Trips\Concerns\ValidatesTrips;
+use App\Modules\Accounts\Models\LedgerAccount;
+use App\Modules\Accounts\Services\CrewCash;
+use App\Modules\Accounts\Services\Statements;
 use App\Modules\Documents\Services\Compliance;
 use App\Modules\Documents\Services\DocumentFiles;
 use App\Modules\Documents\Services\DocumentService;
@@ -62,7 +65,39 @@ class WriteController extends Controller
             'bank_accounts' => CompanyBankAccount::where('active', true)->orderByDesc('is_default')->get()->map(fn ($b) => ['id' => $b->id, 'label' => $b->label . ' ' . $b->masked()]),
             'freight_bases' => Consignment::BASES, 'payment_types' => Consignment::PAYMENT_TYPES, 'receipt_modes' => Receipt::MODES,
             'paper_types' => ['truck' => $this->paperTypes($compliance, 'truck'), 'person' => $this->paperTypes($compliance, 'person')],
+            // Quick cash for the crew (M27).
+            'expense_categories' => MasterItem::ofList('expense_category')->where('active', true)->get(['code', 'name']),
+            'cash_directions' => CrewCash::DIRECTIONS, 'cash_modes' => CrewCash::MODES, 'cash_purposes' => CrewCash::PURPOSES,
         ]);
+    }
+
+    /** A crew member's khata in short and the trips their cash can go with (M27). */
+    public function crewKhata(Person $person, CrewCash $cash, Statements $statements): JsonResponse
+    {
+        $ledger = LedgerAccount::where('system_key', 'person:' . $person->id)->first();
+        $buckets = $ledger ? $statements->crewBuckets($ledger) : ['trip_cash' => 0, 'earnings' => 0, 'loan' => 0, 'net' => 0];
+
+        return response()->json([
+            'person' => ['id' => $person->id, 'name' => $person->name, 'type' => $person->type, 'mobile' => $person->mobile],
+            'ledger_id' => $ledger?->id,
+            // Debit-positive, as in the ledger: trip cash and advance > 0 are the company's money with them; earnings < 0 is what we owe them.
+            'trip_cash' => round($buckets['trip_cash'], 2), 'earnings' => round($buckets['earnings'], 2), 'advance' => round($buckets['loan'], 2), 'net' => round($buckets['net'], 2),
+            'words' => \App\Http\Controllers\Accounts\LedgerController::words('person', $person->name, $buckets['net']),
+            'trips' => $cash->trips($person)->map(fn ($t) => ['id' => $t->id, 'number' => $t->trip_number, 'date' => $t->trip_date?->toDateString(), 'status' => $t->status])->values(),
+        ]);
+    }
+
+    /** Cash given to a crew member or spent by them, into their khata (M27). */
+    public function storeCrewCash(Request $request, Person $person, CrewCash $cash): JsonResponse
+    {
+        return $this->once($request, 'crew_cash', function () use ($request, $person, $cash) {
+            if ($person->status === 'left') {
+                throw ValidationException::withMessages(['person' => __(':name has left the company.', ['name' => $person->name])]);
+            }
+            $voucher = $cash->record($person, $request->validate($cash->rules(), $cash->messages()), $request->user());
+
+            return ['voucher' => ['id' => $voucher->id, 'number' => $voucher->number, 'date' => $voucher->voucher_date->toDateString(), 'amount' => (float) $voucher->total, 'narration' => $voucher->narration]];
+        });
     }
 
     /** A trip with its load (or an empty run); `send: true` sends it to the crew at once. */

@@ -180,10 +180,11 @@ class Statements
 
     /**
      * A crew member's buckets (09 §1.1): trip cash still with them, earnings
-     * owed to them, and the net. Debit-positive: a positive trip cash is the
-     * company's money in their hands.
+     * owed to them, advances against pay still to be recovered (M27), and the
+     * net — the whole ledger. Debit-positive: a positive trip cash or advance
+     * is the company's money in their hands.
      *
-     * @return array{trip_cash: float, earnings: float, net: float}
+     * @return array{trip_cash: float, earnings: float, loan: float, net: float}
      */
     public function crewBuckets(LedgerAccount $ledger, ?CarbonImmutable $asOf = null): array
     {
@@ -191,8 +192,9 @@ class Statements
             ->groupBy('l.bucket')->selectRaw('l.bucket, sum(l.debit - l.credit) as balance')->pluck('balance', 'bucket');
         $tripCash = round((float) ($sums['trip_cash'] ?? 0), 3);
         $earnings = round((float) ($sums['earnings'] ?? 0) + (float) ($sums[''] ?? 0) + (float) $ledger->opening_balance, 3);
+        $loan = round((float) ($sums['loan'] ?? 0), 3);
 
-        return ['trip_cash' => $tripCash, 'earnings' => $earnings, 'net' => round($tripCash + $earnings, 3)];
+        return ['trip_cash' => $tripCash, 'earnings' => $earnings, 'loan' => $loan, 'net' => round($tripCash + $earnings + $loan, 3)];
     }
 
     /** The trip's profit from the book: income less every cost tagged with it. */

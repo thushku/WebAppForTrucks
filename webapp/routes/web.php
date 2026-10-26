@@ -417,6 +417,8 @@ Route::middleware('auth')->group(function () {
                 Route::post('/{person}/activate', [PersonController::class, 'activate'])->middleware('throttle:10,1')->name('activate');
             });
             Route::post('/{person}/reveal-id', [PersonController::class, 'revealId'])->middleware('permission:people.id_documents')->name('reveal-id');
+            // Quick cash given to or spent by a crew member (M27), into their khata.
+            Route::post('/{person}/cash', [PersonController::class, 'cash'])->middleware('permission:trip.settle')->name('cash');
             Route::get('/{person}', [PersonController::class, 'show'])->middleware('permission:people.view')->name('show');
         });
 

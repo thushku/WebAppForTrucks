@@ -76,7 +76,10 @@ founder's laptop) in `phoneapp/`.
   truck profit; `Registers` ageing and TDS, `TaxReturns` GSTR-1 / VAT 201 data, `TallyExport` the Tally XML;
   `php artisan fleet:books` posts anything missing; M19: `OpeningBalances` — balance-sheet ledgers only, the rest in
   "Difference in opening balances" —, `BankReconciliation` — the bank's CSV in, auto match only when clear, match by
-  hand, book charges or interest, the summary; a party's statement is `documents/statement` from `LedgerController`), `Reports` (M12: `Dashboard` numbers and alerts, `LiveMap`
+  hand, book charges or interest, the summary; a party's statement is `documents/statement` from `LedgerController`;
+  M27: `CrewCash` — quick cash given to or spent by a crew member, from the person page and the owner app: for a trip
+  it is a `TripAdvance` (so the settlement counts it), else an advance against pay (bucket `loan`) or dues paid
+  (`earnings`); spent is the expense owed with their pay. `Statements::crewBuckets` has `loan` and a net of all three), `Reports` (M12: `Dashboard` numbers and alerts, `LiveMap`
   positions and route replay; maps in `resources/js/map.js` with Leaflet, charts as server-drawn SVG in
   `resources/views/charts` with `resources/js/charts.js`), `Payroll` (M16: `PayCalculator` works out pay per month — prorated by days of
   employment —, per trip ended or per km driven; `PayRuns` makes, edits, approves, pays and cancels runs; approval

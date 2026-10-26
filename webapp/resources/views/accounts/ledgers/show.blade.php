@@ -46,9 +46,12 @@
 @endcanany
 
 @if ($buckets)
-  <div class="grid gap-4 sm:grid-cols-3">
+  <div class="grid gap-4 {{ $buckets['loan'] ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3' }}">
     <a href="{{ route('ledgers.show', ['ledger' => $ledger, 'bucket' => 'trip_cash'] + $query) }}" class="stat {{ $bucket === 'trip_cash' ? 'ring-2 ring-brand-300' : '' }}"><div class="stat-label">{{ __('Trip cash') }}</div><div class="stat-value money">{{ $bal($buckets['trip_cash']) }}</div><div class="mt-1 text-xs text-ink-500">{{ $buckets['trip_cash'] > 0 ? __('Company money still with :name', ['name' => $ledger->name]) : __('Spent from their own pocket, not yet paid back') }}</div></a>
     <a href="{{ route('ledgers.show', ['ledger' => $ledger, 'bucket' => 'earnings'] + $query) }}" class="stat {{ $bucket === 'earnings' ? 'ring-2 ring-brand-300' : '' }}"><div class="stat-label">{{ __('Earnings') }}</div><div class="stat-value money">{{ $bal($buckets['earnings']) }}</div><div class="mt-1 text-xs text-ink-500">{{ __('Bata, salary and incentives less deductions') }}</div></a>
+    @if ($buckets['loan'])
+      <a href="{{ route('ledgers.show', ['ledger' => $ledger, 'bucket' => 'loan'] + $query) }}" class="stat {{ $bucket === 'loan' ? 'ring-2 ring-brand-300' : '' }}"><div class="stat-label">{{ __('Advance against pay') }}</div><div class="stat-value money">{{ $bal($buckets['loan']) }}</div><div class="mt-1 text-xs text-ink-500">{{ __('Given ahead of pay, recovered from the payslip') }}</div></a>
+    @endif
     <a href="{{ route('ledgers.show', ['ledger' => $ledger] + array_diff_key($query, ['bucket' => 1])) }}" class="stat {{ ! $bucket ? 'ring-2 ring-brand-300' : '' }}"><div class="stat-label">{{ __('Net balance due') }}</div><div class="stat-value money">{{ $bal($buckets['net']) }}</div><div class="mt-1 text-xs text-ink-500">{{ LedgerController::words('person', $ledger->name, $buckets['net']) }}</div></a>
   </div>
 @endif

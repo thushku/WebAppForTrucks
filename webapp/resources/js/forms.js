@@ -176,3 +176,24 @@ document.addEventListener('click', (event) => {
   const remove = event.target.closest('[data-remove-row]');
   if (remove) remove.closest('tr')?.remove();
 });
+
+// Fields shown only for some answers (the person's quick cash, M27):
+// data-show-if="direction=received trip_id=" — every condition must hold, and
+// an empty value means "left empty". Hidden fields are disabled so they are not sent.
+document.querySelectorAll('form[data-show-if-form]').forEach((form) => {
+  const value = (name) => form.elements[name]?.value ?? '';
+  const sync = () => {
+    form.querySelectorAll('[data-show-if]').forEach((el) => {
+      const show = el.dataset.showIf.split(' ').every((cond) => {
+        const [name, wanted = ''] = cond.split('=');
+        return value(name) === wanted;
+      });
+      el.classList.toggle('hidden', !show);
+    });
+    form.querySelectorAll('[data-show-if] select, [data-show-if] input').forEach((field) => {
+      field.disabled = field.closest('[data-show-if].hidden') !== null;
+    });
+  };
+  form.addEventListener('change', sync);
+  sync();
+});

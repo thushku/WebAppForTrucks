@@ -130,6 +130,40 @@ class Compliance
     }
 
     /**
+     * health() for a whole list page of trucks or people in three queries
+     * (M27, 13-parity #19), with what makes the colour: expired, due soon and
+     * missing papers.
+     *
+     * @param iterable<Truck|Person> $owners all trucks or all people
+     * @return array<int, array{state: string, expired: int, due: int, missing: int}> by owner id
+     */
+    public function healthMany(iterable $owners): array
+    {
+        $owners = collect($owners);
+        if ($owners->isEmpty()) {
+            return [];
+        }
+        $appliesTo = $owners->first() instanceof Truck ? 'truck' : 'person';
+        $docs = Document::where('owner_type', $appliesTo)->whereIn('owner_id', $owners->pluck('id'))->get(['id', 'owner_type', 'owner_id', 'document_type', 'expires_on'])->groupBy('owner_id');
+        $rules = DocumentRequiredType::where('applies_to', $appliesTo)->get(['document_type', 'subtype']);
+
+        return $owners->mapWithKeys(function ($owner) use ($docs, $rules, $appliesTo) {
+            $mine = $docs[$owner->id] ?? collect();
+            $have = $mine->pluck('document_type')->all();
+            if ($owner instanceof Person && $owner->licence_no) {
+                $have[] = 'licence';
+            }
+            $subtype = $appliesTo === 'truck' ? $owner->truck_type : $owner->type;
+            $missing = $rules->filter(fn ($r) => ($r->subtype === null || $r->subtype === $subtype) && ! in_array($r->document_type, $have, true))->pluck('document_type')->unique()->count();
+            $states = $mine->map(fn ($d) => $this->state($d))->countBy();
+            $expired = (int) ($states['expired'] ?? 0);
+            $due = (int) ($states['due'] ?? 0);
+
+            return [$owner->id => ['state' => $missing || $expired ? 'red' : ($due ? 'amber' : 'green'), 'expired' => $expired, 'due' => $due, 'missing' => $missing]];
+        })->all();
+    }
+
+    /**
      * Counts for the dashboard tiles: expired, due within 7 / 15 / 30 days,
      * and missing required papers across every truck and person.
      *

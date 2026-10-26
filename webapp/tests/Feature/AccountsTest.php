@@ -100,7 +100,7 @@ it('posts the crew’s money: advance, spending by who paid, money from the part
 
     app(CompanyContext::class)->set($w['company']);
     $ravi = LedgerAccount::where('system_key', 'person:' . $w['driver']->id)->first();
-    expect(app(Statements::class)->crewBuckets($ravi))->toBe(['trip_cash' => 0.0, 'earnings' => -1200.0, 'net' => -1200.0])
+    expect(app(Statements::class)->crewBuckets($ravi))->toBe(['trip_cash' => 0.0, 'earnings' => -1200.0, 'loan' => 0.0, 'net' => -1200.0])
         ->and(accBalance('person:' . $w['co']->id))->toBe(-1500.0)
         ->and(accBalance('person:' . $w['helper']->id))->toBe(-800.0)
         ->and(accBalance('bata'))->toBe(3500.0)
