@@ -88,6 +88,9 @@ class OfficeController extends Controller
         return response()->json($this->tripRow($trip) + [
             'instructions' => $trip->instructions,
             'planned_km' => $trip->planned_km, 'start_odometer' => $trip->start_odometer, 'end_odometer' => $trip->end_odometer,
+            // Odometer against GPS (M34): ok | differs | thin | none; gap in % of the GPS distance.
+            'gps_km' => $trip->gps_km !== null ? (float) $trip->gps_km : null, 'gps_coverage' => $trip->gps_coverage, 'km_check' => $trip->km_check,
+            'km_gap' => \App\Modules\Road\Services\GpsDistance::gap($trip),
             'stops' => $trip->stops->map(fn ($s) => ['seq' => $s->seq, 'place' => $s->place?->name, 'kind' => $s->kind,
                 'arrived_at' => $s->arrived_at?->toIso8601String(), 'departed_at' => $s->departed_at?->toIso8601String()])->values(),
             'loads' => $trip->consignments->map(fn ($c) => [

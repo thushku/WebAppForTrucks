@@ -299,6 +299,8 @@ class TripService
             Consignment::where('trip_id', $trip->id)->whereIn('status', ['booked', 'picked_up', 'in_transit'])
                 ->update(['status' => 'delivered', 'delivered_at' => $at, 'updated_at' => now()]);
         });
+        // Odometer against GPS (M34); measured again overnight as late points arrive.
+        app(\App\Modules\Road\Services\GpsDistance::class)->check($trip);
     }
 
     public function cancel(Trip $trip, string $reason): void

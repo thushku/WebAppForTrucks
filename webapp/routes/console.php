@@ -25,3 +25,5 @@ Schedule::command('fleet:reminders')->dailyAt('09:05')->timezone('Asia/Kolkata')
 Schedule::command('fleet:deletions')->hourlyAt(35)->name('company-deletions')->withoutOverlapping();
 // The morning summary (M32): every hour, for the companies where it is 07:00 now.
 Schedule::command('fleet:digest')->hourlyAt(10)->name('morning-summary')->withoutOverlapping();
+// Odometer against GPS (M34): recent trips measured again, after late points have arrived.
+Schedule::command('fleet:gps-check')->dailyAt('02:40')->timezone('Asia/Kolkata')->name('gps-check')->withoutOverlapping();

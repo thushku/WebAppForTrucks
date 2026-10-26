@@ -62,7 +62,8 @@ founder's laptop) in `phoneapp/`.
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
   broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
   LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events
-  with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `CrewCommands` are the phone's taps, kept per
+  with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `GpsDistance` (M34) — a trip's GPS km and
+  coverage against its odometer, `trips.km_check`, re-measured by `fleet:gps-check`; `CrewCommands` are the phone's taps, kept per
   UUID in `api_commands` so a retry never runs twice), `Tax` (registrations, dated codes/rates/rules from the
   country presets, `TaxEngine` → place of supply, rule match, `TaxCalculator`, `Withholding` for TDS; no rule = an
   error, never 0 %), `Invoicing` (bills from LRs, notes, receipts with TDS, balances, `DocumentData` snapshot →

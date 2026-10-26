@@ -31,6 +31,10 @@
   <div><label class="label" for="t_party">{{ __('Client') }}</label><select id="t_party" name="party" class="input w-44"><option value="">{{ __('Any') }}</option>@foreach ($parties as $id => $name)<option value="{{ $id }}" @selected((int) ($f['party'] ?? 0) === $id)>{{ $name }}</option>@endforeach</select></div>
   <div><label class="label" for="t_q">{{ __('Trip no.') }}</label><input id="t_q" name="q" value="{{ $f['q'] ?? '' }}" class="input w-40" maxlength="40"></div>
   <div><label class="label" for="t_billing">{{ __('Billing') }}</label><select id="t_billing" name="billing" class="input w-40"><option value="">{{ __('Any') }}</option>@foreach (['not_invoiced' => __('Not invoiced'), 'invoiced' => __('Invoiced, unpaid'), 'paid' => __('Paid')] as $k => $label)<option value="{{ $k }}" @selected(($f['billing'] ?? '') === $k)>{{ $label }}</option>@endforeach</select></div>
+  @if (($f['km'] ?? null) === 'differs')
+    <input type="hidden" name="km" value="differs">
+    <a href="{{ route('trips.index', array_filter(array_diff_key($f, ['km' => 1]))) }}" class="pill self-center bg-amber-50 text-partial" title="{{ __('Show all') }}">{{ __('Odometer and GPS apart') }} ×</a>
+  @endif
   <button class="btn-secondary"><x-icon name="search" /> {{ __('Show') }}</button>
   <a href="{{ route('trips.index') }}" class="btn-ghost text-sm">{{ __('Reset filters') }}</a>
   <span class="ms-auto flex gap-2">

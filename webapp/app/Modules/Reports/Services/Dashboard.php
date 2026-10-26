@@ -103,6 +103,13 @@ class Dashboard
                 : __('No GPS from :vehicle for :n min (:trip)', ['vehicle' => $p['vehicle'], 'n' => $p['minutes'], 'trip' => $p['trip']]), 'url' => $p['url']];
         }
 
+        // Odometer and GPS apart on a trip of the last 30 days (M34).
+        $apart = Trip::inBranch()->where('km_check', 'differs')->where('ended_at', '>=', now()->subDays(30))->count();
+        if ($apart) {
+            $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count trip of the last 30 days has the odometer and GPS apart|:count trips of the last 30 days have the odometer and GPS apart', $apart),
+                'url' => route('trips.index', ['status' => 'all', 'km' => 'differs'])];
+        }
+
         $flagged = RoadEvent::whereIn('status', RoadEvent::OPEN)->whereNotNull('flags')->where('flags', '!=', '[]')->count();
         if ($flagged) {
             $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count crew entry has a flag to look at|:count crew entries have flags to look at', $flagged), 'url' => route('approvals.index')];

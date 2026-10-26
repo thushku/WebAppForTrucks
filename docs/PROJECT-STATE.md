@@ -2,6 +2,22 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M34: odometer against GPS (decision P24)
+
+**Built (in `webapp/`, `Road/Services/GpsDistance`, `fleet:gps-check`):**
+- Each ended trip gets its **distance by GPS** (the crew phone's points, without fake locations, poor fixes or jumps no
+  truck can make) and the **share of the trip the GPS covered**, beside the odometer's km. With good coverage (80 %+)
+  and the two more than 15 % apart the trip is flagged — a tampered odometer or a run nobody entered.
+- Shown on the trip page (Distance: odometer · GPS · coverage, the warning), as a dashboard alert for the last 30 days
+  linking to the trip list's new "Odometer and GPS apart" filter (also in the trip report's words), and in the owner
+  app's trip (`gps_km`, `gps_coverage`, `km_check`, `km_gap`).
+- Measured when the trip ends and again each night for three days, as phones that were offline send late points.
+- Migration 000026: `trips.gps_km`, `gps_coverage`, `km_check`.
+
+**Tests:** 270 passing (new `GpsKmTest`, 2 tests: a 100-minute run of points with a fake one and a jump left out — about
+100 km, full coverage, the 250 km odometer flagged on the trip, the dashboard, the trip list and the owner app, then
+corrected and found agreeing by the nightly run; 20 minutes of GPS on a five-hour trip not compared).
+
 ## 2026-10-26 — Milestone M33: the routes report (route analysis)
 
 **Built (in `webapp/`, `Reports::lanes()`, Reports → Routes, `GET /owner/reports/routes`):**

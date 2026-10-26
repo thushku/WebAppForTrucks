@@ -251,6 +251,20 @@
           <div class="flex justify-between border-t border-ink-100 pt-1.5 font-semibold {{ $p['profit'] >= 0 ? 'text-paid' : 'text-overdue' }}"><dt>{{ __('Trip profit (direct)') }}</dt><dd class="money">{{ \App\Support\Money::company($p['profit']) }}</dd></div>
           @if ($p['per_km'])<div class="flex justify-between text-xs text-ink-500"><dt>{{ __('per km') }}</dt><dd class="money">{{ \App\Support\Money::company($p['per_km']) }}</dd></div>@endif
         </dl>
+        @if ($trip->ended_at && ($trip->end_odometer || $trip->gps_km !== null))
+          {{-- Odometer against GPS (M34). --}}
+          @php($gap = \App\Modules\Road\Services\GpsDistance::gap($trip))
+          <div class="mt-3 rounded-xl bg-ink-50 p-3 text-sm" data-km-check="{{ $trip->km_check }}">
+            <div class="flex flex-wrap justify-between gap-2"><span class="text-ink-500">{{ __('Distance') }}</span>
+              <span>{{ $trip->start_odometer && $trip->end_odometer ? __('Odometer :km km', ['km' => number_format($trip->end_odometer - $trip->start_odometer)]) : __('No odometer reading') }}
+                · {{ $trip->gps_km !== null ? __('GPS :km km (:p% of the trip covered)', ['km' => number_format((float) $trip->gps_km), 'p' => $trip->gps_coverage]) : __('No GPS') }}</span></div>
+            @if ($trip->km_check === 'differs')
+              <p class="mt-1.5 font-medium text-partial">{{ __('The odometer and the GPS differ by :p% — check the readings or ask the driver about a run not entered.', ['p' => abs($gap)]) }}</p>
+            @elseif ($trip->km_check === 'thin')
+              <p class="mt-1.5 text-xs text-ink-500">{{ __('Too little GPS (or no odometer) to compare the two.') }}</p>
+            @endif
+          </div>
+        @endif
         @if ($p['waiting'] > 0)<p class="mt-3 text-xs text-partial">{{ __(':amount of crew entries still wait for approval and are not counted yet.', ['amount' => \App\Support\Money::company($p['waiting'])]) }}</p>@endif
         <p class="mt-3 text-xs text-ink-500">{{ __('Shared costs (salary share, EMI, insurance, tyres) are not spread to trips yet.') }}
           @can('accounts.view')<a href="{{ route('accounts.profit-loss', ['trip_id' => $trip->id, 'from' => '2000-01-01']) }}" class="text-brand-700 hover:underline">{{ __('This trip in the books') }}</a>@endcan</p>

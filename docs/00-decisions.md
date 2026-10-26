@@ -409,6 +409,18 @@ package), QR codes / amount in words / CSV written in-house. See
   summary would show other branches); read-only companies get none. Each
   summary goes once (`digest_deliveries`).
 
+### P24. Odometer against GPS (added 26 Oct 2026, M34)
+
+- A trip's km by the crew phone's GPS (points without fake locations, poor
+  fixes worse than 100 m or jumps over 130 km/h) are kept beside the
+  odometer's, with how much of the trip the GPS covered (a point at least
+  every 15 minutes).
+- **Flagged when the GPS covered 80 % or more and the two are more than 15 %
+  apart** — shown on the trip, as a dashboard alert (last 30 days) and as a
+  trip-list filter. Measured when the trip ends and again each night for
+  three days (late points from offline phones). The thresholds are a first
+  guess: tell us if they flag too much or too little.
+
 ---
 
 ## 4. Still open

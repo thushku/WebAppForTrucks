@@ -93,6 +93,7 @@ class TripController extends Controller
             'party'   => ['nullable', 'integer'],
             'q'       => ['nullable', 'string', 'max:40'],
             'billing' => ['nullable', Rule::in(['not_invoiced', 'invoiced', 'paid'])],
+            'km'      => ['nullable', Rule::in(['differs'])],
         ]);
         $f['status'] = $f['status'] ?? 'active';
         $status = $f['status'];
@@ -108,6 +109,8 @@ class TripController extends Controller
             ->when($f['place'] ?? null, fn ($q, $id) => $q->where(fn ($w) => $w->where('from_place_id', $id)->orWhere('to_place_id', $id)->orWhereHas('stops', fn ($s) => $s->where('place_id', $id))))
             ->when($f['party'] ?? null, fn ($q, $id) => $q->whereHas('consignments', fn ($c) => $c->where('billing_party_id', $id)->orWhere('consignor_party_id', $id)->orWhere('consignee_party_id', $id)))
             ->when(filled($f['q'] ?? null), fn ($q) => $q->where('trip_number', 'like', '%' . addcslashes(strtoupper($f['q']), '%_\\') . '%'))
+            // Odometer and GPS apart (M34).
+            ->when(($f['km'] ?? null) === 'differs', fn ($q) => $q->where('km_check', 'differs'))
             // Billing: a load still to bill; every load billed with something unpaid; every load billed and paid.
             ->when(($f['billing'] ?? null) === 'not_invoiced', fn ($q) => $q->whereHas('consignments', $unbilled))
             ->when(($f['billing'] ?? null) === 'invoiced', fn ($q) => $q->whereDoesntHave('consignments', $unbilled)
@@ -178,6 +181,7 @@ class TripController extends Controller
             isset($f['truck']) ? __('Truck: :t', ['t' => Truck::whereKey($f['truck'])->value('reg_no')]) : null,
             isset($f['party']) ? __('Client: :c', ['c' => Party::whereKey($f['party'])->value('name')]) : null,
             isset($f['billing']) ? ['not_invoiced' => __('Not invoiced'), 'invoiced' => __('Invoiced, unpaid'), 'paid' => __('Paid')][$f['billing']] : null,
+            isset($f['km']) ? __('Odometer and GPS apart') : null,
             filled($f['q'] ?? null) ? __('Number: :q', ['q' => $f['q']]) : null,
         ]));
     }
