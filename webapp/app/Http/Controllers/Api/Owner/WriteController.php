@@ -195,6 +195,47 @@ class WriteController extends Controller
         });
     }
 
+    /**
+     * A credit or debit note against an issued bill (M43), with its reason:
+     * a credit note for the whole bill (its lines copied) or for an amount
+     * before tax (one line, the bill's service); a debit note with its lines
+     * (detention, rate difference…). Issued at once when asked and allowed;
+     * the tax is the bill's, by the engine, as on the web.
+     */
+    public function storeNote(Request $request, Invoice $invoice, InvoiceService $invoices): JsonResponse
+    {
+        return $this->once($request, 'invoice.note', function () use ($request, $invoice, $invoices) {
+            $data = $request->validate([
+                'type' => ['required', Rule::in(['credit_note', 'debit_note'])],
+                'reason' => ['required', 'string', 'min:3', 'max:500'],
+                'amount' => ['nullable', 'numeric', 'min:1', 'max:999999999'],
+                'lines' => ['nullable', 'required_if:type,debit_note', 'array', 'min:1', 'max:20'],
+                'lines.*.description' => ['required', 'string', 'max:255'],
+                'lines.*.amount' => ['required', 'numeric', 'min:1', 'max:999999999'],
+                'lines.*.service_class' => ['nullable', Rule::in(array_keys(\App\Modules\Tax\Services\ServiceClasses::CLASSES))],
+                'finalise' => ['nullable', 'boolean'],
+            ], ['lines.required_if' => __('Give the debit note’s lines.')]);
+            if ($request->boolean('finalise') && ! $request->user()->can('invoice.finalise')) {
+                abort(403);
+            }
+            $note = $data['type'] === 'credit_note' ? $invoices->draftCreditNote($invoice, $request->user()) : $invoices->draftAgainst($invoice, 'debit_note', $request->user());
+            $lines = null;
+            if ($data['type'] === 'credit_note' && isset($data['amount'])) {
+                $lines = [['service_class' => $note->lines->first()?->service_class ?? 'FREIGHT_ROAD', 'description' => __('Credit against :number', ['number' => $invoice->number]),
+                    'detail' => mb_substr($data['reason'], 0, 255), 'unit' => 'lump', 'quantity' => 1, 'unit_rate' => (float) $data['amount']]];
+            } elseif ($data['type'] === 'debit_note') {
+                $lines = array_map(fn ($l) => ['service_class' => $l['service_class'] ?? 'OTHER_CHARGES', 'description' => $l['description'], 'unit' => 'lump', 'quantity' => 1,
+                    'unit_rate' => (float) $l['amount']], $data['lines']);
+            }
+            $note = $invoices->updateDraft($note, ['reason' => $data['reason']] + ($lines ? ['lines' => $lines] : []));
+            if ($request->boolean('finalise')) {
+                $note = $invoices->finalise($note->fresh(), $request->user());
+            }
+
+            return ['invoice' => MoneyController::row($note->fresh('party'), $this->today()) + ['against' => $invoice->number, 'reason' => $note->reason]];
+        });
+    }
+
     /** Money received: cash, UPI, NEFT or cheque, with TDS and deductions, set against the oldest bills. */
     public function storeReceipt(Request $request, ReceiptService $receipts): JsonResponse
     {

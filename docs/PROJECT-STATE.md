@@ -2,6 +2,19 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M43: credit and debit notes from the owner app
+
+**Built (in `webapp/`, `Api/Owner/WriteController::storeNote`):**
+- `POST /owner/invoices/{id}/notes` against an issued bill, with its reason: a **credit note** for the whole bill (its
+  lines copied) or for an amount before tax (one line of the bill's service), a **debit note** with its lines (detention,
+  rate difference…); the tax is the bill's, by the engine, as on the web; issued at once when asked (with
+  `invoice.finalise`), else left as a draft to finish on the web. A credit beyond what is left to credit is refused.
+- With this every money document can be made from the phone (api-v1 §12, screens O11).
+
+**Tests:** 292 passing (new `OwnerNotesTest`: ₹5,000 credited before tax as CN/26-27/0001 for ₹5,900 and the bill's
+balance down to ₹69,620, the same key replayed, a full credit then refused, a debit note without lines refused, a
+detention debit note issued, a draft left against the bill).
+
 ## 2026-10-26 — Milestone M42: settling a trip and hire challans from the owner app
 
 **Built (in `webapp/`, `Api/Owner/SettlementController`, `Api/Owner/HireController`; api-v1 §16):**
