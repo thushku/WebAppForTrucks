@@ -489,6 +489,20 @@ package), QR codes / amount in words / CSV written in-house. See
 - Tyres near 90 % of their expected km are flagged on the dashboard and the
   tyre store.
 
+### P29. A truck's money: the books, then the estimates (added 26 Oct 2026, M39)
+
+- The truck page's Costs tab (and the owner app's) shows **what the books hold
+  for the truck** in a period — income and costs by ledger and by month —,
+  then adds **only what the books cannot hold by truck**, as estimates: its
+  current papers' cost and its usual driver's salary for the period's days,
+  and its tyres' wear on the trips that ended in it. The truck's own bills
+  are already in the books, so they are not estimated again.
+- A **cancelled voucher and its reversal are left out together** wherever a
+  sum skips cancelled vouchers (a reversal alone would count the cost
+  backwards); a sum over all vouchers includes both, which net to nothing.
+- Km per litre is measured from one full tank to the next: the km between
+  them over the litres bought since.
+
 ---
 
 ## 4. Still open

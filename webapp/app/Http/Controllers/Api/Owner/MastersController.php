@@ -131,6 +131,56 @@ class MastersController extends Controller
 
     // ---- Trucks (the list is GET /owner/trucks) -------------------------------------------
 
+    // ---- A truck's trips, fuel and money (M39) ---------------------------------------
+
+    public function truckTrips(Request $request, Truck $truck, \App\Modules\Fleet\Services\TruckActivity $activity): JsonResponse
+    {
+        [$from, $to] = $this->period($request, $activity);
+        $money = $request->user()->can('trip.freight_view');
+
+        return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'trips' => $activity->trips($truck, $from, $to)->map(fn ($r) => [
+            'uuid' => $r->trip->uuid, 'number' => $r->trip->trip_number, 'date' => $r->trip->trip_date?->toDateString(), 'status' => $r->trip->status,
+            'status_label' => __(\App\Modules\Trips\Models\Trip::STATUSES[$r->trip->status] ?? $r->trip->status), 'route' => $r->route, 'driver' => $r->driver, 'km' => $r->km,
+            'freight' => $money ? $r->freight : null,
+        ])->values()]);
+    }
+
+    public function truckFuel(Request $request, Truck $truck, \App\Modules\Fleet\Services\TruckActivity $activity): JsonResponse
+    {
+        [$from, $to] = $this->period($request, $activity);
+        $fuel = $activity->fuel($truck, $from, $to);
+
+        return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString()] + collect($fuel)->except('fills')->all() + ['fills' => $fuel['fills']->map(fn ($r) => [
+            'at' => $r->event->trusted_at->toIso8601String(), 'trip' => $r->event->trip?->trip_number, 'trip_uuid' => $r->event->trip?->uuid, 'litres' => $r->litres, 'rate' => $r->rate,
+            'amount' => (float) $r->event->amount, 'odometer' => $r->event->odometer, 'full_tank' => $r->full, 'km' => $r->km, 'kmpl' => $r->kmpl, 'pump' => $r->pump, 'status' => $r->event->status,
+        ])->values()]);
+    }
+
+    public function truckCosts(Request $request, Truck $truck, \App\Modules\Fleet\Services\TruckActivity $activity): JsonResponse
+    {
+        [$from, $to] = $this->period($request, $activity);
+        $c = $activity->costs($truck, $from, $to);
+        $ledgers = fn ($groups) => collect($groups)->flatMap(fn ($ls, $group) => collect($ls)->map(fn ($l) => ['group' => $group, 'name' => $l->name, 'amount' => round((float) $l->amount, 2)]))->values();
+
+        return response()->json([
+            'from' => $c['from']->toDateString(), 'to' => $c['to']->toDateString(), 'days' => $c['days'], 'trips' => $c['trips'], 'km' => $c['km'],
+            'income' => round($c['total_income'], 2), 'costs' => round($c['total_expense'], 2), 'profit' => round($c['profit'], 2),
+            'estimates' => $c['estimates'], 'net' => $c['net'], 'per_km' => $c['per_km'],
+            'income_ledgers' => $ledgers($c['income']), 'cost_ledgers' => $ledgers($c['expense']),
+            'months' => $c['months']->map(fn ($r) => ['month' => $r->month, 'income' => round((float) $r->income, 2), 'running' => round((float) $r->running, 2),
+                'maintenance' => round((float) $r->maintenance, 2), 'profit' => round((float) $r->profit, 2)])->values(),
+        ]);
+    }
+
+    /** @return array{0: \Carbon\CarbonImmutable, 1: \Carbon\CarbonImmutable} this financial year unless from/to are sent */
+    private function period(Request $request, \App\Modules\Fleet\Services\TruckActivity $activity): array
+    {
+        $f = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        [$from, $to] = $activity->defaultPeriod();
+
+        return [isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $from, isset($f['to']) ? \Carbon\CarbonImmutable::parse($f['to']) : $to];
+    }
+
     /** A truck in full; with its fixed costs a day (M37) for those who see money, null for an attached truck. */
     public function truck(Request $request, Truck $truck): JsonResponse
     {

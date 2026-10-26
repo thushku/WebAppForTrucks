@@ -62,7 +62,8 @@ founder's laptop) in `phoneapp/`.
   day running or not (papers over their validity, the usual driver's salary, its no-trip bills of 90 days) and a trip's share,
   an estimate shown under the direct profit; an attached truck counts none; M38 `Tyres` — the tyre register: `tyres`,
   `tyre_fitments` by wheel position from the truck's wheel count, `tyre_retreads`; cost ÷ expected km is a tyre's wear, a trip's
-  tyre wear is its km on the truck within the trip's odometer readings; Trucks → Tyres and the truck's Tyres tab), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
+  tyre wear is its km on the truck within the trip's odometer readings; Trucks → Tyres and the truck's Tyres tab; M39
+  `TruckActivity` — a truck's trips, fuel (km/l between full tanks) and money for its Trips, Fuel and Costs tabs), `People` (people, activation codes), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
   broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
   LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events
@@ -88,6 +89,7 @@ founder's laptop) in `phoneapp/`.
   `php artisan fleet:books` posts anything missing; M19: `OpeningBalances` — balance-sheet ledgers only, the rest in
   "Difference in opening balances" —, `BankReconciliation` — the bank's CSV in, auto match only when clear, match by
   hand, book charges or interest, the summary; a party's statement is `documents/statement` from `LedgerController`;
+  a sum that skips cancelled vouchers must skip their reversals too (`whereNull('v.reverses_voucher_id')`, P29);
   M27: `CrewCash` — quick cash given to or spent by a crew member, from the person page and the owner app: for a trip
   it is a `TripAdvance` (so the settlement counts it), else an advance against pay (bucket `loan`) or dues paid
   (`earnings`); spent is the expense owed with their pay. `Statements::crewBuckets` has `loan` and a net of all three), `Reports` (M32: `Digest` — the morning summary; `fleet:digest`

@@ -41,7 +41,8 @@ class TruckCosts
         $book = (float) DB::table('voucher_lines as l')->join('vouchers as v', 'v.id', '=', 'l.voucher_id')
             ->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')->join('account_groups as g', 'g.id', '=', 'a.account_group_id')
             ->where('l.company_id', $this->context->id())->where('l.truck_id', $truck->id)->whereNull('l.trip_id')->where('g.nature', 'expense')
-            ->where('v.status', '!=', 'cancelled')->whereBetween('v.voucher_date', [$from->toDateString(), $today->toDateString()])
+            // A cancelled voucher and its reversal both left out: neither is a cost.
+            ->where('v.status', '!=', 'cancelled')->whereNull('v.reverses_voucher_id')->whereBetween('v.voucher_date', [$from->toDateString(), $today->toDateString()])
             ->sum(DB::raw('l.debit - l.credit'));
 
         $papers = [];

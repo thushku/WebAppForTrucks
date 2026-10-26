@@ -126,6 +126,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/trucks', [MastersController::class, 'storeTruck'])->middleware('permission:truck.manage')->name('trucks.store');
                 Route::put('/trucks/{truck}', [MastersController::class, 'updateTruck'])->whereNumber('truck')->middleware('permission:truck.manage')->name('trucks.update');
                 Route::post('/trucks/{truck}/status', [MastersController::class, 'truckStatus'])->whereNumber('truck')->middleware('permission:truck.manage')->name('trucks.status');
+                Route::get('/trucks/{truck}/trips', [MastersController::class, 'truckTrips'])->whereNumber('truck')->middleware('permission:trip.view')->name('trucks.trips');
+                Route::get('/trucks/{truck}/fuel', [MastersController::class, 'truckFuel'])->whereNumber('truck')->middleware('permission:report.view,event.verify')->name('trucks.fuel');
+                Route::get('/trucks/{truck}/costs', [MastersController::class, 'truckCosts'])->whereNumber('truck')->middleware('permission:report.view,accounts.view,ledger.view')->name('trucks.costs');
                 Route::get('/crew', [MastersController::class, 'crew'])->middleware('permission:people.view')->name('crew');
                 Route::get('/crew/{person}', [MastersController::class, 'person'])->whereNumber('person')->middleware('permission:people.view')->name('crew.show');
                 Route::post('/crew', [MastersController::class, 'storePerson'])->middleware('permission:people.manage')->name('crew.store');

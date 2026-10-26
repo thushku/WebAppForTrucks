@@ -2,6 +2,26 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M39: a truck's trips, fuel and money (decision P29)
+
+**Built (in `webapp/`, `Fleet/Services/TruckActivity`, the truck page's last three tabs):**
+- **Trips**: the truck's trips in a period (this financial year unless chosen) — number, date, route, driver, status, km,
+  freight (for those who see it) — with the totals.
+- **Fuel**: litres, fuel cost, the km its trips ran, **km per litre** from one full tank to the next against its normal
+  mileage (red when short), fuel per km, and each fill with its rate, odometer, pump and status.
+- **Costs**: the books for the truck — income, costs, profit; by ledger and month by month —, then as estimates only what
+  the books do not hold by truck (its papers and usual driver's salary for the period's days, its tyres' wear on the trips
+  that ended), and the **profit after the truck's costs**, per km; a link to the books' truck profit.
+- Each tab only for those who may see it (trips `trip.view`; fuel `report.view` / `event.verify`; costs `report.view` /
+  `accounts.view` / `ledger.view`); the owner app has all three (`/owner/trucks/{id}/trips`, `/fuel`, `/costs`; screen O34).
+- **Fixed on the way**: a reversed voucher was counted backwards in a truck loan's balance (M35) and in a truck's own
+  bills of 90 days (M37) — a cancelled voucher is left out, so its reversal must be too. Both now leave out the pair.
+- Hindi for every new string.
+
+**Tests:** 284 passing (new `TruckTabsTest`, 2 tests: the trips, three fills to 7 km a litre, ₹55,000 in the books less
+6 days of papers and salary and ₹350 of tyre wear, the owner app's three; a workshop login sees none of the three; and in
+`EmiTest`, an EMI voucher reversed leaves the loan and the truck's costs as they were).
+
 ## 2026-10-26 — Milestone M38: tyres (decision P28)
 
 **Built (in `webapp/`, `Fleet/Services/Tyres`, Trucks → Tyres, the truck's Tyres tab):**

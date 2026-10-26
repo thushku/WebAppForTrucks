@@ -8,6 +8,7 @@ use App\Modules\Fleet\Models\Truck;
 use App\Modules\Fleet\Models\Tyre;
 use App\Modules\Fleet\Models\TyreFitment;
 use App\Modules\Fleet\Services\FleetService;
+use App\Modules\Fleet\Services\TruckActivity;
 use App\Modules\Fleet\Services\TruckCosts;
 use App\Modules\Fleet\Services\Tyres;
 use App\Modules\Parties\Models\Party;
@@ -65,7 +66,7 @@ class TruckController extends Controller
 
     public function show(Request $request, Truck $truck): View
     {
-        $tab = in_array($request->query('tab'), ['overview', 'complaints', 'service', 'tyres'], true) ? $request->query('tab') : 'overview';
+        $tab = in_array($request->query('tab'), array_keys($this->tabs($request)), true) ? $request->query('tab') : 'overview';
         $truck->load(['owner', 'branch']);
         $compliance = app(\App\Modules\Documents\Services\Compliance::class);
         $documents  = \App\Modules\Documents\Models\Document::where('owner_type', 'truck')->where('owner_id', $truck->id)->whereNotNull('expires_on')->orderBy('expires_on')->get();
@@ -84,7 +85,37 @@ class TruckController extends Controller
             'missing'    => $compliance->missing($truck),
             'health'     => $compliance->health($truck),
             'costs'      => $tab === 'overview' && $request->user()->can('trip.freight_view') && app(TruckCosts::class)->counts($truck) ? app(TruckCosts::class)->perDay($truck) : null,
-        ] + ($tab === 'tyres' ? $this->tyreTab($truck) : []));
+            'tabs'       => $this->tabs($request),
+        ] + ($tab === 'tyres' ? $this->tyreTab($truck) : []) + (in_array($tab, ['trips', 'fuel', 'costs'], true) ? $this->activityTab($request, $truck, $tab) : []));
+    }
+
+    /** The truck page's tabs this person may open (M39 adds its trips, fuel and money). */
+    private function tabs(Request $request): array
+    {
+        $user = $request->user();
+
+        return array_filter([
+            'overview' => __('Overview'), 'complaints' => __('Complaints'), 'service' => __('Service'), 'tyres' => __('Tyres'),
+            'trips' => $user->can('trip.view') ? __('Trips') : null,
+            'fuel' => $user->canAny(['report.view', 'event.verify']) ? __('Fuel') : null,
+            'costs' => $user->canAny(['report.view', 'accounts.view', 'ledger.view']) ? __('Costs') : null,
+        ]);
+    }
+
+    /** The Trips, Fuel and Costs tabs (M39): one period, this financial year unless chosen. */
+    private function activityTab(Request $request, Truck $truck, string $tab): array
+    {
+        $activity = app(TruckActivity::class);
+        [$from, $to] = $activity->defaultPeriod();
+        $f = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        $from = isset($f['from']) ? \Carbon\CarbonImmutable::parse($f['from']) : $from;
+        $to = isset($f['to']) ? \Carbon\CarbonImmutable::parse($f['to']) : $to;
+
+        return ['from' => $from, 'to' => $to, 'activity' => match ($tab) {
+            'trips' => $activity->trips($truck, $from, $to),
+            'fuel' => $activity->fuel($truck, $from, $to),
+            'costs' => $activity->costs($truck, $from, $to),
+        }];
     }
 
     /** The truck's Tyres tab (M38): its axles with the tyre at each position, tyres in the store to fit, its fitments. */

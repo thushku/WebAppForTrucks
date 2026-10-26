@@ -99,7 +99,8 @@ class TruckLoans
             return null;
         }
         $moved = (float) DB::table('voucher_lines as l')->join('vouchers as v', 'v.id', '=', 'l.voucher_id')->where('l.ledger_account_id', $ledger->id)
-            ->where('v.status', '!=', 'cancelled')->sum(DB::raw('l.debit - l.credit'));
+            // A cancelled EMI voucher and its reversal both left out (together they are nothing).
+            ->where('v.status', '!=', 'cancelled')->whereNull('v.reverses_voucher_id')->sum(DB::raw('l.debit - l.credit'));
 
         return round(-((float) $ledger->opening_balance + $moved), 2);
     }

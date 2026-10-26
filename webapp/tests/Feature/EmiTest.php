@@ -75,3 +75,18 @@ it('lets the owner app see and pay the EMIs, once per key', function () {
     expect(TruckEmi::count())->toBe(1);
     $this->getJson('/api/v1/owner/emis')->assertJsonPath('emis.0.next', '2026-12-05')->assertJsonPath('emis.0.outstanding', 1165000)->assertJsonPath('emis.0.last_paid', '2026-11-05');
 });
+
+it('leaves a reversed voucher out of a truck’s costs and its loan', function () {
+    $w = emWorld();
+    $this->travelTo(CarbonImmutable::parse('2026-11-05 10:00', 'Asia/Kolkata'));
+    $this->post(route('trucks.emis.pay', $w['truck']), ['form_truck' => $w['truck']->id, 'due_on' => '2026-11-05', 'paid_on' => '2026-11-05', 'amount' => 45000, 'interest' => 10000, 'mode' => 'cash'])
+        ->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    $loans = app(TruckLoans::class);
+    $costs = app(\App\Modules\Fleet\Services\TruckCosts::class);
+    expect($loans->outstanding($w['truck']))->toBe(1165000.0)->and($costs->perDay($w['truck'])['parts']['book'])->toBe(111.11);
+
+    // The EMI voucher reversed: the loan is back where it was and the interest is no cost.
+    app(\App\Modules\Accounts\Services\Books::class)->reverse(Voucher::findOrFail(TruckEmi::sole()->voucher_id), 'Wrong month');
+    expect($loans->outstanding($w['truck']))->toBe(1200000.0)->and($costs->perDay($w['truck'])['parts']['book'])->toBe(0.0);
+});
