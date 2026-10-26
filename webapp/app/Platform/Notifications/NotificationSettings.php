@@ -22,6 +22,7 @@ class NotificationSettings
         'papers' => ['Papers', 'Insurance, permits, PUC and licences running out'],
         'money' => ['Pay', 'Your pay paid'],
         'quotations' => ['Quotations', 'A client accepting or declining a quotation'],
+        'digest' => ['Morning summary', 'Yesterday’s trips and money, when you get the summary'],
     ];
 
     /** kind => [group, default priority] */
@@ -30,10 +31,14 @@ class NotificationSettings
         'entry.second' => ['entries', 'high'], 'entry.queried' => ['entries', 'medium'], 'entry.rejected' => ['entries', 'medium'],
         'approvals.waiting' => ['approvals', 'medium'], 'road.incident' => ['incidents', 'high'], 'papers.due' => ['papers', 'medium'],
         'pay.paid' => ['money', 'low'], 'quotation.accepted' => ['quotations', 'medium'], 'quotation.declined' => ['quotations', 'medium'],
+        'digest.ready' => ['digest', 'low'],
         'test' => [null, 'low'],
     ];
 
     public const PRIORITIES = ['high' => 'High', 'medium' => 'Medium', 'low' => 'Low'];
+
+    /** The morning summary by email (M32): owners get the daily one unless they say otherwise. */
+    public const DIGESTS = ['daily' => 'Every morning (yesterday)', 'weekly' => 'Monday mornings (last week)', 'off' => 'Off'];
 
     public static function priorityOf(string $kind): string
     {
@@ -45,20 +50,28 @@ class NotificationSettings
         return self::KINDS[$kind][0] ?? null;
     }
 
-    /** @return array{muted: string[], quiet_from: ?string, quiet_to: ?string} */
+    /** @return array{muted: string[], quiet_from: ?string, quiet_to: ?string, digest: string} */
     public function of(?CompanyUser $member): array
     {
         $s = $member?->notification_settings ?? [];
 
-        return ['muted' => array_values(array_intersect($s['muted'] ?? [], array_keys(self::GROUPS))), 'quiet_from' => $s['quiet_from'] ?? null, 'quiet_to' => $s['quiet_to'] ?? null];
+        return ['muted' => array_values(array_intersect($s['muted'] ?? [], array_keys(self::GROUPS))), 'quiet_from' => $s['quiet_from'] ?? null, 'quiet_to' => $s['quiet_to'] ?? null,
+            'digest' => isset(self::DIGESTS[$s['digest'] ?? '']) ? $s['digest'] : $this->defaultDigest($member)];
     }
 
-    public function save(CompanyUser $member, array $muted, ?string $quietFrom, ?string $quietTo): void
+    public function save(CompanyUser $member, array $muted, ?string $quietFrom, ?string $quietTo, ?string $digest = null): void
     {
+        $before = $member->notification_settings ?? [];
         $member->forceFill(['notification_settings' => [
             'muted' => array_values(array_intersect($muted, array_keys(self::GROUPS))),
             'quiet_from' => $quietFrom && $quietTo ? $quietFrom : null, 'quiet_to' => $quietFrom && $quietTo ? $quietTo : null,
-        ]])->save();
+        ] + (isset(self::DIGESTS[(string) $digest]) ? ['digest' => $digest] : (isset($before['digest']) ? ['digest' => $before['digest']] : []))])->save();
+    }
+
+    /** Owners get the daily summary; everyone else chooses it. */
+    private function defaultDigest(?CompanyUser $member): string
+    {
+        return $member && app(\App\Platform\Authorization\PermissionResolver::class)->levelFor($member) === 0 ? 'daily' : 'off';
     }
 
     /**

@@ -36,6 +36,8 @@ class NotificationController extends Controller
         return response()->json([
             'groups' => collect(\App\Platform\Notifications\NotificationSettings::GROUPS)->map(fn ($g, $key) => ['key' => $key, 'name' => __($g[0]), 'about' => __($g[1]), 'push' => ! in_array($key, $mine['muted'], true)])->values(),
             'quiet_from' => $mine['quiet_from'], 'quiet_to' => $mine['quiet_to'],
+            // The morning summary by email and to the inbox (M32): daily, weekly or off.
+            'digest' => $mine['digest'], 'digests' => collect(\App\Platform\Notifications\NotificationSettings::DIGESTS)->map(fn ($label) => __($label)),
         ]);
     }
 
@@ -43,7 +45,7 @@ class NotificationController extends Controller
     {
         $data = $request->validate(\App\Http\Controllers\NotificationController::settingsRules());
         $groups = array_keys(\App\Platform\Notifications\NotificationSettings::GROUPS);
-        $settings->save(app(\App\Platform\Tenancy\CompanyContext::class)->member(), array_values(array_diff($groups, $data['push'] ?? [])), $data['quiet_from'] ?? null, $data['quiet_to'] ?? null);
+        $settings->save(app(\App\Platform\Tenancy\CompanyContext::class)->member(), array_values(array_diff($groups, $data['push'] ?? [])), $data['quiet_from'] ?? null, $data['quiet_to'] ?? null, $data['digest'] ?? null);
 
         return $this->settings($settings);
     }

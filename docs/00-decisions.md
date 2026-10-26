@@ -395,6 +395,20 @@ package), QR codes / amount in words / CSV written in-house. See
   is posted to them (their ledger is made when the payee list is shown) —
   on the web too.
 
+### P23. The morning summary (added 26 Oct 2026, M32)
+
+- At **07:00 company time** each person who chose it gets yesterday's summary
+  (weekly: Monday, for last week) by **email and in the inbox** (and the
+  phone, low priority): trips started and ended, money billed, received and
+  paid out, spending on the road, what waits (entries to approve, trips to
+  settle, PODs, LRs to bill, overdue bills, papers), the clients who owe the
+  most, the month's profit so far.
+- **Owners get the daily one by default**; everyone else chooses it under My
+  notifications (daily, weekly or off). Your call to change the default.
+- Only people who see the whole company get it (a branch-limited person's
+  summary would show other branches); read-only companies get none. Each
+  summary goes once (`digest_deliveries`).
+
 ---
 
 ## 4. Still open

@@ -23,3 +23,5 @@ Schedule::command('fleet:subscriptions')->dailyAt('00:20')->timezone('Asia/Kolka
 Schedule::command('fleet:reminders')->dailyAt('09:05')->timezone('Asia/Kolkata')->name('overdue-reminders')->withoutOverlapping();
 // Companies whose 72-hour deletion countdown has ended (M17), every hour.
 Schedule::command('fleet:deletions')->hourlyAt(35)->name('company-deletions')->withoutOverlapping();
+// The morning summary (M32): every hour, for the companies where it is 07:00 now.
+Schedule::command('fleet:digest')->hourlyAt(10)->name('morning-summary')->withoutOverlapping();

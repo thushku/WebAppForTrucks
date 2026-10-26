@@ -31,6 +31,19 @@
     </div>
   </section>
 
+  <section class="card space-y-3 p-5">
+    <h2 class="font-semibold">{{ __('Morning summary') }}</h2>
+    <p class="text-sm text-ink-500">{{ __('At 7 in the morning: trips started and ended, money billed, received and paid, spending on the road, what waits for you and who owes the most — by email and in the inbox.') }}</p>
+    <div class="flex flex-wrap gap-2">
+      @foreach (\App\Platform\Notifications\NotificationSettings::DIGESTS as $value => $label)
+        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-ink-200 px-3 py-2 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+          <input type="radio" name="digest" value="{{ $value }}" class="size-4" @checked(old('digest', $settings['digest']) === $value)> {{ __($label) }}
+        </label>
+      @endforeach
+    </div>
+    @error('digest')<span class="error">{{ $message }}</span>@enderror
+  </section>
+
   <div class="flex justify-end"><button class="btn-primary"><x-icon name="check" /> {{ __('Save') }}</button></div>
 </form>
 @endsection

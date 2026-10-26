@@ -2,6 +2,24 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M32: the morning summary (decision P23)
+
+**Built (in `webapp/`, `Reports/Services/Digest`, `fleet:digest`, view `emails/digest`):**
+- **At 07:00 company time**, by email and in the inbox (and the phone, low priority): yesterday's trips started and ended
+  (with the km), on the road now; money billed, received, paid out and spent on the road (by kind); the month's profit
+  so far; what waits — entries to approve, trips to settle, PODs to collect, LRs to bill, overdue bills — and papers;
+  the five clients who owe the most, overdue. The subject is the headline ("Sharma Roadlines — Sunday 25 Oct: 2 trips
+  ended · ₹50,000.00 received · ₹25,520.00 overdue").
+- **Daily, weekly (Monday, for last week) or off**, per person and company, under My notifications on the web and in both
+  apps (`digest`); owners get the daily one until they choose. Only people who see the whole company; none for a
+  read-only company; each summary once (`digest_deliveries`), whatever the hourly run does.
+- The email is plain tables with inline styles (mail apps drop style sheets) and fits a 375 px phone.
+
+**Tests:** 267 passing (new `DigestTest`, 2 tests: two trips ended, a bill and a part payment yesterday and an overdue
+balance — nothing at 06:10, the owner's email at 07:10 with the headline, the amounts, the km, the overdue client and the
+settings link, the inbox notice, nothing twice; the choice off on the web and weekly from the phone, a wrong value
+refused, nothing on Sunday, the manager's weekly email on Monday with last week's dates).
+
 ## 2026-10-26 — Milestone M31: quotations and payments in the owner app (decision P22)
 
 **Built (in `webapp/`, `Api/Owner/DealsController`; api-v1 §12):**

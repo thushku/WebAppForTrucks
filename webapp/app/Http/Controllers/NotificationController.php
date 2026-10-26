@@ -27,7 +27,7 @@ class NotificationController extends Controller
     {
         $data = $request->validate(self::settingsRules());
         $groups = array_keys(\App\Platform\Notifications\NotificationSettings::GROUPS);
-        $settings->save(app(\App\Platform\Tenancy\CompanyContext::class)->member(), array_values(array_diff($groups, $data['push'] ?? [])), $data['quiet_from'] ?? null, $data['quiet_to'] ?? null);
+        $settings->save(app(\App\Platform\Tenancy\CompanyContext::class)->member(), array_values(array_diff($groups, $data['push'] ?? [])), $data['quiet_from'] ?? null, $data['quiet_to'] ?? null, $data['digest'] ?? null);
 
         return back()->with('status', __('Saved. The inbox keeps every notice; these choices are only for your phone.'));
     }
@@ -38,6 +38,7 @@ class NotificationController extends Controller
         return [
             'push' => ['nullable', 'array'], 'push.*' => [\Illuminate\Validation\Rule::in(array_keys(\App\Platform\Notifications\NotificationSettings::GROUPS))],
             'quiet_from' => ['nullable', 'date_format:H:i', 'required_with:quiet_to'], 'quiet_to' => ['nullable', 'date_format:H:i', 'required_with:quiet_from', 'different:quiet_from'],
+            'digest' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(\App\Platform\Notifications\NotificationSettings::DIGESTS))],
         ];
     }
 

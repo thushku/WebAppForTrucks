@@ -332,8 +332,8 @@ with `POST /device`, as a **push**. Notices are per company: the inbox lists the
 | `GET /notifications?before=&limit=30` | `unread` (the badge), `items[]` newest first: `id`, `kind`, `title`, `body`, `data` (what to open, below), `times` (how often a collapsed notice was updated), `read`, `at`; `more` — then ask again with `before` = the last `id` |
 | `POST /notifications/read` `{ "ids": [12, 13] }` or `{ "all": true }` | `unread` after marking. Mark a notice read when the person opens it from the list or from the push |
 | `GET /me` | also `unread_notifications` |
-| `GET /notifications/settings` | `groups[]` (`key`, `name`, `about`, `push`: whether this group reaches the phone), `quiet_from`, `quiet_to` ("22:00") |
-| `PUT /notifications/settings` `{ "push": ["trips", "incidents"], "quiet_from": "22:00", "quiet_to": "06:00" }` | the same, saved. Groups left out of `push` stay in the inbox only; in quiet hours only high-priority notices are pushed. Per company |
+| `GET /notifications/settings` | `groups[]` (`key`, `name`, `about`, `push`: whether this group reaches the phone), `quiet_from`, `quiet_to` ("22:00"), `digest` (the morning summary, M32: `daily` / `weekly` / `off`; owners `daily` until they choose) and `digests` (value → words) |
+| `PUT /notifications/settings` `{ "push": ["trips", "incidents"], "quiet_from": "22:00", "quiet_to": "06:00", "digest": "weekly" }` | the same, saved. Groups left out of `push` stay in the inbox only; in quiet hours only high-priority notices are pushed; `digest` left out stays as it was. Per company |
 
 Every item also has `priority` (`high`, `medium`, `low`): show high ones in red at the top of the unread ones. The
 push carries it in `data.priority`; a low one is sent with Android priority `normal` (it does not wake the phone).
@@ -353,6 +353,7 @@ approvals"), iOS badge = the unread count. `data` (all strings): `notification` 
 | `approvals.waiting` | everyone with `event.verify` | `type: approvals` → the approvals list (`GET /approvals`). One notice keeps the count; pushed again only after half an hour |
 | `road.incident` | everyone with `trip.view` | `type: trip`, `trip` → the trip |
 | `papers.due` | everyone with `document.manage` | `type: papers` → papers (`GET /owner/papers`) |
+| `digest.ready` (M32, low) | each person who chose the morning summary (07:00 company time; weekly on Mondays) — also by email | the summary's headline ("Sunday 25 Oct: 2 trips ended · ₹50,000.00 received") → the dashboard (`GET /owner/dashboard`) |
 | `test` | one person (`php artisan fleet:push <mobile>`) | `type: test` |
 
 Unknown kinds may come later: show them in the list and open the list. After any push, a crew
