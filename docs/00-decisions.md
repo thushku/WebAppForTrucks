@@ -554,6 +554,15 @@ package), QR codes / amount in words / CSV written in-house. See
 - It **ends 30 days after delivery**, or when the LR or its trip is
   cancelled, or when the company is closed.
 
+### P33. A pump's credit statement (added 26 Oct 2026, M46; extends P31)
+
+- A pump that gives fuel on credit sends a monthly statement: it is brought
+  in like a card statement, **naming the pump** (a vendor). Its charges match
+  the crew's fuel entries **"on credit with the pump"** at that pump (or with
+  no pump named); its bill numbers are kept per pump.
+- A charge nobody entered is **booked as the truck's fuel, owed to the
+  pump** (its ledger), so the pump's account and the book agree.
+
 ---
 
 ## 4. Still open

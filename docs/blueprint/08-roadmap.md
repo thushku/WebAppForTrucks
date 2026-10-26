@@ -60,6 +60,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M43 ✅ | Credit and debit notes from the owner app: a credit for the whole bill or an amount, a debit with its lines, the reason, the bill's tax, issued at once | Every money document from the phone |
 | M44 ✅ | FASTag and fuel-card statements: the provider's CSV in once, each charge matched to the crew's card entry (or by hand), booked when nobody entered it, or set aside; card entries without a charge listed | Catch tolls and fuel nobody entered, and entries no card paid |
 | M45 ✅ | The client's tracking link per LR: the steps, the nearest place while on the road, the delivery — no freight, no crew — shared from the trip page or the owner app; ends 30 days after delivery | Fewer "where is my truck?" calls |
+| M46 ✅ | A pump's credit statement checked like a card statement: matched to the fuel taken on credit there, fuel nobody entered owed to the pump; dates on any statement read without failing | Pump-statement auto-matching (phase 2) |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Modules\Accounts\Models\CardStatement;
 use App\Modules\Accounts\Models\CardStatementLine;
 use App\Modules\Fleet\Models\Truck;
+use App\Modules\Parties\Models\Party;
 use App\Modules\Road\Models\RoadEvent;
 use App\Modules\Trips\Models\Trip;
 use App\Platform\Audit\AuditRecorder;
@@ -36,11 +37,11 @@ class CardStatements
     public const SLACK = 0.5;
 
     private const HEADERS = [
-        'date' => ['transaction date & time', 'transaction date', 'txn date', 'date & time', 'date time', 'processing date', 'date'],
+        'date' => ['transaction date & time', 'transaction date', 'txn date', 'date & time', 'date time', 'processing date', 'bill date', 'date'],
         'time' => ['transaction time', 'txn time', 'time'],
         'vehicle' => ['vehicle number', 'vehicle no', 'vehicle', 'vrn', 'registration', 'reg no'],
         'place' => ['plaza name', 'toll plaza', 'plaza', 'merchant name', 'merchant', 'outlet', 'pump', 'location', 'description', 'narration'],
-        'reference' => ['transaction id', 'txn id', 'transaction no', 'reference', 'ref no', 'rrn'],
+        'reference' => ['transaction id', 'txn id', 'transaction no', 'reference', 'ref no', 'rrn', 'bill no', 'bill number', 'invoice no', 'slip no'],
         'debit' => ['debit', 'dr amount', 'withdrawal'],
         'credit' => ['credit', 'cr amount', 'recharge'],
         'amount' => ['transaction amount', 'txn amount', 'amount'],
@@ -49,11 +50,14 @@ class CardStatements
 
     public function __construct(private Books $books, private ChartOfAccounts $chart, private CompanyContext $context, private AuditRecorder $audit) {}
 
-    /** Bring a statement in; its charges are matched at once where clear. */
-    public function import(string $kind, string $path, string $fileName, Account $by): CardStatement
+    /** Bring a statement in; its charges are matched at once where clear. A pump's statement names the pump (M46). */
+    public function import(string $kind, string $path, string $fileName, Account $by, ?Party $pump = null): CardStatement
     {
         if (! isset(CardStatement::KINDS[$kind])) {
-            throw ValidationException::withMessages(['kind' => __('Choose FASTag or fuel card.')]);
+            throw ValidationException::withMessages(['kind' => __('Choose FASTag, fuel card or a pump.')]);
+        }
+        if ($kind === 'pump' && ! $pump) {
+            throw ValidationException::withMessages(['vendor_party_id' => __('Choose the pump whose statement this is.')]);
         }
         $rows = $this->read($path);
         if (! $rows) {
@@ -61,14 +65,15 @@ class CardStatements
         }
         $trucks = Truck::get(['id', 'reg_no'])->keyBy(fn ($t) => self::plate($t->reg_no));
 
-        return DB::transaction(function () use ($kind, $rows, $fileName, $by, $trucks) {
-            $statement = CardStatement::create(['kind' => $kind, 'file_name' => mb_substr($fileName, 0, 190), 'created_by' => $by->id,
+        return DB::transaction(function () use ($kind, $rows, $fileName, $by, $trucks, $pump) {
+            $statement = CardStatement::create(['kind' => $kind, 'vendor_party_id' => $kind === 'pump' ? $pump->id : null, 'file_name' => mb_substr($fileName, 0, 190), 'created_by' => $by->id,
                 'period_from' => min(array_column($rows, 'day')), 'period_to' => max(array_column($rows, 'day'))]);
             $added = 0;
             $skipped = 0;
             foreach ($rows as $row) {
-                $reference = $row['reference'] !== '' ? mb_substr($row['reference'], 0, 80)
-                    : 'row-' . substr(sha1($kind . '|' . $row['at']->toIso8601String() . '|' . $row['vehicle'] . '|' . $row['amount'] . '|' . $row['place']), 0, 32);
+                // A pump's bill numbers are its own: two pumps may both have bill 1001.
+                $reference = ($kind === 'pump' ? 'p' . $pump->id . '-' : '') . ($row['reference'] !== '' ? mb_substr($row['reference'], 0, 70)
+                    : 'row-' . substr(sha1($kind . '|' . $row['at']->toIso8601String() . '|' . $row['vehicle'] . '|' . $row['amount'] . '|' . $row['place']), 0, 32));
                 if (CardStatementLine::where('kind', $kind)->where('reference', $reference)->exists()) {
                     $skipped++;
 
@@ -117,7 +122,11 @@ class CardStatements
     {
         $at = CarbonImmutable::instance($line->txn_at);
 
-        return RoadEvent::with(['person:id,name', 'trip:id,trip_number,truck_id'])->where('payment_mode', $line->kind)->where('type', '!=', 'money_received')
+        $pump = $line->kind === 'pump' ? CardStatement::whereKey($line->card_statement_id)->value('vendor_party_id') : null;
+
+        return RoadEvent::with(['person:id,name', 'trip:id,trip_number,truck_id'])->where('payment_mode', CardStatement::MODES[$line->kind])->where('type', '!=', 'money_received')
+            // On a pump's statement: credit entries at that pump, or with no pump named.
+            ->when($pump, fn ($q) => $q->where(fn ($w) => $w->where('data->vendor_party_id', $pump)->orWhereNull('data->vendor_party_id')))
             ->whereNotIn('status', ['rejected', 'cancelled'])->whereNotNull('amount')
             ->when($line->truck_id, fn ($q) => $q->whereHas('trip', fn ($t) => $t->where('truck_id', $line->truck_id)))
             ->whereBetween('trusted_at', [$at->subHours($hours), $at->addHours($hours)])
@@ -147,14 +156,20 @@ class CardStatements
         DB::transaction(function () use ($line, $by) {
             $line->loadMissing(['truck:id,reg_no,branch_id', 'trip:id,trip_number,branch_id']);
             $centres = ['truck_id' => $line->truck_id, 'trip_id' => $line->trip_id, 'branch_id' => $line->trip?->branch_id ?? $line->truck?->branch_id];
-            $what = $line->kind === 'fastag' ? __('FASTag at :place', ['place' => $line->place ?: '—']) : __('Fuel card at :place', ['place' => $line->place ?: '—']);
+            $pump = $line->kind === 'pump' ? Party::find(CardStatement::whereKey($line->card_statement_id)->value('vendor_party_id')) : null;
+            $what = match ($line->kind) {
+                'fastag' => __('FASTag at :place', ['place' => $line->place ?: '—']),
+                'pump' => __('Fuel on credit at :pump', ['pump' => $pump?->name ?? '—']),
+                default => __('Fuel card at :place', ['place' => $line->place ?: '—']),
+            };
             $voucher = $this->books->post([
                 'type' => 'expense', 'date' => CarbonImmutable::instance($line->txn_at)->setTimezone($this->context->company()->timezone ?: 'UTC')->toDateString(),
                 'reference' => mb_substr($line->reference, 0, 60), 'narration' => $what . ($line->truck ? ', ' . $line->truck->reg_no : '') . ' — ' . __('from the statement, not entered by the crew'),
                 'source_type' => 'card_line', 'source_id' => $line->id, 'created_by' => $by->id,
             ], [
                 ['ledger' => $this->chart->expense($line->kind === 'fastag' ? 'toll' : 'fuel'), 'debit' => (float) $line->amount] + $centres,
-                ['ledger' => $this->chart->ledger($line->kind), 'credit' => (float) $line->amount],
+                // The card's wallet; for a pump, what we owe the pump.
+                ['ledger' => $pump ? $this->chart->party($pump) : $this->chart->ledger($line->kind), 'credit' => (float) $line->amount],
             ]);
             $line->update(['status' => 'booked', 'voucher_id' => $voucher?->id, 'decided_by' => $by->id]);
         });
@@ -183,7 +198,8 @@ class CardStatements
         $tz = $this->context->company()->timezone ?: 'UTC';
         $trucks = CardStatementLine::where('card_statement_id', $statement->id)->whereNotNull('truck_id')->distinct()->pluck('truck_id');
 
-        return RoadEvent::with(['person:id,name', 'trip:id,trip_number,truck_id', 'trip.truck:id,reg_no'])->where('payment_mode', $statement->kind)->where('type', '!=', 'money_received')
+        return RoadEvent::with(['person:id,name', 'trip:id,trip_number,truck_id', 'trip.truck:id,reg_no'])->where('payment_mode', CardStatement::MODES[$statement->kind])->where('type', '!=', 'money_received')
+            ->when($statement->vendor_party_id, fn ($q) => $q->where('data->vendor_party_id', $statement->vendor_party_id))
             ->whereNotIn('status', ['rejected', 'cancelled'])->whereNotNull('amount')
             ->whereHas('trip', fn ($t) => $t->whereIn('truck_id', $trucks))
             ->whereBetween('trusted_at', [CarbonImmutable::parse($statement->period_from->toDateString(), $tz)->startOfDay()->utc(), CarbonImmutable::parse($statement->period_to->toDateString(), $tz)->endOfDay()->utc()])
@@ -268,9 +284,10 @@ class CardStatements
         $value = trim(preg_replace('/\s+/', ' ', trim($date . ($time !== '' && ! preg_match('/\d{1,2}:\d{2}/', $date) ? ' ' . $time : ''))));
         foreach (['d/m/Y H:i:s', 'd/m/Y H:i', 'd-m-Y H:i:s', 'd-m-Y H:i', 'Y-m-d H:i:s', 'Y-m-d H:i', 'd/m/Y h:i:s A', 'd/m/Y h:i A', 'd-m-Y h:i:s A', 'd-m-Y h:i A',
             'd M Y H:i:s', 'd M Y H:i', 'd-M-Y H:i:s', 'd-M-Y H:i', 'd/m/y H:i', 'd/m/Y', 'd-m-Y', 'Y-m-d', 'd M Y', 'd-M-Y'] as $format) {
-            $d = CarbonImmutable::createFromFormat('!' . $format, $value, $tz);
-            if ($d && $d->format($format) === $value && $d->year >= 2000) {
-                return $d;
+            // PHP's own parser answers false on a mismatch (Carbon's throws).
+            $d = \DateTimeImmutable::createFromFormat('!' . $format, $value, new \DateTimeZone($tz));
+            if ($d && $d->format($format) === $value && (int) $d->format('Y') >= 2000) {
+                return CarbonImmutable::instance($d);
             }
         }
 

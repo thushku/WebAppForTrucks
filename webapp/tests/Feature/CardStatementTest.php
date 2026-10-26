@@ -75,3 +75,39 @@ it('matches a FASTag statement to the crew’s entries and books what nobody ent
         ->assertSessionHas('status', '0 charges brought in (4 seen before, left out); 0 matched to the crew’s entries, 0 to look at.');
     $this->post(route('accounts.cards.import'), ['kind' => 'fastag', 'file' => UploadedFile::fake()->createWithContent('x.csv', "Name,City\nA,B\n")])->assertSessionHasErrors('file');
 });
+
+it('checks a pump’s credit statement against the fuel taken on credit there', function () {
+    $w = phoneWorld();
+    $owner = signInTo($w['company']);
+    $pump = app(CompanyContext::class)->runAs($w['company'], fn () => makeParty(['name' => 'Indian Oil Aluva', 'vendor_category' => 'fuel_pump'], ['vendor']));
+    $phones = phoneCrew($w);
+    phoneAs($phones['driver'], $w['company']);
+    phoneStart($w);
+    phonePush([
+        phoneEvent($w, 'fuel', ['amount' => 9500, 'payment_mode' => 'credit', 'data' => ['litres' => 100, 'rate' => 95, 'vendor_party_id' => $pump->id]]),
+        phoneEvent($w, 'fuel', ['amount' => 4750, 'payment_mode' => 'credit', 'data' => ['litres' => 50, 'rate' => 95, 'vendor_party_id' => $pump->id]]),
+    ]);
+    phoneReset();
+    $this->actingAs($owner, 'web')->withSession([\App\Http\Middleware\ResolveCompany::SESSION_KEY => $w['company']->id]);
+
+    $reg = $w['truck']->reg_no;
+    $path = tempnam(sys_get_temp_dir(), 'pump');
+    file_put_contents($path, "Bill Date,Vehicle No,Bill No,Amount\n25/10/2026 14:45,{$reg},1001,9500.00\n25/10/2026 18:00,{$reg},1002,3000.00\n");
+    $file = fn () => new UploadedFile($path, 'ioc-aluva-oct.csv', 'text/csv', null, true);
+    $this->post(route('accounts.cards.import'), ['kind' => 'pump', 'file' => $file()])->assertSessionHasErrors('vendor_party_id');
+    $this->post(route('accounts.cards.import'), ['kind' => 'pump', 'vendor_party_id' => $pump->id, 'file' => $file()])->assertSessionHasNoErrors()
+        ->assertSessionHas('status', '2 charges brought in (0 seen before, left out); 1 matched to the crew’s entries, 1 to look at.');
+
+    app(CompanyContext::class)->set($w['company']);
+    $statement = CardStatement::sole();
+    $open = CardStatementLine::where('status', 'open')->sole();
+    expect($open->reference)->toBe('p' . $pump->id . '-1002');
+    $this->get(route('accounts.cards.show', $statement))->assertOk()->assertSeeText('1 entry says the card paid, but the statement has no charge')->assertSeeText('₹4,750.00');
+
+    // Fuel nobody entered: the truck's fuel, owed to the pump.
+    $this->post(route('accounts.cards.line', $open), ['action' => 'book'])->assertSessionHasNoErrors();
+    app(CompanyContext::class)->set($w['company']);
+    $voucher = Voucher::with('lines.ledger')->findOrFail($open->fresh()->voucher_id);
+    expect($voucher->lines->firstWhere('credit', '>', 0)->ledger->party_id)->toBe($pump->id)
+        ->and($voucher->narration)->toContain('Fuel on credit at Indian Oil Aluva');
+});

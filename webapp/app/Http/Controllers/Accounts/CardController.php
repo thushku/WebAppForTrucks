@@ -21,7 +21,9 @@ class CardController extends AccountsController
     public function index(): View
     {
         return view('accounts.cards', [
-            'statements' => CardStatement::withCount(['rows as open' => fn ($q) => $q->where('status', 'open')])->orderByDesc('id')->limit(50)->get(),
+            'statements' => CardStatement::with('vendor:id,name')->withCount(['rows as open' => fn ($q) => $q->where('status', 'open')])->orderByDesc('id')->limit(50)->get(),
+            'pumps' => \App\Modules\Parties\Models\Party::active()->withRole('vendor')->orderBy('name')->get(['id', 'name', 'vendor_category'])
+                ->sortBy(fn ($p) => $p->vendor_category === 'fuel_pump' ? 0 : 1)->pluck('name', 'id'),
             'open' => CardStatementLine::where('status', 'open')->selectRaw('kind, count(*) as n, sum(amount) as total')->groupBy('kind')->get()->keyBy('kind'),
         ]);
     }
@@ -42,8 +44,11 @@ class CardController extends AccountsController
 
     public function import(Request $request, CardStatements $cards): RedirectResponse
     {
-        $data = $request->validate(['kind' => ['required', Rule::in(array_keys(CardStatement::KINDS))], 'file' => ['required', 'file', 'max:4096', 'mimes:csv,txt']]);
-        $statement = $cards->import($data['kind'], $request->file('file')->getRealPath(), $request->file('file')->getClientOriginalName(), $request->user());
+        $data = $request->validate(['kind' => ['required', Rule::in(array_keys(CardStatement::KINDS))], 'file' => ['required', 'file', 'max:4096', 'mimes:csv,txt'],
+            'vendor_party_id' => ['nullable', 'required_if:kind,pump', 'integer', Rule::exists('party_roles', 'party_id')->where('company_id', $this->context->id())->where('role', 'vendor')]],
+            ['vendor_party_id.required_if' => __('Choose the pump whose statement this is.')]);
+        $pump = ! empty($data['vendor_party_id']) ? \App\Modules\Parties\Models\Party::find($data['vendor_party_id']) : null;
+        $statement = $cards->import($data['kind'], $request->file('file')->getRealPath(), $request->file('file')->getClientOriginalName(), $request->user(), $pump);
         $open = CardStatementLine::where('card_statement_id', $statement->id)->where('status', 'open')->count();
 
         return redirect()->route('accounts.cards.show', $statement)->with('status', __(':n charges brought in (:d seen before, left out); :m matched to the crew’s entries, :o to look at.', [

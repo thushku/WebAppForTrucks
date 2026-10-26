@@ -2,6 +2,20 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M46: a pump's credit statement (decision P33)
+
+**Built (in `webapp/`, `Accounts/Services/CardStatements`):**
+- Accounts → Card statements also takes **a pump's credit statement**: choose the pump (a vendor, fuel pumps first),
+  bring its CSV in (bill date, vehicle, bill no., amount); each bill matches the crew's fuel entry "on credit with the
+  pump" at that pump — same truck, same amount, within a day —; a bill nobody entered is **booked as the truck's fuel,
+  owed to the pump**; credit entries at that pump with no bill are listed. Bill numbers are kept per pump.
+- **Fixed**: a card statement whose dates did not fit the first date format failed to import (the date reader threw
+  instead of trying the next format); bill numbers and bill dates are now recognised as columns.
+- Migration 000031: `card_statements.vendor_party_id`. Hindi for every new string.
+
+**Tests:** 296 passing (`CardStatementTest`, a second test: a pump's statement refused without the pump, two bills — one
+matched to the driver's ₹9,500 credit fuel, one booked to the pump's ledger —, the ₹4,750 entry with no bill listed).
+
 ## 2026-10-26 — Milestone M45: the client's tracking link (decision P32)
 
 **Built (in `webapp/`, `Trips/Services/Tracking`, `/t/{token}`):**
