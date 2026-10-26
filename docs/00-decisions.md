@@ -541,6 +541,19 @@ package), QR codes / amount in words / CSV written in-house. See
 - Entries in the statement's days that say the card paid but have no charge
   are listed for a question to the crew; nothing is changed by itself.
 
+### P32. The client's tracking link (added 26 Oct 2026, M45)
+
+- **One secure link per LR** (`/t/{token}`, no sign-in, never indexed), made
+  when the office or the owner app first shares it, the same after.
+- It shows **the steps** (booked, loaded, on the way, reached, delivered with
+  their times), **while on the road the nearest known place** and the time
+  of the last GPS fix — the position **rounded to about a kilometre**, never
+  the track —, and **the delivery** (when, who received it, short or
+  damaged). Never the freight, the crew, the truck's other loads or office
+  notes.
+- It **ends 30 days after delivery**, or when the LR or its trip is
+  cancelled, or when the company is closed.
+
 ---
 
 ## 4. Still open

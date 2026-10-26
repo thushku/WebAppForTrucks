@@ -149,7 +149,19 @@
       @endif
     </section>
 
-    <section class="card overflow-hidden">
+    @if (session('track'))
+      @php($track = session('track'))
+      <section class="card p-6" data-track-link>
+        <h3 class="font-semibold">{{ __('Tracking link for LR :lr', ['lr' => $track['lr']]) }}</h3>
+        <p class="mt-1 text-sm text-ink-500">{{ __('The client sees where the load is and when it is delivered — never the freight or the crew. It ends 30 days after delivery.') }}</p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <input class="input min-w-0 flex-1 font-mono text-xs" value="{{ $track['url'] }}" readonly aria-label="{{ __('Tracking link') }}" onclick="this.select()">
+          <a href="https://wa.me/?text={{ rawurlencode($track['message']) }}" class="btn-secondary" target="_blank" rel="noopener noreferrer"><x-icon name="send" /> {{ __('WhatsApp') }}</a>
+          <a href="{{ $track['url'] }}" class="btn-secondary" target="_blank" rel="noopener">{{ __('Open') }}</a>
+        </div>
+      </section>
+    @endif
+    <section id="loads" class="card overflow-hidden">
       <div class="flex flex-wrap items-center justify-between gap-3 p-6 pb-4">
         <h3 class="font-semibold">{{ __('Loads (LRs)') }}</h3>
         @if (! in_array($t->status, ['ended', 'settled', 'closed', 'cancelled'], true))
@@ -180,6 +192,8 @@
                       @else
                         @can('invoice.create')<a href="{{ route('invoices.create', ['party' => $c->billing_party_id, 'loads' => [$c->id]]) }}" class="font-medium text-brand-700 hover:underline">{{ __('Bill it') }}</a>@endcan
                       @endif
+                      {{-- The client's tracking link (M45). --}}
+                      <form method="POST" action="{{ route('trips.track', [$t, $c]) }}" class="inline">@csrf<button class="font-medium text-brand-700 hover:underline">{{ __('Tracking link') }}</button></form>
                     </div>
                   @endif
                 </td>

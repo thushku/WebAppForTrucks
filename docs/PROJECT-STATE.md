@@ -2,6 +2,22 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-10-26 — Milestone M45: the client's tracking link (decision P32)
+
+**Built (in `webapp/`, `Trips/Services/Tracking`, `/t/{token}`):**
+- **A tracking link per LR**, shared from the trip page's loads ("Tracking link": copy, WhatsApp with the words ready,
+  open) or the owner app (`POST /owner/consignments/{id}/track`); the same link every time.
+- The client's page (no sign-in, never indexed): the LR, the route, the consignor and consignee, the goods; **the steps**
+  — booked, loaded, on the way, reached, delivered — with their times; **while on the road the nearest known place**
+  ("Near Thrissur, about 9 km") and the last update, with a map link rounded to about a kilometre; **the delivery** — when,
+  received by whom, short or damaged; the company's phone. Never the freight, the crew or office notes.
+- The link ends 30 days after delivery, or when the LR or trip is cancelled (a "link has ended" page).
+- Hindi for every new string.
+
+**Tests:** 295 passing (new `TrackingTest`, 2 tests: the link made once, the page before the trip starts without freight,
+driver or office note, on the road near Thrissur with the position rounded, delivered with the receiver and 2 short, ended
+31 days later, an unknown link; the owner app's same link).
+
 ## 2026-10-26 — Milestone M44: FASTag and fuel-card statements (decision P31)
 
 **Built (in `webapp/`, `Accounts/Services/CardStatements`, Accounts → Card statements):**

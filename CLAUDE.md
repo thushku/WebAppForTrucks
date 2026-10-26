@@ -69,7 +69,8 @@ founder's laptop) in `phoneapp/`.
   `busy`; M41 `PersonActivity` — a person's trips and driving hours for the person page's tabs), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
   broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
-  LR number claimed only from a free leaf of a book in use), `Road` (what the crew app sends: road events
+  LR number claimed only from a free leaf of a book in use; `Tracking` (M45) — an LR's public tracking link `/t/{token}`
+  in `document_links` as type `tracking`, steps and the nearest place, never money or crew), `Road` (what the crew app sends: road events
   with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `GpsDistance` (M34) — a trip's GPS km and
   coverage against its odometer, `trips.km_check`, re-measured by `fleet:gps-check`; `CrewCommands` are the phone's taps, kept per
   UUID in `api_commands` so a retry never runs twice), `Tax` (registrations, dated codes/rates/rules from the

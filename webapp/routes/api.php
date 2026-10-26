@@ -129,6 +129,7 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::post('/invoices', [WriteController::class, 'storeInvoice'])->middleware('permission:invoice.create')->name('invoices.store');
                 Route::post('/invoices/{invoice}/finalise', [WriteController::class, 'finaliseInvoice'])->whereNumber('invoice')->middleware('permission:invoice.finalise')->name('invoices.finalise');
                 Route::post('/invoices/{invoice}/notes', [WriteController::class, 'storeNote'])->whereNumber('invoice')->middleware('permission:invoice.create')->name('invoices.notes');
+                Route::post('/consignments/{consignment}/track', [WriteController::class, 'trackLoad'])->whereNumber('consignment')->middleware('permission:trip.view')->name('consignments.track');
                 Route::post('/receipts', [WriteController::class, 'storeReceipt'])->middleware('permission:payment.record')->name('receipts.store');
                 Route::post('/papers', [WriteController::class, 'storePaper'])->middleware('permission:document.manage')->name('papers.store');
                 // The masters (M29, 13-parity #9): list, open, add (once per key), edit (only the fields sent), deactivate.

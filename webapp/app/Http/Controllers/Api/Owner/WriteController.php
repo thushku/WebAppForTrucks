@@ -236,6 +236,15 @@ class WriteController extends Controller
         });
     }
 
+    /** An LR's tracking link for the client (M45): made once, the same link after; the words to send with it. */
+    public function trackLoad(Consignment $consignment, \App\Modules\Trips\Services\Tracking $tracking): JsonResponse
+    {
+        abort_unless(\App\Modules\Trips\Models\Trip::inBranch()->whereKey($consignment->trip_id)->exists() && $consignment->lr_number && $consignment->status !== 'cancelled', 404);
+        $url = $tracking->link($consignment);
+
+        return response()->json(['url' => $url, 'message' => $tracking->message($consignment, $url)]);
+    }
+
     /** Money received: cash, UPI, NEFT or cheque, with TDS and deductions, set against the oldest bills. */
     public function storeReceipt(Request $request, ReceiptService $receipts): JsonResponse
     {

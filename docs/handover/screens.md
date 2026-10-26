@@ -94,7 +94,7 @@ Ledgers · Scan to sign in on the web · Settings · Help · About**; the drawer
 | O31 | **EMIs** | from Trucks: each truck on loan — financier, EMI and day, next due (amber within a week), overdue in red, still owed; **EMI paid** (which month, date, amount, interest part, cash or bank, UTR) | `truck.view` (pay: `accounts.post`) | `GET /owner/emis`, `POST /owner/trucks/{id}/emis` (§12) |
 
 Every write of O16–O19, O21, O29, O31, O32 and O33, and every add of O24–O28, sends an `Idempotency-Key` made when the person taps (§12), so a retry on a bad network never
-makes a second trip, bill or receipt. From a bill (O11), M43 adds **Credit note** (the whole bill, or an amount before tax, with the reason) and **Debit note** (its lines: detention, rate difference… with the reason), issued at once (§12). From the trip detail (O6), M42 adds **Settle**
+makes a second trip, bill or receipt. From a load on the trip detail (O6), M45 adds **Tracking link** (share the client's link on WhatsApp). From a bill (O11), M43 adds **Credit note** (the whole bill, or an amount before tax, with the reason) and **Debit note** (its lines: detention, rate difference… with the reason), issued at once (§12). From the trip detail (O6), M42 adds **Settle**
 (each crew member's cash, the balance, the suggested bata → how it is settled; then **Close**, `trip.settle`) and, for a
 hired truck, **Hire challan** (draft from the trip, issue, then advance, fuel, detention, deductions and the balance paid,
 `hire.manage`) — §16.

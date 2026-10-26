@@ -94,6 +94,9 @@ Route::get('/d/{token}', [PublicDocumentController::class, 'show'])->where('toke
 Route::get('/d/{token}/pdf', [PublicDocumentController::class, 'pdf'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:20,1')->name('documents.public.pdf');
 Route::post('/d/{token}/answer', [PublicDocumentController::class, 'answer'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:10,1')->name('documents.public.answer');
 
+// A client's tracking link for an LR (M45; no sign-in).
+Route::get('/t/{token}', [\App\Http\Controllers\Trips\TrackingController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('track');
+
 // What a phone camera opens when the sign-in QR is scanned outside the app.
 Route::get('/qr/{token}', [QrLoginController::class, 'scan'])->where('token', '[A-Za-z0-9]{40}')->name('login.qr.scan');
 
@@ -197,6 +200,7 @@ Route::middleware('auth')->group(function () {
             });
             Route::post('/{trip}/cancel', [TripController::class, 'cancel'])->middleware('permission:trip.cancel')->name('cancel');
             Route::post('/{trip}/advances', [TripMoneyController::class, 'storeAdvance'])->middleware('permission:trip.settle')->name('advances.store');
+            Route::post('/{trip}/consignments/{consignment}/track', [\App\Http\Controllers\Trips\TrackingController::class, 'share'])->whereNumber('consignment')->middleware('permission:trip.view')->name('track');
             Route::middleware('permission:trip.settle')->group(function () {
                 Route::post('/{trip}/settle', [SettlementController::class, 'settleWithoutCrew'])->name('settle.all');
                 Route::post('/{trip}/settle/{person}', [SettlementController::class, 'settle'])->name('settle');
