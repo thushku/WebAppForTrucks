@@ -26,10 +26,10 @@ class ApprovalController extends Controller
     {
         $data = $request->validate(['status' => ['nullable', Rule::in(RoadEvent::OPEN)]]);
 
-        $events = $this->approvals->inbox($data['status'] ?? null)->limit(200)->get();
+        $events = $this->approvals->inbox($data['status'] ?? null, true)->limit(200)->get();
 
         return response()->json([
-            'counts' => $this->approvals->counts(),
+            'counts' => $this->approvals->counts(true),
             'events' => $events->map(fn (RoadEvent $e) => [
                 'uuid' => $e->uuid, 'trip' => ['uuid' => $e->trip->uuid, 'number' => $e->trip->trip_number],
                 'by' => $e->person->name, 'type' => $e->type, 'label' => EventTypes::label($e->type),
@@ -47,7 +47,8 @@ class ApprovalController extends Controller
     public function decide(Request $request, string $uuid): JsonResponse
     {
         $data  = $request->validate(['decision' => ['required', Rule::in(['approve', 'query', 'reject'])], 'note' => ['nullable', 'string', 'max:255']]);
-        $event = RoadEvent::with('trip.crew')->where('uuid', $uuid)->firstOrFail();
+        // A person limited to a branch decides only its entries (M22).
+        $event = RoadEvent::with('trip.crew')->where('uuid', $uuid)->whereHas('trip', fn ($t) => $t->inBranch())->firstOrFail();
 
         $this->approvals->decide($request->user(), $event, $data['decision'], $data['note'] ?? null);
 
@@ -56,7 +57,7 @@ class ApprovalController extends Controller
 
     public function photo(string $uuid, EventPhoto $photo): Response
     {
-        $event = RoadEvent::where('uuid', $uuid)->firstOrFail();
+        $event = RoadEvent::where('uuid', $uuid)->whereHas('trip', fn ($t) => $t->inBranch())->firstOrFail();
         abort_unless($photo->road_event_id === $event->id, 404);
 
         return response(Storage::disk('local')->get($photo->path), 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, max-age=3600']);

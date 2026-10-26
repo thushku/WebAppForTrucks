@@ -29,9 +29,12 @@ class DocumentService
     /** The owner row, checked to be in this company (the scope does that), or a 404. */
     public function owner(string $type, int $id): ?Model
     {
+        // A person limited to a branch opens only its trucks' and crew's papers (and the shared ones, M22).
+        $shared = fn ($model) => app(\App\Platform\Tenancy\BranchContext::class)->canSee($model->branch_id !== null ? (int) $model->branch_id : null, true) ? $model : abort(404);
+
         return match ($type) {
-            'truck'   => Truck::findOrFail($id),
-            'person'  => Person::findOrFail($id),
+            'truck'   => $shared(Truck::findOrFail($id)),
+            'person'  => $shared(Person::findOrFail($id)),
             'party'   => Party::findOrFail($id),
             'company' => null,
             default   => abort(404),

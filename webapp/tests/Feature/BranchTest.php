@@ -101,6 +101,9 @@ it('keeps a person limited to a branch to that branch, on the web and in the own
     $this->get(route('invoices.show', $w['hoBill']))->assertNotFound();
     $this->get(route('trips.show', $w['bomTrip']))->assertOk();
     $this->get(route('trucks.show', $w['shared']))->assertOk();
+    // Nor their papers.
+    $this->get(route('documents.owner', ['truck', $w['truck']->id]))->assertNotFound();
+    $this->get(route('documents.owner', ['truck', $w['mh']->id]))->assertOk();
 
     // He plans trips for Mumbai only.
     $trip = ['trip_date' => '2026-10-26', 'load_type' => 'ftl', 'trip_kind' => 'empty', 'truck_source' => 'own', 'truck_id' => $w['shared']->id, 'driver_id' => $w['driver']->id,
@@ -121,6 +124,7 @@ it('keeps a person limited to a branch to that branch, on the web and in the own
     expect($trips)->not->toContain($w['hoTrip']->uuid)
         ->and($trucks->all())->toContain('MH-04-BB-2222', 'KL-07-CC-3333')->not->toContain($w['truck']->reg_no);
     $this->getJson('/api/v1/owner/trips/' . $w['hoTrip']->uuid)->assertNotFound();
+    $this->getJson('/api/v1/approvals')->assertOk();
 
     // Back to the whole company.
     phoneReset();

@@ -15,6 +15,8 @@ Updated at the end of every build round. Newest first.
   — once, while it is not expired. The office sees "Answered on the client link by …", when it was first opened, and
   gets a notice ("ACC Limited accepted quotation QT/…"); logged.
 - The statement, quotation and voucher pages fit a phone (wide tables scroll inside themselves).
+- Branch limit (M22) closed on two more paths: the owner app's approvals list and decisions, and a truck's or a
+  person's papers opened by URL.
 - "LRs waiting to be billed" is one rule (`Consignment::waitingToBill`) for the bills page, the client page and the app.
 
 **Tests:** 246 passing (new `ClientBillingTest`, 2 tests: the billing tab's totals and lists, billing ticked LRs,
