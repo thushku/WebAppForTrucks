@@ -73,6 +73,7 @@ class Truck extends Model
             'mileage_loaded_kmpl' => 'decimal:2',
             'mileage_empty_kmpl'  => 'decimal:2',
             'emi_amount'        => 'decimal:2',
+            'attached_commission_pct' => 'decimal:2',
             'purchase_price'    => 'decimal:2',
             'odometer_km'       => 'integer',
             'wheels'            => 'integer',

@@ -71,6 +71,12 @@
         <select id="owner_party_id" name="owner_party_id" class="input"><option value="">—</option>@foreach ($owners as $id => $name)<option value="{{ $id }}" @selected((int) old('owner_party_id', $t->owner_party_id) === $id)>{{ $name }}</option>@endforeach</select>
         @error('owner_party_id')<span class="error">{{ $message }}</span>@enderror
       </div>
+      <div>
+        <label class="label" for="attached_commission_pct">{{ __('Our commission % (attached truck)') }}</label>
+        <input id="attached_commission_pct" name="attached_commission_pct" type="number" step="0.01" min="0" max="50" class="input" value="{{ old('attached_commission_pct', $t->attached_commission_pct) }}" placeholder="7.5">
+        <span class="hint">{{ __('Of the freight; the owner’s challan for each trip keeps it back.') }}</span>
+        @error('attached_commission_pct')<span class="error">{{ $message }}</span>@enderror
+      </div>
       <div><label class="label" for="financier">{{ __('Financier') }}</label><input id="financier" name="financier" class="input" value="{{ old('financier', $t->financier) }}" maxlength="120"></div>
       <div><label class="label" for="emi_amount">{{ __('EMI') }}</label><input id="emi_amount" name="emi_amount" type="number" step="0.01" class="input" value="{{ old('emi_amount', $t->emi_amount) }}"></div>
       <div><label class="label" for="emi_day">{{ __('EMI day of month') }}</label><input id="emi_day" name="emi_day" type="number" min="1" max="31" class="input" value="{{ old('emi_day', $t->emi_day) }}"></div>

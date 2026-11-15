@@ -120,6 +120,16 @@ class Dashboard
             }
         }
 
+        // Attached trucks' trips ended without the owner's challan (M49): the owner is not yet owed, nor our commission kept.
+        if (auth()->user()?->can('hire.manage')) {
+            $unpaid = \App\Modules\Trips\Models\Trip::inBranch()->whereIn('status', ['ended', 'settled', 'closed'])->where('truck_source', '!=', 'hired')
+                ->whereHas('truck', fn ($q) => $q->where('ownership', 'attached')->whereNotNull('owner_party_id'))
+                ->whereDoesntHave('hireChallans', fn ($q) => $q->where('status', '!=', 'cancelled'))->where('ended_at', '>=', now()->subDays(90))->count();
+            if ($unpaid) {
+                $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count attached truck’s trip has no owner’s challan|:count attached trucks’ trips have no owner’s challan', $unpaid), 'url' => route('trips.index', ['attached' => 'unpaid', 'status' => 'all'])];
+            }
+        }
+
         // Unpaid fines, late ones first (M48).
         if (auth()->user()?->can('truck.view')) {
             $fines = app(\App\Modules\Fleet\Services\Fines::class)->open();

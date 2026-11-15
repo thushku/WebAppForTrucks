@@ -178,6 +178,24 @@ class Trip extends Model
         return $this->isPlanning();
     }
 
+    /** On an attached truck (M49): our trip, the owner's truck — paid by the owner's challan, freight less our commission. */
+    public function isAttached(): bool
+    {
+        return $this->truck_source !== 'hired' && $this->truck_id && $this->truck?->ownership === 'attached' && $this->truck->owner_party_id;
+    }
+
+    /** Whether the trip is paid to someone by a hire challan: a hired truck's supplier, or an attached truck's owner. */
+    public function hasHireChallan(): bool
+    {
+        return $this->truck_source === 'hired' || $this->isAttached();
+    }
+
+    /** Who the hire challan pays: the hired truck's supplier, or the attached truck's owner. */
+    public function hireParty(): ?Party
+    {
+        return $this->isAttached() ? Party::find($this->truck->owner_party_id) : $this->supplier;
+    }
+
     /** "KL-07-AB-1234" or "MH-04-KL-7788 (hired)" */
     public function vehicleLabel(): string
     {

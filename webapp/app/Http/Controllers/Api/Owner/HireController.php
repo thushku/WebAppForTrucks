@@ -17,7 +17,10 @@ use Illuminate\Http\Request;
  * (filled from the trip, with the suggested TDS), edits while it is a
  * draft, issue (its HC/ number), then the money on it — advance, fuel
  * given, detention, deductions, the balance paid. The web's rules
- * (`HireService`); every write once per Idempotency-Key (§12).
+ * (`HireService`); every write once per Idempotency-Key (§12). M49: an
+ * attached truck's trip has the owner's challan the same way — the hire
+ * is the loads' freight, our commission kept back — and what we spent on
+ * the trip is listed to charge back as a deduction.
  */
 class HireController extends Controller
 {
@@ -30,8 +33,16 @@ class HireController extends Controller
     {
         $trip = $this->trip($uuid);
 
+        $challans = HireChallan::with('lines')->where('trip_id', $trip->id)->orderBy('id')->get();
+        $attached = $trip->isAttached();
+
         return response()->json([
-            'challans' => HireChallan::with('lines')->where('trip_id', $trip->id)->orderBy('id')->get()->map(fn ($c) => $this->row($c))->values(),
+            'attached' => $attached,
+            'supplier' => ($party = $trip->hireParty()) ? ['id' => $party->id, 'name' => $party->name] : null,
+            // On an attached truck, our spending on the trip (the owner's) and what is charged back so far.
+            'spent' => $attached ? $this->hire->spentByUs($trip)->map(fn ($r) => ['ledger' => $r->name, 'amount' => $r->amount])->values() : [],
+            'charged' => round((float) $challans->where('status', '!=', 'cancelled')->flatMap->lines->where('kind', 'deduction')->sum('amount'), 2),
+            'challans' => $challans->map(fn ($c) => $this->row($c))->values(),
             'new' => $this->hire->draftFor($trip) + ['hire_basis' => 'fixed', 'commission_mode' => 'deducted'],
             'line_kinds' => collect(HireChallan::LINE_KINDS)->map(fn ($k, $code) => ['code' => $code, 'label' => __($k[0]), 'adds' => $k[1] > 0])->values(),
         ]);
@@ -84,7 +95,10 @@ class HireController extends Controller
 
     private function trip(string $uuid): Trip
     {
-        return Trip::inBranch()->where('uuid', $uuid)->firstOrFail();
+        $trip = Trip::inBranch()->where('uuid', $uuid)->firstOrFail();
+        abort_unless($trip->hasHireChallan(), 404);
+
+        return $trip;
     }
 
     private function row(HireChallan $c): array

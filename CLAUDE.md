@@ -73,7 +73,9 @@ founder's laptop) in `phoneapp/`.
   `leave.cancel`, People → Leave; unpaid days come off monthly pay in `PayCalculator`, leave on a trip's day is a dispatch
   `busy`; M41 `PersonActivity` — a person's trips and driving hours for the person page's tabs), `Documents` (documents, versions, files, required types, shares,
   reminders, compliance / dispatch check), `Trips` (trips, crew, stops, consignments/LRs, advances, hire challans,
-  broker commissions; TripService is the trip life and the dispatch gate; `LrBooks` (M21) — pre-printed LR books, a typed
+  broker commissions; TripService is the trip life and the dispatch gate; M49 attached trucks — `Trip::isAttached()`,
+  `hireParty()`: an attached truck's trip has the owner's hire challan (`HireService::draftFor` — freight as the hire, our
+  `attached_commission_pct` kept back — and `spentByUs` to charge back); `LrBooks` (M21) — pre-printed LR books, a typed
   LR number claimed only from a free leaf of a book in use; `Tracking` (M45) — an LR's public tracking link `/t/{token}`
   in `document_links` as type `tracking`, steps and the nearest place, never money or crew), `Road` (what the crew app sends: road events
   with three clocks and flags, photos, GPS, driving shifts, duty, e-POD; `GpsDistance` (M34) — a trip's GPS km and

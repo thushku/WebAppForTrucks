@@ -226,6 +226,7 @@ class TruckController extends Controller
             'mileage_empty_kmpl' => ['nullable', 'numeric', 'min:0', 'max:30'],
             'ownership'          => ['required', Rule::in(array_keys(Truck::OWNERSHIP))],
             'owner_party_id'     => ['nullable', 'required_if:ownership,attached', 'integer', Rule::exists('parties', 'id')->where('company_id', $companyId)],
+            'attached_commission_pct' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'financier'          => ['nullable', 'string', 'max:120'],
             'emi_amount'         => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'emi_day'            => ['nullable', 'integer', 'min:1', 'max:31'],
@@ -257,6 +258,7 @@ class TruckController extends Controller
         $data['lift_axle'] = $request->boolean('lift_axle');
         if ($data['ownership'] !== 'attached') {
             $data['owner_party_id'] = null;
+            $data['attached_commission_pct'] = null;
         }
         // The odometer is typed once here; after that trips and jobs move it forward.
         if ($truck && $truck->odometer_km !== null) {

@@ -19,7 +19,8 @@
     <fieldset @disabled(! $editable) class="space-y-6">
       <section class="card p-6">
         <h2 class="text-lg font-semibold">{{ $h->number ? __('Lorry hire challan :no', ['no' => $h->number]) : __('Lorry hire challan') }}</h2>
-        <p class="mt-1 text-sm text-ink-500">{{ $trip->supplier->name }}{{ $trip->supplier->pan ? ' · PAN ' . $trip->supplier->pan : '' }}</p>
+        <p class="mt-1 text-sm text-ink-500">@if ($attached){{ __('Attached truck — the owner:') }} @endif{{ $supplier->name }}{{ $supplier->pan ? ' · PAN ' . $supplier->pan : '' }}</p>
+        @if ($attached && ! $h->exists)<p class="mt-1 text-sm text-ink-500">{{ __('Drafted from the trip: the loads’ freight as the hire, our :pct% commission kept back.', ['pct' => rtrim(rtrim((string) $trip->truck->attached_commission_pct, '0'), '.') ?: '0']) }}</p>@endif
         <div class="mt-4 grid gap-4 sm:grid-cols-4">
           <div><label class="label" for="h_date">{{ __('Date') }}</label><input id="h_date" name="challan_date" type="date" class="input" value="{{ $v('challan_date') }}"></div>
           <div><label class="label" for="h_reg">{{ __('Vehicle') }}</label><input id="h_reg" name="vehicle_reg" class="input font-mono uppercase" value="{{ $v('vehicle_reg') }}" maxlength="20"></div>
@@ -75,6 +76,29 @@
           <div class="flex justify-between border-t border-ink-100 pt-2 text-base font-semibold"><dt>{{ __('Balance') }}</dt><dd class="money">{{ \App\Support\Money::company($h->balance()) }}</dd></div>
         </dl>
       </section>
+
+      @if ($attached && $spent->isNotEmpty())
+        {{-- On an attached truck, our spending on the trip is the owner's (M49). --}}
+        @php($toCharge = round(max(0, $spent->sum('amount') - $charged), 2))
+        <section class="card p-6" data-spent>
+          <h3 class="font-semibold">{{ __('Spent by us on this trip') }}</h3>
+          <p class="mt-1 text-sm text-ink-500">{{ __('The truck is the owner’s: what we paid for it on this trip is taken from their challan as a deduction.') }}</p>
+          <dl class="mt-3 space-y-1.5 text-sm">
+            @foreach ($spent as $row)<div class="flex justify-between"><dt>{{ $row->name }}</dt><dd class="money">{{ \App\Support\Money::company($row->amount) }}</dd></div>@endforeach
+            <div class="flex justify-between border-t border-ink-100 pt-2 font-semibold"><dt>{{ __('Total') }}</dt><dd class="money">{{ \App\Support\Money::company($spent->sum('amount')) }}</dd></div>
+            @if ($charged > 0)<div class="flex justify-between text-ink-500"><dt>{{ __('Charged to the owner so far') }}</dt><dd class="money">{{ \App\Support\Money::company($charged) }}</dd></div>@endif
+          </dl>
+          @if ($h->status === 'issued' && $toCharge > 0)
+            <form method="POST" action="{{ route('trips.hire.lines.store', [$trip, $h]) }}" class="mt-3">@csrf
+              <input type="hidden" name="kind" value="deduction"><input type="hidden" name="amount" value="{{ $toCharge }}"><input type="hidden" name="line_date" value="{{ now(app(\App\Platform\Tenancy\CompanyContext::class)->company()->timezone ?: 'UTC')->toDateString() }}">
+              <input type="hidden" name="note" value="{{ \Illuminate\Support\Str::limit(__('Spent by us on the trip: :what', ['what' => $spent->pluck('name')->join(', ')]), 250) }}">
+              <button class="btn-secondary w-full">{{ __('Charge :amount to the owner', ['amount' => \App\Support\Money::company($toCharge)]) }}</button>
+            </form>
+          @elseif ($h->status === 'draft')
+            <p class="mt-3 text-xs text-ink-500">{{ __('Issue the challan to charge it.') }}</p>
+          @endif
+        </section>
+      @endif
 
       @if ($h->status === 'draft')
         <form method="POST" action="{{ route('trips.hire.issue', [$trip, $h]) }}" class="card p-6" data-confirm="{{ __('Issue the challan? The hire is then fixed and numbered.') }}">

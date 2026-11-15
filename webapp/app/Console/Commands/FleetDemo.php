@@ -88,6 +88,7 @@ class FleetDemo extends Command
             $this->quotesAndBooks($owner);
             $this->cardStatement($owner);
             $this->fines($owner);
+            $this->attached($owner, $parties);
 
             foreach ([['Anita Menon', 'anita@fleet.test', 'accountant', 'Accounts'], ['Vikram Rao', 'vikram@fleet.test', 'manager', 'Operations manager']] as [$name, $email, $role, $title]) {
                 $account = Account::firstOrNew(['email' => $email]);
@@ -387,6 +388,16 @@ class FleetDemo extends Command
         file_put_contents($path, $csv);
         app(\App\Modules\Accounts\Services\CardStatements::class)->import('fastag', $path, 'FASTag-statement-' . now()->format('M-Y') . '.csv', $owner);
         @unlink($path);
+    }
+
+    /** An attached truck (M49): Joseph Mathew's truck runs our trips at 8 % commission. */
+    private function attached(Account $owner, PartyService $parties): void
+    {
+        $joseph = $parties->save(null, ['name' => 'Joseph Mathew', 'country' => 'IN', 'city' => 'Perumbavoor', 'state_code' => '32', 'mobile' => '+919847000707',
+            'supplier_type' => 'owner_operator', 'pan' => 'ABCPJ1234K', 'payment_days' => 7, 'created_by' => $owner->id], ['supplier'], null);
+        \App\Modules\Fleet\Models\Truck::create(['reg_no' => 'KL-41-J-7070', 'rc_owner_name' => 'Joseph Mathew', 'make' => 'Tata', 'model' => 'LPT 3118', 'truck_type' => 'w10',
+            'body_type' => 'open', 'manufacture_year' => 2020, 'payload_mt' => 18, 'odometer_km' => 233100, 'odometer_at' => now(), 'registration_state' => '32',
+            'ownership' => 'attached', 'owner_party_id' => $joseph->id, 'attached_commission_pct' => 8, 'created_by' => $owner->id]);
     }
 
     /** Fines (M48): an overspeeding challan on the running trip the driver bears, a no-entry one paid, an old parking one unpaid. */

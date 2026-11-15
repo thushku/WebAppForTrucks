@@ -41,7 +41,10 @@ class HireService
     /** A new challan's fields from the trip: its supplier's vehicle and driver, the loads' weight, the suggested TDS (web and owner app). */
     public function draftFor(Trip $trip): array
     {
-        $trip->loadMissing(['supplier', 'supplierVehicle', 'consignments']);
+        $trip->loadMissing(['supplier', 'supplierVehicle', 'consignments', 'truck']);
+        if ($trip->isAttached()) {
+            return $this->attachedDraft($trip);
+        }
         $tds = $this->tdsFor($trip->supplier);
 
         return [
@@ -56,6 +59,44 @@ class HireService
             'tds_nil_reason' => $tds['nil_reason'],
             'balance_days_after_pod' => $trip->supplier->payment_days,
         ];
+    }
+
+    /**
+     * An attached truck's challan (M49): the owner is paid the trip's
+     * freight — the loads' freight and charges — less our commission at the
+     * truck's rate, kept back as ours; TDS as for any truck owner.
+     */
+    private function attachedDraft(Trip $trip): array
+    {
+        $owner = $trip->hireParty();
+        $tds = $this->tdsFor($owner);
+        $freight = round($trip->consignments->where('status', '!=', 'cancelled')->sum(fn ($c) => $c->totalCharges()), 2);
+        $driver = \App\Modules\Trips\Models\TripCrew::with('person:id,name,mobile,licence_no')->where('trip_id', $trip->id)->where('role', 'driver')->first()?->person;
+
+        return [
+            'challan_date' => now($this->context->company()->timezone)->toDateString(),
+            'vehicle_reg' => $trip->truck->reg_no, 'driver_name' => $driver?->name, 'driver_mobile' => $driver?->mobile, 'driver_licence' => $driver?->licence_no,
+            'hire_basis' => 'fixed', 'hire_amount' => $freight ?: null,
+            'commission_amount' => round($freight * (float) $trip->truck->attached_commission_pct / 100, 2), 'commission_mode' => 'deducted',
+            'tds_section' => $tds['section'], 'tds_rate' => $tds['rate'], 'tds_nil_reason' => $tds['nil_reason'],
+            'balance_days_after_pod' => $owner?->payment_days,
+        ];
+    }
+
+    /**
+     * What we spent on the trip, by ledger (M49): every cost the books hold
+     * for it but the hire itself and commission — on an attached truck the
+     * owner's, to be charged back on their challan.
+     *
+     * @return \Illuminate\Support\Collection<int, object{name: string, amount: float}>
+     */
+    public function spentByUs(Trip $trip): \Illuminate\Support\Collection
+    {
+        return DB::table('voucher_lines as l')->join('vouchers as v', 'v.id', '=', 'l.voucher_id')->join('ledger_accounts as a', 'a.id', '=', 'l.ledger_account_id')
+            ->join('account_groups as g', 'g.id', '=', 'a.account_group_id')->where('l.company_id', $this->context->id())->where('l.trip_id', $trip->id)
+            ->where('g.nature', 'expense')->where(fn ($q) => $q->whereNull('a.system_key')->orWhereNotIn('a.system_key', ['lorry_hire', 'commission_expense']))
+            ->groupBy('a.id', 'a.name')->orderBy('a.name')->selectRaw('a.name, sum(l.debit) - sum(l.credit) as amount')->get()
+            ->map(fn ($r) => (object) ['name' => $r->name, 'amount' => round((float) $r->amount, 2)])->filter(fn ($r) => $r->amount > 0)->values();
     }
 
     /** The challan's fields (M42: shared by the web and the owner app). */
@@ -118,8 +159,8 @@ class HireService
     /** @param array<string, mixed> $data */
     public function save(Trip $trip, ?HireChallan $challan, array $data): HireChallan
     {
-        if ($trip->truck_source !== 'hired') {
-            throw ValidationException::withMessages(['challan' => __('Only a trip with a hired truck has a hire challan.')]);
+        if (! $trip->hasHireChallan()) {
+            throw ValidationException::withMessages(['challan' => __('Only a trip with a hired or attached truck has a hire challan.')]);
         }
         if ($challan && $challan->status !== 'draft') {
             throw ValidationException::withMessages(['challan' => __('An issued challan is not changed; add a line (detention, deduction…) instead.')]);
@@ -132,7 +173,7 @@ class HireService
             $data['tds_amount'] = round($data['hire_amount'] * (float) ($data['tds_rate'] ?? 0) / 100, 2);
 
             $challan ??= new HireChallan(['trip_id' => $trip->id, 'created_by' => auth()->id(), 'status' => 'draft']);
-            $challan->fill($data + ['supplier_party_id' => $trip->supplier_party_id])->save();
+            $challan->fill($data + ['supplier_party_id' => $trip->isAttached() ? $trip->truck->owner_party_id : $trip->supplier_party_id])->save();
 
             // The commission on this challan, kept in step with the broker register.
             BrokerCommission::where('hire_challan_id', $challan->id)->delete();

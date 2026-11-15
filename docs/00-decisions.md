@@ -596,6 +596,22 @@ package), QR codes / amount in words / CSV written in-house. See
   or 60 days after it was issued without one (e-challans then go to court —
   to be confirmed per state).
 
+### P36. Attached trucks (added 15 Nov 2026, M49)
+
+- An **attached truck** is the owner's truck running our trips under our
+  name. The truck carries the owner (a supplier) and **our commission, % of
+  the freight**.
+- Each of its trips is paid to the owner by **the owner's challan** — the
+  same lorry hire challan as a hired truck: the hire is the trip's loads'
+  freight and charges, **our commission kept back** (commission income),
+  TDS as for any truck owner, then advances, detention, deductions and the
+  balance paid. The trip earns us the commission once its freight is billed.
+- **What we spent on the trip** (every cost the books hold for it but the
+  hire and commission) is the owner's: listed on the challan and **charged
+  back as a deduction** with one tap.
+- An attached truck's ended trip without an owner's challan is a dashboard
+  alert; the truck page shows what we owe the owner (their ledger).
+
 ---
 
 ## 4. Still open

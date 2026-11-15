@@ -12,14 +12,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** The lorry hire challan of a trip with a hired truck. */
+/** The lorry hire challan of a trip with a hired truck, or the owner's challan of an attached truck's trip (M49). */
 class HireChallanController extends Controller
 {
     public function __construct(private CompanyContext $context, private HireService $hire) {}
 
     public function create(Trip $trip): View
     {
-        abort_unless($trip->truck_source === 'hired', 404);
+        abort_unless($trip->hasHireChallan(), 404);
         $challan = new HireChallan($this->hire->draftFor($trip));
 
         return view('trips.hire-challan', $this->formData($trip, $challan));
@@ -27,7 +27,7 @@ class HireChallanController extends Controller
 
     public function store(Request $request, Trip $trip): RedirectResponse
     {
-        abort_unless($trip->truck_source === 'hired', 404);
+        abort_unless($trip->hasHireChallan(), 404);
         $challan = $this->hire->save($trip, null, $this->validated($request) + ['supplier_vehicle_id' => $trip->supplier_vehicle_id]);
 
         return redirect()->route('trips.hire.edit', [$trip, $challan])->with('status', __('Hire challan saved as a draft.'));
@@ -73,9 +73,16 @@ class HireChallanController extends Controller
 
     private function formData(Trip $trip, HireChallan $challan): array
     {
+        $attached = $trip->isAttached();
+
         return [
             'trip'    => $trip,
             'challan' => $challan,
+            'supplier' => $trip->hireParty(),
+            'attached' => $attached,
+            // On an attached truck, what we spent on the trip is the owner's: shown to charge back (M49).
+            'spent'   => $attached ? $this->hire->spentByUs($trip) : collect(),
+            'charged' => $challan->exists ? round((float) $challan->lines->where('kind', 'deduction')->sum('amount'), 2) : 0.0,
             'brokers' => Party::active()->withRole('broker')->orderBy('name')->pluck('name', 'id'),
         ];
     }

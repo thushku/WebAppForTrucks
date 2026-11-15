@@ -2,6 +2,36 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-11-15 — Milestone M49: attached trucks (decision P36)
+
+**Built (in `webapp/`, `Trips/Services/HireService`, the trip's hire challan):**
+- A truck **attached** to us has its owner (a supplier) and **our commission %** (truck form and owner app,
+  `trucks.attached_commission_pct`, migration 000033).
+- Its trips get **the owner's challan** — the hire challan of a hired truck: drafted with the loads' freight and
+  charges as the hire, our commission kept back (commission income), the owner's TDS and the trip's driver; issued, then
+  advances, detention, deductions and the balance paid as before.
+- **Spent by us on this trip**: every cost the books hold for the trip but the hire and commission, by ledger, with
+  "Charge ₹… to the owner" (a deduction line) once the challan is issued.
+- The trip page's card says "Attached truck", the owner and the commission; the truck page shows "We owe the owner ₹…"
+  (their ledger); a dashboard alert and a trip-list filter for ended attached trips without the owner's challan; the
+  owner app's `GET /owner/trips/{uuid}/hire` gives `attached`, `supplier`, `spent[]`, `charged` (404 for our own trucks).
+- Demo: Joseph Mathew's attached truck KL-41-J-7070 at 8 %. Hindi for every new string.
+- **Fixed for fresh clones**: `tests/Unit/.gitkeep` — `phpunit.xml` names `tests/Unit`, which git did not keep while
+  empty, so a new checkout could not run the tests.
+- **Fixed, PDFs in a fresh container**: the full Chromium hangs on its first start in a container without a desktop
+  (the PDF timed out after 45 s); `PdfRenderer` now finds Playwright's headless shell first, and both its old and new
+  folder names. In this container `.env` sets `DOCUMENTS_CHROME_PATH` to the headless shell.
+
+**Tests:** 302 passing (new `AttachedTruckTest`, 2 tests: the trip page and dashboard alert, the draft at ₹51,000 with
+₹4,080 (8 %) kept and 1 % TDS, issued to Joseph's ledger, the ₹500 fine paid on the trip charged back, the trip's book
+earning the commission once billed, "We owe the owner ₹45,910.00" on the truck page, no challan for an own truck; the
+owner app's draft, spending and 404).
+
+**Cloud session set-up (this container was new):** MariaDB from the system packages (`apt-get install mariadb-server`,
+started with `mysqld_safe`), databases `fleet` and `fleet_test` with a `fleet` user, `composer install`, `npm ci`,
+`.env` from `.env.example` (DB user `fleet`, `APP_URL` port 8131, `CAPTCHA_MODE=after_failures`, `DOCUMENTS_CHROME_PATH`
+and `CHROME_PATH` = `/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell`).
+
 ## 2026-10-26 — Milestone M48: fines and e-challans (decision P35)
 
 **Built (in `webapp/`, `Fleet/Services/Fines`, Trucks → Fines):**

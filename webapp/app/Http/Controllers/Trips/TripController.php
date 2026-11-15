@@ -94,6 +94,7 @@ class TripController extends Controller
             'q'       => ['nullable', 'string', 'max:40'],
             'billing' => ['nullable', Rule::in(['not_invoiced', 'invoiced', 'paid'])],
             'km'      => ['nullable', Rule::in(['differs'])],
+            'attached' => ['nullable', Rule::in(['unpaid'])],
         ]);
         $f['status'] = $f['status'] ?? 'active';
         $status = $f['status'];
@@ -111,6 +112,10 @@ class TripController extends Controller
             ->when(filled($f['q'] ?? null), fn ($q) => $q->where('trip_number', 'like', '%' . addcslashes(strtoupper($f['q']), '%_\\') . '%'))
             // Odometer and GPS apart (M34).
             ->when(($f['km'] ?? null) === 'differs', fn ($q) => $q->where('km_check', 'differs'))
+            // Attached trucks' ended trips without the owner's challan (M49).
+            ->when(($f['attached'] ?? null) === 'unpaid', fn ($q) => $q->whereIn('status', ['ended', 'settled', 'closed'])->where('truck_source', '!=', 'hired')
+                ->whereHas('truck', fn ($t) => $t->where('ownership', 'attached')->whereNotNull('owner_party_id'))
+                ->whereDoesntHave('hireChallans', fn ($h) => $h->where('status', '!=', 'cancelled')))
             // Billing: a load still to bill; every load billed with something unpaid; every load billed and paid.
             ->when(($f['billing'] ?? null) === 'not_invoiced', fn ($q) => $q->whereHas('consignments', $unbilled))
             ->when(($f['billing'] ?? null) === 'invoiced', fn ($q) => $q->whereDoesntHave('consignments', $unbilled)

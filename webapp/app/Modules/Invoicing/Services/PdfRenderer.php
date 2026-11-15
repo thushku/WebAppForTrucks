@@ -23,8 +23,16 @@ class PdfRenderer
         'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe', 'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
     ];
 
-    /** Playwright's Chromium (cloud and test machines). */
-    private const GLOBS = ['/opt/pw-browsers/chromium-*/chrome-linux/chrome', '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome'];
+    /**
+     * Playwright's browsers (cloud and test machines): its headless shell first — the full Chromium can hang on its first
+     * start in a container without a desktop —, then the full one, in both its old and new folder names.
+     */
+    private const GLOBS = [
+        '/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell',
+        '/opt/pw-browsers/chromium-*/chrome-linux64/chrome', '/opt/pw-browsers/chromium-*/chrome-linux/chrome',
+        '/root/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell',
+        '/root/.cache/ms-playwright/chromium-*/chrome-linux64/chrome', '/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
+    ];
 
     private static ?string $binary = null;
 

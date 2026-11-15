@@ -3,6 +3,21 @@
     <h3 class="font-semibold">{{ __('Details') }}</h3>
     <dl class="mt-3 grid grid-cols-[10rem_1fr] gap-x-4 gap-y-2 text-sm">
       <dt class="text-ink-500">{{ __('RC owner') }}</dt><dd>{{ $truck->rc_owner_name }}</dd>
+      @if ($truck->ownership === 'attached' && $truck->owner_party_id)
+        {{-- An attached truck (M49): its owner, our commission, and what we owe the owner. --}}
+        @php($ownerParty = \App\Modules\Parties\Models\Party::find($truck->owner_party_id, ['id', 'name']))
+        <dt class="text-ink-500">{{ __('Attached; owner') }}</dt>
+        <dd>@can('party.view')<a href="{{ route('parties.show', $ownerParty) }}" class="text-brand-700 hover:underline">{{ $ownerParty?->name }}</a>@else{{ $ownerParty?->name }}@endcan
+          · {{ __('our commission :pct%', ['pct' => rtrim(rtrim((string) ($truck->attached_commission_pct ?? 0), '0'), '.') ?: '0']) }}
+          @can('ledger.view')
+            @php($ownerLedger = \App\Modules\Accounts\Models\LedgerAccount::where('party_id', $truck->owner_party_id)->first())
+            @if ($ownerLedger)
+              @php($owed = round((float) \Illuminate\Support\Facades\DB::table('voucher_lines')->where('ledger_account_id', $ownerLedger->id)->selectRaw('coalesce(sum(credit) - sum(debit), 0) as b')->value('b') - (float) $ownerLedger->opening_balance, 2))
+              <div class="mt-0.5 text-xs"><a href="{{ route('ledgers.show', $ownerLedger) }}" class="{{ $owed > 0 ? 'font-semibold text-partial' : 'text-ink-500' }} hover:underline">{{ $owed >= 0 ? __('We owe the owner :amount', ['amount' => \App\Support\Money::company($owed)]) : __('The owner owes us :amount', ['amount' => \App\Support\Money::company(-$owed)]) }}</a></div>
+            @endif
+          @endcan
+        </dd>
+      @endif
       @if ($truck->registration_date)<dt class="text-ink-500">{{ __('Registered') }}</dt><dd>{{ $truck->registration_date->format('d M Y') }}{{ $truck->registered_rto ? ' · ' . $truck->registered_rto : '' }}</dd>@endif
       @if ($truck->vehicle_class)<dt class="text-ink-500">{{ __('Class') }}</dt><dd>{{ $truck->vehicle_class }}</dd>@endif
       <dt class="text-ink-500">{{ __('Body') }}</dt><dd>{{ collect([$bodies[$truck->body_type] ?? null, $truck->rate_card_label, $truck->deck_length_ft ? rtrim(rtrim((string) $truck->deck_length_ft, '0'), '.') . ' ft' : null])->filter()->join(' · ') ?: '—' }}</dd>

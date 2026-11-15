@@ -399,6 +399,7 @@ class MastersController extends Controller
             'fuel_type' => ['nullable', Rule::in(array_keys(Truck::FUELS))],
             'ownership' => ['nullable', Rule::in(array_keys(Truck::OWNERSHIP))],
             'owner_party_id' => ['nullable', 'required_if:ownership,attached', 'integer', Rule::exists('parties', 'id')->where('company_id', $companyId)],
+            'attached_commission_pct' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'payload_mt' => ['nullable', 'numeric', 'min:0', 'max:200'],
             'odometer_km' => ['nullable', 'integer', 'min:0', 'max:9999999'],
             'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('company_id', $companyId)],
@@ -414,6 +415,7 @@ class MastersController extends Controller
         }
         if (($data['ownership'] ?? $truck?->ownership) !== 'attached' && array_key_exists('ownership', $data)) {
             $data['owner_party_id'] = null;
+            $data['attached_commission_pct'] = null;
         }
         foreach (['fuel_type', 'ownership'] as $f) {
             if (array_key_exists($f, $data) && $data[$f] === null) {
@@ -507,6 +509,7 @@ class MastersController extends Controller
             + $t->only(['reg_no', 'rc_owner_name', 'truck_type', 'body_type', 'vehicle_class', 'make', 'model', 'manufacture_year', 'registration_state',
                 'fuel_type', 'ownership', 'owner_party_id', 'odometer_km', 'branch_id', 'notes'])
             + ['registration_date' => $t->registration_date?->toDateString(), 'payload_mt' => $t->payload_mt !== null ? (float) $t->payload_mt : null,
+                'attached_commission_pct' => $t->attached_commission_pct !== null ? (float) $t->attached_commission_pct : null,
                 'odometer_locked' => $t->odometer_km !== null];
     }
 

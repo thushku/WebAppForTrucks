@@ -206,7 +206,7 @@
       </div>
     </section>
 
-    @if ($t->truck_source === 'hired')
+    @if ($t->hasHireChallan())
       @include('trips.partials.hire-summary')
     @endif
 
