@@ -626,6 +626,21 @@ package), QR codes / amount in words / CSV written in-house. See
 - Overdue services are a dashboard alert; services likely this week a
   warning.
 
+### P38. The LR on a pre-printed form (added 23 Nov 2026, M51)
+
+- Transporters who keep pre-printed LR books (M21) print onto them: an LR
+  template theme **"Pre-printed form (values only)"** prints no boxes,
+  labels, logo or terms — the form has them — only the values, **each at its
+  own place in mm** from the paper's top-left corner.
+- Twenty values can be placed (LR no., date, vehicle, from, to, consignor and
+  consignee with their addresses, packages, goods, weights, the freight total
+  or its lines, payment, consignor invoice, e-way bill, declared value,
+  driver, remarks…), each switched on or off with its width; **one offset
+  moves them all** for a printer that feeds a little off.
+- The screen preview shows a **10 mm grid** and outlines each value; the
+  print shows neither. One plain copy by default (the book has its own
+  carbons); a copy that hides the freight leaves the freight out.
+
 ---
 
 ## 4. Still open

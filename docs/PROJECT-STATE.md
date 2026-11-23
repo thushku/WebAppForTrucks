@@ -2,6 +2,22 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-11-23 — Milestone M51: the LR on a pre-printed form (decision P38)
+
+**Built (in `webapp/`, `Invoicing/Design/DesignSchema`, `documents/_lr-preprinted`):**
+- A new LR template theme, **"Pre-printed form (values only)"**: the values without boxes, labels, logo or terms, each
+  at its own x / y and width in mm from the paper's corner (`DesignSchema::SLOTS` — 20 values with defaults for a
+  common A4 LR), switched on or off, and a printer offset (±20 mm) that moves them all. Page margin 0, one plain copy by
+  default; a copy that hides the freight leaves it out.
+- Settings → Templates → an LR template: **"Positions on a pre-printed form"** (each value: print, across, down,
+  width; move all across / down). The live preview shows a 10 mm grid and outlines each value; printing shows neither.
+- Designs are checked as before: positions kept inside the paper, unknown values dropped and listed; invoice and
+  receipt designs carry no positions. Hindi for every new string.
+
+**Tests:** 306 passing (new `PreprintedLrTest`, 2 tests: positions kept inside the paper and an unknown value dropped,
+the offset clamped to 20 mm, one copy; a template made, its LR no. moved and the consignee left off, printed with the
+LR no. at 152 mm (2 mm offset) and 20 mm down, no boxes, labels or signatures, one sheet).
+
 ## 2026-11-23 — Milestone M50: service due and when (decision P37)
 
 **Built (in `webapp/`, `Fleet/Services/Maintenance`, Trucks → Service due):**

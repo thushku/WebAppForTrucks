@@ -14,6 +14,10 @@
   ]);
 @endphp
 @include('documents._frame-open')
+@if ($design['theme'] === 'preprinted')
+  {{-- A pre-printed form (M51): the values only, each where the form has its box. --}}
+  @include('documents._lr-preprinted')
+@else
 @foreach ($d['copies'] as $copy)
 <div class="sheet" style="background: {{ $copy['tint'] ?? '#ffffff' }}">
   @if ($d['is_cancelled'])<div class="watermark">{{ __('CANCELLED') }}</div>@endif
@@ -128,4 +132,5 @@
   @if ($design['footer'])<p class="small footer">{{ $design['footer'] }}</p>@endif
 </div>
 @endforeach
+@endif
 @include('documents._frame-close')

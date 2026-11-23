@@ -85,6 +85,35 @@
       @if ($f === 'invoice')<p class="hint">{{ __('The reverse-charge and exemption lines always print: the law asks for them.') }}</p>@endif
     </details>
 
+    @if ($f === 'lr')
+      {{-- The pre-printed form's positions (M51). --}}
+      <details class="card p-5" data-slots @if ($design['theme'] === 'preprinted') open @endif>
+        <summary class="cursor-pointer font-semibold">{{ __('Positions on a pre-printed form') }}</summary>
+        <p class="hint">{{ __('For the “Pre-printed form” theme: where each value prints, in mm from the top-left corner of the paper. The preview shows a 10 mm grid; print one on plain paper and hold it against a blank form to check.') }}</p>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <div><label class="label" for="d_offx">{{ __('Move all across (mm)') }}</label><input id="d_offx" type="number" name="design[offset_x]" value="{{ $design['offset_x'] ?? 0 }}" min="-20" max="20" class="input"></div>
+          <div><label class="label" for="d_offy">{{ __('Move all down (mm)') }}</label><input id="d_offy" type="number" name="design[offset_y]" value="{{ $design['offset_y'] ?? 0 }}" min="-20" max="20" class="input"></div>
+        </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="text-xs text-ink-500"><th class="pb-1 text-start font-medium">{{ __('Value') }}</th><th class="pb-1 font-medium">{{ __('Print') }}</th><th class="pb-1 font-medium">{{ __('Across') }}</th><th class="pb-1 font-medium">{{ __('Down') }}</th><th class="pb-1 font-medium">{{ __('Width') }}</th></tr></thead>
+            <tbody>
+              @foreach (DesignSchema::SLOTS['lr'] as $key => [$label])
+                @php($slot = $design['slots'][$key] ?? ['on' => false, 'x' => 0, 'y' => 0, 'w' => 40])
+                <tr>
+                  <td class="py-1 pe-2">{{ __($label) }}</td>
+                  <td class="py-1 text-center"><input type="checkbox" name="design[slots][{{ $key }}][on]" value="1" class="size-4 rounded border-ink-300" @checked($slot['on']) aria-label="{{ __('Print :name', ['name' => __($label)]) }}"></td>
+                  @foreach (['x' => 'slot_x', 'y' => 'slot_y', 'w' => 'slot_w'] as $axis => $range)
+                    <td class="py-1 ps-1"><input type="number" name="design[slots][{{ $key }}][{{ $axis }}]" value="{{ $slot[$axis] }}" min="{{ DesignSchema::RANGES[$range][0] }}" max="{{ DesignSchema::RANGES[$range][1] }}" class="input w-20 py-1.5" aria-label="{{ __($label) }} {{ $axis }}"></td>
+                  @endforeach
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+      </details>
+    @endif
+
     <details class="card p-5">
       <summary class="cursor-pointer font-semibold">{{ __('Titles and labels') }}</summary>
       <p class="hint">{{ __('Leave a box empty for the usual wording, in the language the document prints in. A renamed label prints as you type it.') }}</p>

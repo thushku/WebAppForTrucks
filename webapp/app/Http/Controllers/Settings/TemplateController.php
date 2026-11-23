@@ -166,6 +166,12 @@ class TemplateController extends Controller
         foreach (array_keys(DesignSchema::FIELDS[$family]) as $field) {
             $design['fields'][$field] = (bool) ($design['fields'][$field] ?? false);
         }
+        // A pre-printed form's value that is off posts nothing either (M51).
+        if ($family === 'lr' && isset($design['slots']) && is_array($design['slots'])) {
+            foreach ($design['slots'] as $key => $slot) {
+                $design['slots'][$key]['on'] = is_array($slot) && ! empty($slot['on']);
+            }
+        }
         if (isset($design['copies']) && is_array($design['copies'])) {
             $design['copies'] = array_values(array_filter($design['copies'], fn ($c) => is_array($c) && empty($c['remove'])));
             foreach ($design['copies'] as &$copy) {

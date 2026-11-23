@@ -31,6 +31,8 @@ final class DesignSchema
         'lr' => [
             'classic_lr' => ['Classic LR (boxed)', '#111827', 'A4'],
             'compact_a5' => ['Compact A5', '#111827', 'A5'],
+            // M51: only the values, each where the company's own printed LR form has its box.
+            'preprinted' => ['Pre-printed form (values only)', '#000000', 'A4'],
         ],
         'receipt' => [
             'receipt_a5' => ['A5 receipt', '#111827', 'A5'],
@@ -109,7 +111,30 @@ final class DesignSchema
     public const MAX_CUSTOM = 6;
 
     /** key => [min, max, default] in points or millimetres. */
-    public const RANGES = ['base_pt' => [8, 12, 10], 'margin_mm' => [5, 25, 12], 'logo_mm' => [8, 30, 18]];
+    public const RANGES = ['base_pt' => [8, 12, 10], 'margin_mm' => [5, 25, 12], 'logo_mm' => [8, 30, 18],
+        'slot_x' => [0, 300, 0], 'slot_y' => [0, 420, 0], 'slot_w' => [5, 200, 40], 'offset' => [-20, 20, 0]];
+
+    /**
+     * The pre-printed LR form (M51): each value and where it prints, in mm
+     * from the paper's top-left corner — slot => [name, x, y, width, printed
+     * by default]. The defaults suit a common A4 LR; the office moves each one
+     * onto its own form's box, and the offset moves them all for a printer
+     * that feeds a little off.
+     */
+    public const SLOTS = [
+        'lr' => [
+            'lr_number' => ['LR no.', 160, 22, 40, true], 'date' => ['Date', 160, 32, 40, true], 'vehicle' => ['Vehicle', 25, 52, 50, true],
+            'from' => ['From', 85, 52, 50, true], 'to' => ['To', 145, 52, 50, true],
+            'consignor' => ['Consignor (name and address)', 15, 68, 90, true], 'consignee' => ['Consignee (name and address)', 110, 68, 90, true],
+            'billing' => ['Freight billed to', 15, 100, 180, false],
+            'packages' => ['Packages', 15, 118, 25, true], 'goods' => ['Said to contain', 42, 118, 70, true],
+            'actual_weight' => ['Actual weight', 115, 118, 25, true], 'charged_weight' => ['Charged weight', 142, 118, 25, true],
+            'total' => ['Freight total', 170, 118, 30, true], 'charges' => ['Freight and charges, line by line', 150, 128, 50, false],
+            'payment' => ['To pay / paid / to be billed', 15, 160, 40, true], 'invoice' => ['Consignor invoice', 60, 160, 50, true],
+            'ewaybill' => ['E-way bill', 115, 160, 50, true], 'declared_value' => ['Declared value', 170, 160, 30, true],
+            'driver' => ['Driver', 15, 168, 90, false], 'remarks' => ['Remarks', 15, 176, 180, true],
+        ],
+    ];
 
     public const DENSITIES = ['comfortable', 'compact'];
 
@@ -139,9 +164,15 @@ final class DesignSchema
             'fields'    => self::FIELDS[$family],
             'titles'    => array_fill_keys(array_keys(self::TITLES[$family]), null),
             'labels'    => array_fill_keys(array_keys(self::LABELS[$family]), null),
-            'copies'    => array_map(fn ($c) => ['label' => $c[0], 'tint' => $c[1], 'hide_freight' => $c[2]], self::COPIES[$family]),
+            // A pre-printed book has its own carbon copies: one plain print, no badge or tint on the form.
+            'copies'    => $theme === 'preprinted' ? [['label' => '', 'tint' => '#ffffff', 'hide_freight' => false]]
+                : array_map(fn ($c) => ['label' => $c[0], 'tint' => $c[1], 'hide_freight' => $c[2]], self::COPIES[$family]),
             'custom'    => [],
             'footer'    => null,
+            // The pre-printed form's positions (M51): LR designs only.
+            'slots'     => array_map(fn ($s) => ['on' => $s[4], 'x' => $s[1], 'y' => $s[2], 'w' => $s[3]], self::SLOTS[$family] ?? []),
+            'offset_x'  => 0,
+            'offset_y'  => 0,
         ];
     }
 
@@ -244,7 +275,24 @@ final class DesignSchema
             $out['custom'] = $custom;
         }
 
-        $known = ['schema', 'family', 'theme', 'accent', 'font', 'paper', 'density', 'base_pt', 'margin_mm', 'logo_mm', 'fields', 'titles', 'labels', 'copies', 'custom', 'footer'];
+        // The pre-printed form's positions (M51): known slots only, each kept inside the paper.
+        foreach ((array) ($input['slots'] ?? []) as $key => $slot) {
+            if (! isset(self::SLOTS[$family][$key]) || ! is_array($slot)) {
+                $dropped[] = __('Position: “:name” is not one of the values, left out', ['name' => self::shown((string) $key)]);
+                continue;
+            }
+            $name = __(self::SLOTS[$family][$key][0]);
+            $out['slots'][$key] = [
+                'on' => array_key_exists('on', $slot) ? (bool) filter_var($slot['on'], FILTER_VALIDATE_BOOLEAN) : $out['slots'][$key]['on'],
+                'x' => self::number($slot['x'] ?? null, 'slot_x', $out['slots'][$key]['x'], __('Position of “:name”, across', ['name' => $name]), $dropped),
+                'y' => self::number($slot['y'] ?? null, 'slot_y', $out['slots'][$key]['y'], __('Position of “:name”, down', ['name' => $name]), $dropped),
+                'w' => self::number($slot['w'] ?? null, 'slot_w', $out['slots'][$key]['w'], __('Width of “:name”', ['name' => $name]), $dropped),
+            ];
+        }
+        $out['offset_x'] = self::number($input['offset_x'] ?? null, 'offset', 0, __('Printer offset, across'), $dropped);
+        $out['offset_y'] = self::number($input['offset_y'] ?? null, 'offset', 0, __('Printer offset, down'), $dropped);
+
+        $known = ['schema', 'family', 'theme', 'accent', 'font', 'paper', 'density', 'base_pt', 'margin_mm', 'logo_mm', 'fields', 'titles', 'labels', 'copies', 'custom', 'footer', 'slots', 'offset_x', 'offset_y'];
         foreach (array_keys($input) as $key) {
             if (! in_array($key, $known, true)) {
                 $dropped[] = __('“:name” is not part of a design, left out', ['name' => self::shown((string) $key)]);

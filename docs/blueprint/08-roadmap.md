@@ -65,6 +65,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M48 ✅ | Fines and e-challans: recorded against the truck and the driver at the wheel then, paid from the office or on the road, disputed or cancelled, the driver's taken from their next pay run; black points per driver; owner app and My Khata | Fines no longer forgotten or argued about (UAE black points phase 3) |
 | M49 ✅ | Attached trucks: our commission % on the truck; each trip's owner's challan drafted with the freight as the hire and our commission kept back; what we spent on the trip charged back; the owner's balance on the truck page; dashboard alert; owner app | Attached-truck commission accounting (phase 4) |
 | M50 ✅ | Service due and when: each schedule's likely date from the truck's own pace, the fleet's Service due list (7–90 days), a warning when a trip would run past a service, dashboard alert, owner app | Maintenance predictions (phase 4) |
+| M51 ✅ | The LR on a pre-printed form: a template theme that prints the values only, each placed in mm on the company's own LR form, with a printer offset and a 10 mm grid in the preview | Pre-printed stationery mode (phase 2) |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

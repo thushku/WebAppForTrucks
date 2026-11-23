@@ -88,7 +88,8 @@ founder's laptop) in `phoneapp/`.
   never edited (the model refuses); billed LRs and their trips are locked. Templates (M10): `Invoicing/Design/
   DesignSchema` checks every design (anything unknown is dropped and listed), `DocumentTemplates` resolves bill →
   client → branch → default → built-in, saves versions and rollbacks; a bill freezes its design at issue
-  (`design_snapshot`); the editor is Settings → Templates with a live preview (`resources/js/templates.js`).
+  (`design_snapshot`); the editor is Settings → Templates with a live preview (`resources/js/templates.js`). M51: the LR theme `preprinted` prints the values only at
+  `design.slots` (x / y / w in mm, `offset_x` / `offset_y`) for a company's own pre-printed LR form (`documents/_lr-preprinted`).
   Quotations (M21): `Quotations` (draft → issued with its QT/ number and fixed → accepted / declined; accepted →
   `toRateContract`), print `documents/quotation`; the voucher print is `documents/voucher` (`BooksController::printVoucher`).
   Messages (M18): `Messages` (the words sent with bills, receipts and reminders — Settings → Messages, shipped

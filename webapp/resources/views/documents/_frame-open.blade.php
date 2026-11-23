@@ -16,7 +16,7 @@
 <title>{{ $pageTitle }}</title>
 <style>
   {{-- Raw on purpose: <style> does not decode entities, and every value here comes from the schema's lists or is a checked number or #hex. --}}
-  @page { size: {!! \App\Modules\Invoicing\Design\DesignSchema::pageSize($design) !!}; margin: {{ (int) $design['margin_mm'] }}mm; }
+  @page { size: {!! \App\Modules\Invoicing\Design\DesignSchema::pageSize($design) !!}; margin: {{ $design['theme'] === 'preprinted' ? 0 : (int) $design['margin_mm'] }}mm; }
   :root { {!! \App\Modules\Invoicing\Design\DesignSchema::cssVariables($design) !!} --line: #374151; --soft: #9ca3af; --head: #f3f4f6; }
   * { box-sizing: border-box; }
   html { font-size: var(--base); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -56,6 +56,15 @@
   .t-minimal .grid thead th { background: none; color: var(--accent); border-bottom: 2px solid var(--accent); }
   .t-minimal h1 { font-weight: 400; letter-spacing: .12em; }
   .t-minimal .total-row td { border-top: 2px solid var(--accent); }
+
+  /* Pre-printed form (M51): the paper itself from its corner, each value placed in mm; a 10 mm grid on screen only. */
+  .t-preprinted .sheet { padding: 0; height: {{ $sheetHeight }}; overflow: hidden; }
+  .t-preprinted .slot { position: absolute; line-height: 1.25; overflow: hidden; }
+  @media screen {
+    .t-preprinted .sheet { background-color: #fff; background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px); background-size: 10mm 10mm; }
+    .t-preprinted .slot { outline: 1px dashed #93c5fd; background: rgba(239, 246, 255, .7); }
+  }
+  @media print { .t-preprinted .sheet { width: var(--sheet); height: {{ $sheetHeight }}; } }
 
   /* Thermal 80 mm: one narrow column, no shadows or tints. */
   .t-thermal_80 .sheet { padding: 3mm; }
