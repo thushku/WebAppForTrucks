@@ -120,6 +120,17 @@ class Dashboard
             }
         }
 
+        // Services overdue, or likely within a week at the truck's pace (M50).
+        if (auth()->user()?->can('truck.view')) {
+            $service = app(\App\Modules\Fleet\Services\Maintenance::class)
+                ->due(\App\Modules\Fleet\Models\Truck::inBranch()->where('ownership', '!=', 'attached')->where('status', '!=', 'sold')->get(['id', 'reg_no', 'odometer_km', 'status', 'ownership']), 7);
+            if ($late = $service->where('state', 'overdue')->count()) {
+                $alerts[] = ['level' => 'serious', 'text' => trans_choice(':count service is overdue|:count services are overdue', $late), 'url' => route('trucks.service-due')];
+            } elseif ($service->isNotEmpty()) {
+                $alerts[] = ['level' => 'warning', 'text' => trans_choice(':count service is due this week|:count services are due this week', $service->count()), 'url' => route('trucks.service-due', ['days' => 7])];
+            }
+        }
+
         // Attached trucks' trips ended without the owner's challan (M49): the owner is not yet owed, nor our commission kept.
         if (auth()->user()?->can('hire.manage')) {
             $unpaid = \App\Modules\Trips\Models\Trip::inBranch()->whereIn('status', ['ended', 'settled', 'closed'])->where('truck_source', '!=', 'hired')

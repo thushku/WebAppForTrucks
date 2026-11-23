@@ -534,6 +534,12 @@ Every write runs once per `Idempotency-Key` (§12); refusals answer 422 with the
 | `POST /owner/trips/{uuid}/hire/{id}/issue` | `hire.manage` | issued with its number → `challan` |
 | `POST /owner/trips/{uuid}/hire/{id}/lines` | `hire.manage` | money on an issued challan: `kind` (`detention`, `extra` add to what we owe; `advance`, `fuel`, `deduction`, `payment` take from it — never more than the balance), `amount`, `line_date`, `mode` (cash / upi / bank; needed for advance and payment), `paid_to` (owner / broker / driver), `reference`, `note` (needed for a deduction) → `challan`; the balance paid to zero settles it |
 
+## 17a. Owner app: service due (added in M50)
+
+| Call | Permission | Sends → gets |
+|---|---|---|
+| `GET /owner/service-due?days=` | `truck.view` | `days` (7, 30 — the default —, 60 or 90), `services[]` overdue or likely within them, soonest first: `truck` {`id`, `reg_no`, `odometer_km`}, `schedule_id`, `name`, `every_km`, `every_days`, `state` (`overdue` / `soon` / `ok`), `due_km`, `km_left` (negative: over), `due_on`, `expected_on` (the likely date), `expected_by` (`km` — from the truck's pace — or `date`), `km_a_day` (its pace over 60 days, or null) |
+
 ## 17. Owner app: fines and e-challans (added in M48)
 
 A fine is recorded against the truck at the time on the challan: the trip on the road then and the driver at the

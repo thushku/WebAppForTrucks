@@ -7,13 +7,18 @@
     <table class="table">
       <thead><tr><th>{{ __('Service') }}</th><th>{{ __('Every') }}</th><th>{{ __('Last done') }}</th><th>{{ __('Next due') }}</th><th></th></tr></thead>
       <tbody>
+        @php($maintenance = app(\App\Modules\Fleet\Services\Maintenance::class))
+        @php($pace = $maintenance->paces(collect([$truck->id]))[$truck->id] ?? null)
         @forelse ($schedules as $s)
           @php($state = $s->state($truck->odometer_km))
+          @php($forecast = $maintenance->forecast($s, $truck, $pace))
           <tr>
             <td class="font-medium">{{ $s->name }}</td>
             <td class="text-sm">{{ collect([$s->every_km ? number_format($s->every_km) . ' km' : null, $s->every_days ? trans_choice(':count day|:count days', $s->every_days) : null])->filter()->join(' / ') }}</td>
             <td class="text-sm">{{ collect([$s->last_done_km !== null ? number_format($s->last_done_km) . ' km' : null, $s->last_done_on?->format('d M Y')])->filter()->join(' · ') ?: '—' }}</td>
-            <td><span class="pill {{ ['overdue' => 'bg-red-50 text-overdue', 'soon' => 'bg-amber-50 text-partial', 'ok' => 'bg-emerald-50 text-paid'][$state] ?? 'bg-ink-100 text-ink-500' }}">{{ collect([$s->dueKm() ? number_format($s->dueKm()) . ' km' : null, $s->dueOn()?->format('d M Y')])->filter()->join(' / ') ?: '—' }}</span></td>
+            <td><span class="pill {{ ['overdue' => 'bg-red-50 text-overdue', 'soon' => 'bg-amber-50 text-partial', 'ok' => 'bg-emerald-50 text-paid'][$state] ?? 'bg-ink-100 text-ink-500' }}">{{ collect([$s->dueKm() ? number_format($s->dueKm()) . ' km' : null, $s->dueOn()?->format('d M Y')])->filter()->join(' / ') ?: '—' }}</span>
+              {{-- When it is likely, from the truck's own pace (M50). --}}
+              @if ($forecast['expected_on'] && $state !== 'overdue')<div class="mt-1 text-xs text-ink-500">{{ $forecast['by'] === 'km' ? __('around :date at :pace km a day', ['date' => $forecast['expected_on']->format('d M'), 'pace' => number_format($pace)]) : __('by :date', ['date' => $forecast['expected_on']->format('d M')]) }}</div>@endif</td>
             <td class="text-end">@can('complaint.manage')<a href="{{ route('trucks.service.create', [$truck, 'schedule' => $s->id]) }}" class="text-xs font-semibold text-brand-700 hover:underline">{{ __('Record service') }}</a>@endcan</td>
           </tr>
         @empty

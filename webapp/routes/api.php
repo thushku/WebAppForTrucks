@@ -180,6 +180,9 @@ Route::prefix('v1')->middleware('throttle:api')->group(function () {
                 Route::get('/crew/{person}/trips', [MastersController::class, 'personTrips'])->whereNumber('person')->middleware('permission:trip.view')->name('crew.trips');
                 Route::get('/crew/{person}/driving', [MastersController::class, 'personDriving'])->whereNumber('person')->middleware('permission:trip.view')->name('crew.driving');
 
+                // Service due (M50): overdue or coming up, with the likely date.
+                Route::get('/service-due', [\App\Http\Controllers\Api\Owner\ServiceDueController::class, 'index'])->middleware('permission:truck.view')->name('service-due');
+
                 // Fines and e-challans (M48): the register and black points; record and pay once per key.
                 Route::get('/fines', [\App\Http\Controllers\Api\Owner\FinesController::class, 'index'])->middleware('permission:truck.view')->name('fines');
                 Route::get('/fines/{fine}', [\App\Http\Controllers\Api\Owner\FinesController::class, 'show'])->whereNumber('fine')->middleware('permission:truck.view')->name('fines.show');

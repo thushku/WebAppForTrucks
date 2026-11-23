@@ -64,6 +64,7 @@ Each milestone ends with automated tests passing and a push to the branch.
 | M47 ✅ | The client's own page: one link with their loads of 60 days and each one's tracking, their open bills with their links and what is due; made and stopped from the billing tab or the owner app | The client portal (phase 4), without a sign-in |
 | M48 ✅ | Fines and e-challans: recorded against the truck and the driver at the wheel then, paid from the office or on the road, disputed or cancelled, the driver's taken from their next pay run; black points per driver; owner app and My Khata | Fines no longer forgotten or argued about (UAE black points phase 3) |
 | M49 ✅ | Attached trucks: our commission % on the truck; each trip's owner's challan drafted with the freight as the hire and our commission kept back; what we spent on the trip charged back; the owner's balance on the truck page; dashboard alert; owner app | Attached-truck commission accounting (phase 4) |
+| M50 ✅ | Service due and when: each schedule's likely date from the truck's own pace, the fleet's Service due list (7–90 days), a warning when a trip would run past a service, dashboard alert, owner app | Maintenance predictions (phase 4) |
 
 ## 3. Phone app build (laptop session, after M6 and M15)
 

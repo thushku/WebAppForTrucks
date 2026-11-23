@@ -612,6 +612,20 @@ package), QR codes / amount in words / CSV written in-house. See
 - An attached truck's ended trip without an owner's challan is a dashboard
   alert; the truck page shows what we owe the owner (their ledger).
 
+### P37. Service due and when (added 23 Nov 2026, M50)
+
+- A service schedule's km becomes **a likely date** from the truck's own
+  pace — the km its trips ran over the last 60 days —; the likely date is
+  the earlier of that and the schedule's own date.
+- **Service due** lists, across our own and leased trucks (an attached
+  truck's servicing is its owner's), every service overdue or likely within
+  7, 30, 60 or 90 days, soonest first.
+- A trip that would run past a service's km, or set out with one overdue or
+  due by date within three days, is **warned about when it is sent — never
+  stopped** (papers stop a trip; a service is the office's call).
+- Overdue services are a dashboard alert; services likely this week a
+  warning.
+
 ---
 
 ## 4. Still open

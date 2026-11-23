@@ -439,6 +439,8 @@ Route::middleware('auth')->group(function () {
                 Route::post('/{truck}/tyres/{tyre}/off', [TyreController::class, 'off'])->name('tyres.off');
                 Route::post('/{truck}/tyres/{tyre}/move', [TyreController::class, 'move'])->name('tyres.move');
             });
+            // Service due across the fleet, with the likely date (M50).
+            Route::get('/service-due', [\App\Http\Controllers\Fleet\ServiceDueController::class, 'index'])->middleware('permission:truck.view')->name('service-due');
             // Fines and e-challans (M48): seen with truck.view, recorded with truck.manage, paid with accounts.post.
             Route::get('/fines', [\App\Http\Controllers\Fleet\FineController::class, 'index'])->middleware('permission:truck.view')->name('fines');
             Route::get('/fines/{fine}', [\App\Http\Controllers\Fleet\FineController::class, 'show'])->whereNumber('fine')->middleware('permission:truck.view')->name('fines.show');

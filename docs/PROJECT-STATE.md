@@ -2,6 +2,25 @@
 
 Updated at the end of every build round. Newest first.
 
+## 2026-11-23 — Milestone M50: service due and when (decision P37)
+
+**Built (in `webapp/`, `Fleet/Services/Maintenance`, Trucks → Service due):**
+- **A likely date for every service**: the km a schedule is due at, turned into a date from the truck's own pace (km
+  its trips ran over the last 60 days); the earlier of that and the schedule's own date. Shown on the truck's Service
+  tab ("around 04 Dec at 50 km a day", "by 31 Oct").
+- **Service due**: every service overdue or likely within 7, 30, 60 or 90 days across our own and leased trucks,
+  soonest first — km over or to go, the likely date and how it was reached, Record service; trucks with no schedule
+  listed below.
+- **A warning on sending a trip** (never a stop): a service overdue, one the trip's planned km runs past, or one due
+  by date within three days (`TripService::dispatchCheck` → `service`).
+- Dashboard: services overdue (serious) or likely this week (warning). Owner app `GET /owner/service-due?days=`.
+  Hindi for every new string.
+
+**Tests:** 304 passing (new `ServiceDueTest`, 2 tests: a truck at 103,000 km after a 3,000 km trip (50 km a day) —
+tyre rotation 3,000 km over, greasing by 31 Oct, engine oil around 4 Dec, general service left out at 60 days; the
+7-day list without the engine oil; the Service tab's forecasts; the dashboard alert; a 2,500 km draft warned of both
+and still sent; the owner app's list and a refused window).
+
 ## 2026-11-15 — Milestone M49: attached trucks (decision P36)
 
 **Built (in `webapp/`, `Trips/Services/HireService`, the trip's hire challan):**

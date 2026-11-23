@@ -151,7 +151,9 @@ class TripService
      * What stops this trip being sent: the truck and crew are busy on another
      * trip, or have an expired or missing paper that stops dispatch.
      *
-     * @return array{busy: string[], papers: array<int, array{who: string, name: string, reason: string}>}
+     * Services the truck would run past are warnings only (M50).
+     *
+     * @return array{busy: string[], papers: array<int, array{who: string, name: string, reason: string}>, service: string[]}
      */
     public function dispatchCheck(Trip $trip): array
     {
@@ -196,7 +198,7 @@ class TripService
             }
         }
 
-        return ['busy' => $busy, 'papers' => $papers];
+        return ['busy' => $busy, 'papers' => $papers, 'service' => app(\App\Modules\Fleet\Services\Maintenance::class)->tripWarnings($trip)];
     }
 
     /** Send to the crew: the dispatch gate, the trip number and the LR numbers. */

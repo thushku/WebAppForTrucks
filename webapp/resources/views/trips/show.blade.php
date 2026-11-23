@@ -83,6 +83,10 @@
         </ul>
       @endif
       @if (! $check['busy'] && ! $check['papers'])<p class="mt-2 text-sm text-paid">{{ __('Truck and crew are free and their papers are in order.') }}</p>@endif
+      @if ($check['service'] ?? [])
+        {{-- Service due (M50): a warning, never a stop. --}}
+        <ul class="mt-3 space-y-1 text-sm text-partial" data-service-warning>@foreach ($check['service'] as $w)<li class="flex gap-2"><x-icon name="wrench" class="size-4 shrink-0" /> {{ $w }}</li>@endforeach</ul>
+      @endif
       @if (! $check['busy'])
         <form method="POST" action="{{ route('trips.assign', $t) }}" class="mt-4 flex flex-wrap items-end gap-3">
           @csrf

@@ -68,7 +68,8 @@ founder's laptop) in `phoneapp/`.
   `TruckActivity` — a truck's trips, fuel (km/l between full tanks) and money for its Trips, Fuel and Costs tabs; M48
   `Fines` — fines and e-challans against the truck and the driver at the wheel then (driving shift, else the trip's
   driver), paid (`source_type` fine) or by the crew on the road (no voucher), the driver's taken from their next pay run
-  by `PayRuns` (`fines.payslip_id`, a payslip line with `fine_id`), black points over 12 months; Trucks → Fines), `People` (people, activation codes; M40 `Leave` — leave types from the
+  by `PayRuns` (`fines.payslip_id`, a payslip line with `fine_id`), black points over 12 months; Trucks → Fines; M50 `Maintenance` — a schedule's likely date from the truck's
+  60-day pace, Trucks → Service due, `tripWarnings` in the dispatch check (warn, never stop)), `People` (people, activation codes; M40 `Leave` — leave types from the
   `leave_type` list plus unpaid, balances worked out per financial year, `leave_requests`, crew commands `leave.apply` /
   `leave.cancel`, People → Leave; unpaid days come off monthly pay in `PayCalculator`, leave on a trip's day is a dispatch
   `busy`; M41 `PersonActivity` — a person's trips and driving hours for the person page's tabs), `Documents` (documents, versions, files, required types, shares,
